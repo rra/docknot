@@ -1475,7 +1475,11 @@ A thread file is mostly plain ASCII text with a blank line between
 paragraphs.  There is no need to explicitly mark paragraphs; paragraph
 boundaries will be inferred from the blank line between them and the
 appropriate <p> tags will be added to the HTML output.  There is no need to
-escape any character except C<\> (which should be written as C<\\>).
+escape any character except C<\> (which should be written as C<\\>) and an
+unbalanced [ or ] (which should be written as C<\entity[91]> or
+C<\entity[93]> respectively).  Escaping [ or ] is not necessary if the
+brackets are balanced within the paragraph, and therefore is only rarely
+needed.
 
 Commands begin with C<\>.  For example, the command to insert a line break
 (corresponding to the <br> tag in HTML) is \break.  If the command takes
@@ -1712,7 +1716,7 @@ other text.  Most of them are simple analogs to their HTML counterparts.
 All of the following take a single argument (the enclosed text) and map to
 simple HTML tags:
 
-    \bold       <b></b>
+    \bold       <b></b>                 (usually use \strong)
     \cite       <cite></cite>
     \code       <code></code>
     \emph       <em></em>
@@ -1742,7 +1746,7 @@ so that the style sheet can then refer to class C<red> and change its color.
 An HTML entity with code <code>.  Basically, becomes &<code>; in the
 generated HTML, or &#<code>; if <code> is entirely numeric.  About the only
 time you'd need to use this is for non-ASCII characters (European names, for
-example).
+example) or if you need a literal [ or ] that isn't balanced.
 
 =item \image[<url>][<text>]
 
@@ -1814,11 +1818,6 @@ Currently, the style sheets for B<cl2xhtml>, B<cvs2xhtml>, B<faq2html>, and
 B<pod2thread> are hard-coded into this program to fit my web pages.  This
 makes this program awkward for others to use, since the style sheet has to
 be specified in every pointer file if they're using different names.
-
-It is occasionally necessary to escape [ and ] if there would otherwise be
-unbalanced square brackets in a paragraph.  This can sort of be done with
-HTML entities, but it would be better if the HTML output actually contained
-the correct characters.
 
 There is no way to configure how navigation links are added if the sitemap
 support is used.
