@@ -25,10 +25,11 @@ $URL = 'http://www.eyrie.org/~eagle/software/web/';
 
 use strict;
 use subs qw(expand parse parse_context);
-use vars qw(%DEPEND $DOCID @EXCLUDES $FILE $FULLPATH $ID $OUTPUT %SITEDESCS
-            %SITELINKS $SOURCE $SPACE @STATE $STYLES $URL %VERSIONS %commands
-            %macros %strings);
+use vars qw(%DEPEND $DOCID @EXCLUDES $FILE @FILES $FULLPATH $ID $OUTPUT
+            %SITEDESCS %SITELINKS $SOURCE $SPACE @STATE $STYLES $URL %VERSIONS
+            %commands %macros %strings);
 
+use FileHandle ();
 use Getopt::Long qw(GetOptions);
 use Image::Size qw(html_imgsize);
 use File::Copy qw(copy);
@@ -786,8 +787,20 @@ sub do_image {
     $text = parse ($text);
     my $size = lc html_imgsize ($image);
     my $output = qq(<img src="$image" alt="$text" $size);
-    $output .= format_string ($format) . " />\n";
+    $output .= format_string ($format) . " />";
     return (1, $output);
+}
+
+# Include a file.  Note that this includes a file after the current paragraph,
+# not immediately at the current point, which may be a bit surprising.
+# Someday, I should fix that.
+sub do_include {
+    my ($format, $file) = @_;
+    $file = parse ($file);
+    my $fh = FileHandle->new ("< $file")
+        or die "$0:$FILE:$.: cannot include $file: $!\n";
+    unshift (@FILES, [$fh, $file]);
+    return (1, '');
 }
 
 # A link to a URL or partial URL.
@@ -945,6 +958,7 @@ sub do_version {
              heading    => [  2, \&do_heading    ],
              id         => [  1, \&do_id         ],
              image      => [  2, \&do_image      ],
+             include    => [  1, \&do_include    ],
              italic     => [  1, \&do_italic     ],
              link       => [  2, \&do_link       ],
              number     => [  1, \&do_number     ],
@@ -970,31 +984,43 @@ for (1..6) { $commands{"h$_"} = [ 1, eval "sub { heading ($_, \@_) }" ] }
 # HTML from thread.
 sub spin {
     my ($thread, $output) = @_;
-    $FILE = $thread;
-    open (IN, $thread) or die "$0: can't open $thread: $!\n";
     open (OUT, "> $output") or die "$0: can't create $output: $!\n";
+    my $fh = FileHandle->new ("< $thread")
+        or die "$0: can't open $thread: $!\n";
+    @FILES = ([$fh, $thread]);
     $SPACE = '';
 
     # Parse the thread file a paragraph at a time (but pick up macro contents
-    # that are continued across paragraphs.
+    # that are continued across paragraphs.  We maintain the stack of files
+    # that we're parsing in @FILES, and do_include will unshift new file
+    # handle and filename pairs onto that stack.  That means that the top of
+    # the stack may change any time we call parse, so we have to grab our
+    # current values again each time through the loop.
     local $/ = '';
     local $_;
     border_start;
-    while (<IN>) {
-        my $open = tr/\[//;
-        my $close = tr/\]//;
-        while (!eof && $open > $close) {
-            my $extra = <IN>;
-            $open += ($extra =~ tr/\[//);
-            $close += ($extra =~ tr/\]//);
-            $_ .= $extra;
+    while (@FILES) {
+        ($fh, $FILE) = @{ $FILES[0] };
+        while (<$fh>) {
+            my $open = tr/\[//;
+            my $close = tr/\]//;
+            while (!eof && $open > $close) {
+                my $extra = <$fh>;
+                $open += ($extra =~ tr/\[//);
+                $close += ($extra =~ tr/\]//);
+                $_ .= $extra;
+            }
+            my $result = parse (escape ($_), 1);
+            output $result unless ($result =~ /^\s*$/);
+            ($fh, $FILE) = @{ $FILES[0] };
         }
-        my $result = parse (escape ($_), 1);
-        output $result unless ($result =~ /^\s*$/);
+        close $fh;
+        shift @FILES;
     }
     print OUT border_clear, $SPACE;
-    close IN;
     close OUT;
+    undef %macros;
+    undef %strings;
 }
 
 ##############################################################################
@@ -1330,13 +1356,13 @@ exception, F<.htaccess> files are also copied over.
 
 B<spin> looks for a file named F<.sitemap> at the top of the I<source>
 directory and reads it for navigation information to generate the navigation
-links at the bottom of each page.  The format of this file is one line per
-web page, with indentation showing the tree structure, and with each line
-formatted as a partial URL, a colon, and a page description.  If two pages
-at the same level aren't related, a line with three dashes should be put
-between them at the same indentation level.  The partial URLs should start
-with / representing the top of the hierarchy (the I<source> directory), but
-all generated links will be relative.
+links at the top and bottom of each page.  The format of this file is one
+line per web page, with indentation showing the tree structure, and with
+each line formatted as a partial URL, a colon, and a page description.  If
+two pages at the same level aren't related, a line with three dashes should
+be put between them at the same indentation level.  The partial URLs should
+start with / representing the top of the hierarchy (the I<source>
+directory), but all generated links will be relative.
 
 Here's an example of a simple F<.sitemap> file:
 
@@ -1505,11 +1531,17 @@ will then take care of putting the last modified date in the footer for you
 based on the CVS timestamp (which may be more accurate than the last
 modified time of the thread file).
 
+You can include other files with the \include command, although it has a few
+restrictions.  The \include command should appear either at the beginning of
+the file or after a blank line and should be followed by a blank line, and
+you should be careful not to include the same file recursively.
+
 =head2 Block Commands
 
 Block commands are commands that should occur in a paragraph by themselves,
 not containined in a paragraph with other text.  They indicate high-level
-structural elements of the page.  Two of them were already discussed above:
+structural elements of the page.  Three of them were already discussed
+above:
 
 =over 4
 
@@ -1526,6 +1558,14 @@ Tells B<spin> the CVS or RCS revision number and time.  This string is
 embedded verbatim in an HTML comment near the beginning of the generated
 output as well as used for the last modified information added by the
 \signature command.
+
+=item \include[<file>]
+
+Include <file> after the current paragraph.  If multiple files are included
+in the same paragraph, they're included in reverse order, but this behavior
+may change in later versions of B<spin>.  It's strongly recommended to
+always put the \include command in its own paragraph.  Don't put \heading or
+\signature into an included file; the results won't be correct.
 
 =back
 
@@ -1765,6 +1805,14 @@ It is occasionally necessary to escape [ and ] if there would otherwise be
 unbalanced square brackets in a paragraph.  This can sort of be done with
 HTML entities, but it would be better if the HTML output actually contained
 the correct characters.
+
+There is no way to configure how navigation links are added if the sitemap
+support is used.
+
+\include needs some work to make it behave as expected without requiring
+that each \include be in its own paragraph.  It should be possible to
+support \heading and \signature in included files without breaking the
+navigation link support.
 
 =head1 SEE ALSO
 
