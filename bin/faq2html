@@ -3,17 +3,17 @@ $ID = q$Id$;
 #
 # faq2html -- Convert some particular text formats into HTML.
 #
-# Copyright 1999, 2000, 2001 by Russ Allbery <rra@stanford.edu>
+# Copyright 1999, 2000, 2001, 2002 by Russ Allbery <rra@stanford.edu>
 #
 # This program is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
 # This program is an ad hoc set of heuristics and tricks, attempting to
-# convert a few text file formats that I commonly use into reasonable HTML.
-# It's my opinion that general text to HTML conversions is impossible due to
+# convert a few text file formats that I commonly use into reasonable XHTML.
+# It's my opinion that general text to XHTML conversions is impossible due to
 # the huge number of differing formats used by different people when writing
 # text; this doesn't try to solve the general problem.  Rather, it's good
-# enough to turn the FAQs I maintain into HTML documents, which is all that I
+# enough to turn the FAQs I maintain into XHTML documents, which is all that I
 # need of it.
 
 ##############################################################################
@@ -31,7 +31,6 @@ use Getopt::Long qw(GetOptions);
 @MONTHS = qw(January February March April May June July August September
              October November December);
 
-
 ##############################################################################
 # Utility functions
 ##############################################################################
@@ -39,7 +38,7 @@ use Getopt::Long qw(GetOptions);
 # Turns section numbers at the beginning of lines in a paragraph into links.
 sub contents {
     local $_ = shift;
-    s%^(\s*([\d.]+)[.\)]\s+)(.*?)([ \t]*\n)%$1<a href="#$2">$3</a>$4%gm;
+    s%^(\s*([\d.]+)[.\)]\s+)(.*?)([ \t]*\n)%$1<a href="#S$2">$3</a>$4%gm;
     $_;
 }
 
@@ -76,7 +75,7 @@ sub lines { local $_ = shift; s/\s+$/\n/; tr/\n// }
 # Deal with miniature indents in regular paragraphs.
 sub minident {
     local $_ = shift;
-    s/\n(\s{$INDENT})\s{1,2}(\S)/<br>\n$1&nbsp;$2/;
+    s%\n(\s{$INDENT})\s{1,2}(\S)%<br />\n$1&nbsp;$2%;
     $_;
 }
 
@@ -152,7 +151,6 @@ sub urlize { local $_ = shift; s%&lt;URL:(.+?)&gt;%url ($1)%ge; $_ }
 
 # Remove whitespace at the beginning and end of a string.
 sub whitechomp { local $_ = shift; s/^\s+//; s/\s+$//; $_ }
-
 
 ##############################################################################
 # Identification functions
@@ -257,14 +255,43 @@ sub is_sentence { $_[0] =~ /\S[.?!][\)\]\"]?\s*$/ }
 # defined to be a paragraph whose first line is exactly "-- ".
 sub is_signature { $_[0] =~ /^-- \n/ }
 
-
 ##############################################################################
 # HTML constructors
 ##############################################################################
 
+# Output the DTD for XHTML.  We claim "transitional" XHTML 1.0 compliance; we
+# can't claim strict solely because we use the value attribute in <li> in the
+# absence of widespread implementation of CSS Level 2.
+sub dtd {
+    qq(<?xml version="1.0" encoding="iso-8859-1"?>\n)
+        . qq(<!DOCTYPE html\n)
+        . qq(    PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"\n)
+        . qq(    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">)
+        . "\n";
+}
+
+# The initial <html> tag, which is a bit complicated for XHTML.
+sub html {
+    qq(<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">);
+}
+
+# A link to a CSS style sheet.
+sub style {
+    my $style = shift;
+    qq(<link rel="stylesheet" href="$style" type="text/css" />);
+}
+
+# An XML comment.
+sub comment {
+    my @data = @_;
+    my $data = join ('', @data);
+    '<!-- ' . $data . '-->';
+}
+
 # Wrap a container around data, keeping the tags on the same line.
 sub container {
-    my ($tag, $data) = @_;
+    my ($tag, @data) = @_;
+    my $data = join ('', @data);
     $data = '<' . $tag . '>' . $data;
     $tag =~ s/ .*//;
     $data =~ s%(\s*)$%</$tag>$1%;
@@ -286,13 +313,14 @@ sub li {
     my ($data, $value) = @_;
     my $output = $STATE{li} ? "</li>\n" : '';
     $STATE{li} = 1;
-    $output . (defined $value ? "<li value=$value>\n" : "<li>\n") . $data;
+    $output . (defined $value ? qq(<li value="$value">\n) : "<li>\n") . $data;
 }
 
 # Wrap a container around data, preserving trailing blank lines outside and
 # putting the tags on lines of their own.
 sub paragraph {
-    my ($tag, $data) = @_;
+    my ($tag, @data) = @_;
+    my $data = join ('', @data);
     $data .= "\n" unless ($data =~ /\n$/);
     '<' . $tag . ">\n" . $data . '</' . $tag . ">\n";
 }
@@ -335,17 +363,17 @@ sub title {
     s/\s*\n\s*/ /g;
     s/^\s+//;
     s/\s+$//;
-    '<title>' . $_ . '</title>' . "\n";
+    '<title>' . $_ . '</title>';
 }
 
 # Various containers.
 sub blockquote { paragraph ('blockquote', @_) }
+sub h1         { container ('h1',         @_) }
 sub h2         { container ('h2',         @_) }
 sub h3         { container ('h3',         @_) }
 sub head       { paragraph ('head',       @_) }
 sub p          { paragraph ('p',          @_) }
 sub pre        { container ('pre',        @_) }
-
 
 ##############################################################################
 # Header parsing
@@ -408,7 +436,6 @@ sub handle_doc_headers {
     # Return the information we found.
     return ($author, $subject, $id);
 }
-
 
 ##############################################################################
 # Main routine
@@ -493,19 +520,20 @@ $heading ||= $title;
 $heading = urlize $heading;
 
 # Generate the heading of the HTML file, using the filename as the title if we
-# haven't been able to find a title.  We claim "transitional" HTML 4.0
+# haven't been able to find a title.  We claim "transitional" XHTML 1.0
 # compliance; we can't claim strict solely because we use the value attribute
-# in <li> for the lack of any working alternative.
+# in <li> in the absence of widespread implementation of CSS Level 2.
 ($version) = (split (' ', $ID))[2];
-output '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"';
-output "\n        \"http://www.w3.org/TR/REC-html40/loose.dtd\">\n\n";
-output "<!-- $id -->\n" if $id;
-output "<!-- Converted to HTML by faq2html version $version -->\n\n";
-output "<html>\n", head (title ($title || $output || 'faq2html output'));
+output dtd, "\n";
+output comment ($id), "\n" if $id;
+output comment ("Converted to XHTML by faq2html version $version"), "\n\n";
+output html, "\n";
+output head (title ($title || $output || 'faq2html output'), "\n",
+             style ('/~eagle/styles/faq.css'), "\n");
 
 # Open the body of the document, and print out the heading if we found one.
-output "\n<body>\n";
-output "<h1 align=center>$heading</h1>\n" if $heading;
+output "\n<body>\n\n";
+output h1 ($heading), "\n" if $heading;
 
 # If we have additional headers, print them out.  Otherwise, if we have author
 # information from a From header, print that out under the main heading.  If
@@ -522,8 +550,8 @@ if ($heading) {
             output "</strong>\n</p>\n" if $subheading;
             $subheading = 0;
         } else {
-            output "<p align=center><strong>\n" unless $subheading;
-            output "<br>\n" if $subheading;
+            output qq(<p class="subheading"><strong>\n) unless $subheading;
+            output "<br />\n" if $subheading;
             $subheading++;
             if ($id && (/\$Revision/ || /\$Date/)) {
                 output '  ', modified ($id);
@@ -536,11 +564,11 @@ if ($heading) {
     }
     if (!defined $subheading && $author) {
         $subheading++;
-        output "<p align=center><strong>\n";
+        output qq(<p class="subheading"><strong>\n);
         output '  ', escape ($author);
-        output "<br>\n  (originally by ", escape ($original), ')'
+        output "<br />\n  (originally by ", escape ($original), ')'
             if $original;
-        output "<br>\n  ", modified ($id) if $id;
+        output "<br />\n  ", modified ($id) if $id;
     }
     output "</strong>\n</p>\n" if $subheading;
 }
@@ -563,7 +591,7 @@ while (defined $BUFFER) {
     # section titles are always level 2 headers currently.
     if (is_divider $_) {
         $STATE{pre} = 0;
-        output start, "<hr>\n";
+        output start;
         ($WS) = /\n(\s*)$/;
         $_ = slurp;
         s/\n(\s*)$/\n/;
@@ -572,7 +600,7 @@ while (defined $BUFFER) {
             $STATE{contents} = /\bcontents\b/i;
             $_ = escape $_;
             if (/^([\d.]+)[.\)]\s/) {
-                output start, h2 (container ("a name=\"$1\"", $_));
+                output start, h2 (container (qq(a name="S$1" id="S$1"), $_));
             } else {
                 output start, h2 ($_);
             }
@@ -585,7 +613,7 @@ while (defined $BUFFER) {
     if (is_rule $_) {
         $STATE{pre} = 0;
         ($space) = /\n(\s*)$/;
-        output start, "<hr>\n";
+        output start, "<hr />\n";
         next
     }
 
@@ -645,7 +673,8 @@ while (defined $BUFFER) {
             $h = \&h2;
         }
         if (/^([\d.]+)[.\)]\s/) {
-            output start, &$h (container ("a name=\"$1\"", derule ($_)));
+            my $anchor = qq(a name="S$1" id="S$1");
+            output start, &$h (container ($anchor, derule ($_)));
         } else {
             output start, &$h (derule ($_));
         }
@@ -707,7 +736,7 @@ while (defined $BUFFER) {
         my $broken = is_broken ($_) || is_contents ($_);
         $_ = denumber $_;
         $INDENT = indent $_;
-        s/(\n\s*\S)/<br>$1/g if $broken;
+        s%(\n\s*\S)%<br />$1%g if $broken;
         output start ('ol', li (p (embolden $_), $number));
         next;
     }
@@ -724,7 +753,7 @@ while (defined $BUFFER) {
             $_ = $body;
             $title = embolden ($title . "\n");
             $INDENT = indent $_;
-            s/(\n\s*\S)/<br>$1/g if is_broken $_;
+            s%(\n\s*\S)%<br />$1%g if is_broken $_;
             output start ('dl', dt ($title));
             output start ('dd', (p (minident (embolden $_))));
             next;
@@ -761,7 +790,7 @@ while (defined $BUFFER) {
     # haven't already.
     $INDENT = $indent;
     $STATE{baseline} = $indent unless defined $STATE{baseline};
-    s/(\n\s*\S)/<br>$1/g if is_broken $_;
+    s%(\n\s*\S)%<br />$1%g if is_broken $_;
     output p (minident (embolden $_));
 
 } continue {
@@ -779,7 +808,7 @@ __END__
 
 =head1 NAME
 
-faq2html - Convert some particular text formats into HTML
+faq2html - Convert some particular text formats into XHTML
 
 =head1 SYNOPSIS
 
@@ -788,10 +817,11 @@ B<faq2html> [B<-hv>] [I<infile> [I<outfile>]]
 =head1 DESCRIPTION
 
 Yes, this is another of those odd breed of partially functional beasts, a
-text to HTML converter.  It is my belief that writing a general text to HTML
-converter is completely impossible, on the grounds that people do too many
-varied things with their text to intuit document structure from it.  This is
-therefore a converter that will translate documents written the way I write.
+text to XHTML converter.  It is my belief that writing a general text to
+XHTML converter is completely impossible, on the grounds that people do too
+many varied things with their text to intuit document structure from it.
+This is therefore a converter that will translate documents written the way
+I write.
 
 It may or may not work for you.  The chances that it will work for you are
 directly proportional to how much your writing looks like mine.
@@ -808,9 +838,9 @@ successful if you outdent your section headers (in other words, indent all
 of the normal text by a few spaces and start headers in column 0).
 
 Section headers that begin with numbers (with any number of periods) will be
-given E<lt>a nameE<gt> tags.  As a special case of the parsing, any section
+given E<lt>a idE<gt> tags.  As a special case of the parsing, any section
 with a header containing "contents" will have lines beginning with numbers
-turned into links to the appropriate E<lt>a nameE<gt> tags in the same
+turned into links to the appropriate E<lt>a idE<gt> tags in the same
 document.  You can use this to turn the table of contents of your minimal
 digest format FAQ into a real table of contents with links in the HTML
 version.
@@ -860,7 +890,7 @@ by E<lt>strongE<gt> tags, if the asterixes appear to be marking bold text
 rather than serving as wildcards or some other function.
 
 B<faq2html> produces output (at least in the absence of any lurking bugs)
-which complies with the HTML 4.0 Transitional standard.  (Transitional
+which complies with the XHTML 1.0 Transitional standard.  (Transitional
 solely because it uses the value attribute of E<lt>liE<gt>.)
 
 =head1 OPTIONS
@@ -886,9 +916,9 @@ write like it wanted you to write rather than like the way you wanted to
 write.  This program instead wants you to write like I write.  Which from my
 perspective is an improvement.
 
-I don't claim that this is the be-all and end-all of text to HTML
+I don't claim that this is the be-all and end-all of text to XHTML
 converters, as I don't believe such a beast exists.  I do believe it's
-pretty close to being the be-all and end-all of text to HTML converters for
+pretty close to being the be-all and end-all of text to XHTML converters for
 text that I personally have written, since I've written into it a lot of
 knowledge of the sorts of text formatting conventions that I use.  If you
 happen to use the same ones, you may be delighted with this program.  If you
@@ -918,6 +948,6 @@ a document yourself.  That's not the way I want this program to work.
 
 =head1 AUTHOR
 
-Russ Allbery E<lt>rra@stanford.eduE<gt>
+Russ Allbery <rra@stanford.edu>
 
 =cut
