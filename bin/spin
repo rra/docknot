@@ -2,7 +2,8 @@
 $ID = q$Id$;
 #
 # spin -- Translate thread (an HTML macro language) into HTML.
-#         Copyright 1999, 2000, 2001, 2002 by Russ Allbery <rra@stanford.edu>
+#
+# Copyright 1999, 2000, 2001, 2002, 2003 by Russ Allbery <rra@stanford.edu>
 #
 # This program is free software; you may redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -18,8 +19,8 @@ $URL = 'http://www.eyrie.org/~eagle/software/web/';
 
 use strict;
 use subs qw(expand parse);
-use vars qw($DOCID $FILE $FULLPATH $ID $OUTPUT $SOURCE $SPACE @STATE $STYLES
-            $URL %commands %macros %strings);
+use vars qw($DOCID $FILE $FULLPATH $ID $OUTPUT %SITEDESCS %SITELINKS $SOURCE
+            $SPACE @STATE $STYLES $URL %commands %macros %strings);
 
 use Getopt::Long qw(GetOptions);
 use Image::Size qw(html_imgsize);
@@ -241,49 +242,103 @@ sub parse {
 # Page footers
 ##############################################################################
 
-# Given the name of the current file being processed, opens a .placement file
-# if available and returns the navigation links for that file.  If no
-# .placement file is present, nothing is returned.
+# Read the sitemap file for a site and flesh out the %SITEDESCS and %SITELINKS
+# hashes with information from that file.  The first holds a map of partial
+# URLs to descriptions, and %SITELINKS map partial URLs to a list of other
+# partial URLs (previous, next, and up).  The format of the sitemap file is
+# one line per web page, with indentation showing the tree structure, and with
+# each line formatted as a partial URL, a colon, and a page description.  If
+# two pages at the same level aren't related, a line with three dashes should
+# be put between them at the same indentation level.
+sub read_sitemap {
+    my $map = shift;
+
+    # @indents holds a stack of indentation levels.  @parents is a matching
+    # stack of parent URLs for each level of indentation, and @prev is a
+    # matching stack of the previous page at each level of indentation.  If
+    # $prev[0] is undef, there is no previous page at that level.
+    my @indents = (0);
+    my @parents = ('/');
+    my @prev;
+    open (MAP, $map) or die "$0: cannot open $map: $!\n";
+    local $_;
+    while (<MAP>) {
+        next if /^\s*\#/;
+        if (/^( *)---$/) {
+            my $indent = length ($1);
+            while ($indents[0] > $indent) {
+                shift @indents;
+                shift @prev;
+                shift @parents;
+            }
+            $prev[0] = undef;
+            next;
+        }
+        my ($indent, $url, $desc) = /^( *)([^\s:]+):\s+(.+)$/;
+        next unless defined $desc;
+        $indent = length ($indent);
+        if ($indent > $indents[0]) {
+            unshift (@parents, $prev[0]);
+            unshift (@indents, $indent);
+            unshift (@prev, undef);
+        }
+        while ($indents[0] > $indent) {
+            shift @indents;
+            shift @prev;
+            shift @parents;
+        }
+        $SITELINKS{$url} = [ $prev[0], undef, $parents[0] ];
+        $SITELINKS{$prev[0]}[1] = $url if defined $prev[0];
+        $prev[0] = $url;
+        $SITEDESCS{$url} = $desc;
+    }
+    close MAP;
+    $SITEDESCS{'/'} = 'the main page';
+}
+
+# Given the partial URL to the current page and the partial URL to another
+# page, generate a relative URL between the two.
+sub relative {
+    my ($start, $end) = @_;
+    my @start = split ('/', $start, -1);
+    my @end = split ('/', $end, -1);
+    while (@start && @end && $start[0] eq $end[0]) {
+        shift @start;
+        shift @end;
+    }
+    if (@start == 1 && @end == 1) {
+        return ($end[0] ? $end[0] : './');
+    } else {
+        return ('../' x $#start) . join ('/', @end);
+    }
+}
+
+# Given the name of the current file being processed, return the navigation
+# links for that file.  Uses the global %SITEDESCS and %SITELINKS variables.
+# If the partial URL isn't found in those variables, nothing is returned.
 sub placement {
     my $file = shift;
+    $file = $File::Find::dir . '/' . $file;
+    $file =~ s%^\Q$SOURCE%%;
+    $file =~ s%/index\.html$%/%;
 
-    # Grab placement information for links if we have it.
     my $output = '';
-    if (open (PLACEMENT, '.placement')) {
-        local $_;
-        local $/ = "\n";
-        my (%titles, @placement);
-        while (<PLACEMENT>) {
-            next if /^\s*$/;
-            last if /---/;
-            my ($page, $title) = split (' ', $_, 2);
-            chomp $title;
-            $titles{$page} = $title;
-        }
-        while (<PLACEMENT>) {
-            if (/^$file\s/) {
-                chomp;
-                @placement = split;
-                shift @placement;
-                last;
-            }
-        }
-        close PLACEMENT;
-        unless (@placement) {
-            die "$0: can't find placement for $file\n";
-        }
-        @placement = map { $_ eq '!' ? undef : $_ } @placement;
-        unless ($placement[0] || $placement[1] || $placement[2]) {
-            return;
-        }
+    if ($SITELINKS{$file}) {
+        my @links = @{ $SITELINKS{$file} };
+        my @descs = map { defined ($_) ? $SITEDESCS{$_} : '' } @links;
+        @links = map { defined ($_) ? relative ($file, $_) : undef } @links;
 
+        # Swap the order to make next before previous.
+        @links[0,1] = @links[1,0];
+        @descs[0,1] = @descs[1,0];
+
+        # Make the HTML for the footer.
         my @text = ('Onward to', 'Back to', 'Return to');
         my $br = '';
         $output .= qq(<p class="navigation">\n);
         for my $i (0..2) {
-            next unless defined $placement[$i];
-            my $href = '<a href="' . $placement[$i] . '">' .
-                $titles{$placement[$i]} . '</a>';
+            next unless defined $links[$i];
+            my $href = '<a href="' . $links[$i] . '">' . $descs[$i] . '</a>';
             $href =~ s/^(<[^>]+>)the /the $1/;
             $output .= $br . '    ' . $text[$i] . ' ' . $href;
             $br = "<br />\n";
@@ -888,6 +943,7 @@ if ($filter) {
 } else {
     if (@ARGV != 2) { die "Usage: $0 <source> <output>\n" }
     ($SOURCE, $OUTPUT) = @ARGV;
+    read_sitemap ("$SOURCE/.sitemap");
     $File::Find::dont_use_nlink = 1;
     find (\&process_file, $SOURCE);
 }
@@ -978,15 +1034,15 @@ then a \header macro specifying the page title and style sheet; this will
 set up the proper XHTML headers.  Each page should also end with \signature,
 which will append the navigation links and an address block.
 
-B<spin> looks for a file named F<.placement> in the same directory as a
-thread file and reads it for navigation information to generate the
-navigation links at the bottom of the page.  The format of this file is a
-list of partial URLs, whitespace, and their page titles, one per line,
-followed by a line consisting of three dashes, and then names of HTML files
-in that directory followed by three space-separated partial URLs.  These
-partial URLs specify the next page, the previous page, and the "up" page in
-that order.  If any of these should not be given, use C<!> as the value of
-that field.
+B<spin> looks for a file named F<.sitemap> at the top of the I<source>
+directory and reads it for navigation information to generate the navigation
+links at the bottom of each page.  The format of this file is one line per
+web page, with indentation showing the tree structure, and with each line
+formatted as a partial URL, a colon, and a page description.  If two pages
+at the same level aren't related, a line with three dashes should be put
+between them at the same indentation level.  The partial URLs should start
+with / representing the top of the hierarchy (the I<source> directory), but
+all generated links will be relative.
 
 B<spin> also looks for a file named F<.signature> in the same directory as a
 thread file and uses its contents as the basis of the <address> block at the
@@ -1056,7 +1112,7 @@ Russ Allbery <rra@stanford.edu>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 1999, 2000, 2001, 2002 by Russ Allbery <rra@stanford.edu>.
+Copyright 1999, 2000, 2001, 2002, 2003 by Russ Allbery <rra@stanford.edu>.
 
 This program is free software; you may redistribute it and/or modify it
 under the same terms as Perl itself.
