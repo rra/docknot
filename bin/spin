@@ -18,7 +18,7 @@ require 5.005;
 $URL = 'http://www.eyrie.org/~eagle/software/web/';
 
 use strict;
-use subs qw(expand parse);
+use subs qw(expand parse parse_context);
 use vars qw($DOCID $FILE $FULLPATH $ID $OUTPUT %SITEDESCS %SITELINKS $SOURCE
             $SPACE @STATE $STYLES $URL %commands %macros %strings);
 
@@ -38,13 +38,16 @@ use Text::Balanced qw(extract_bracketed);
 # the output string after any close tags.  This gets spacing working properly
 # around boundaries.
 sub output {
-    my $output = join ('', @_);
+    local $_ = join ('', @_);
     if ($SPACE) {
-        $output =~ s%^(\s*(?:</(?!body)[^>]+>\s*)*)%$1$SPACE%;
+        my ($close, $body) = m%^(\s*(?:</(?!body)[^>]+>\s*)*)(.*)%s;
+        $close .= $SPACE;
+        $close =~ s/\n\s*\n\s*\n/\n\n/g;
+        $_ = $close . $body;
         $SPACE = '';
     }
-    if ($output =~ s/\n(\s+)\z/\n/) { $SPACE = $1 }
-    print OUT $output;
+    if (s/\n(\s+)\z/\n/) { $SPACE = $1 }
+    print OUT $_;
 }
 
 ##############################################################################
@@ -152,35 +155,36 @@ sub extract {
 sub macro {
     my ($args, $definition, $block) = @_;
     $definition =~ s/\\(\d+)/($1 > $args) ? "\\$1" : $_[$1 + 2]/ge;
-    parse ($definition, $block);
+    return parse_context ($definition, $block);
 }
 
 # Expand a given command into its representation.  This function is mutually
 # recursive with parse.  Takes a third argument indicating whether this is a
 # top-level element (if it is, and it doesn't generate its own container, it
-# may have to be wrapped in <p>) and a fourth argument saying whether we're at
-# the top level of the document.
+# may have to be wrapped in <p>).  Returns the result of expanding the
+# command, a flag saying whether the command is block level, and the remaining
+# text in the paragraph.
 sub expand {
     my ($command, $text, $block) = @_;
     if ($command eq '==') {
         my ($new, $args, $definition);
         ($new, $args, $definition, $text) = extract ($text, 3);
         $macros{$new} = [ $args, $definition ];
-        return ('', $text);
+        return ('', 1, $text);
     } elsif ($command eq '=') {
         my ($variable, $value);
         ($variable, $value, $text) = extract ($text, 2);
         $strings{$variable} = parse ($value);
-        return ('', $text);
+        return ('', 1, $text);
     } elsif ($command =~ s/^=//) {
         if (exists $strings{$command}) {
-            return ($strings{$command}, $text);
+            return ($strings{$command}, 0, $text);
         } else {
             warn "$0:$FILE:$.: unknown string $command\n";
-            return ('', $text);
+            return ('', 0, $text);
         }
     } elsif ($command eq '\\') {
-        return ('\\', $text);
+        return ('\\', 0, $text);
     } elsif (ref $macros{$command}) {
         my ($args, $definition) = @{ $macros{$command} };
         my @args;
@@ -193,7 +197,7 @@ sub expand {
     } else {
         if (!ref $commands{$command}) {
             warn "$0:$FILE:$.: bad command $command\n";
-            return ('', $text);
+            return ('', 1, $text);
         }
         my ($args, $handler) = @{ $commands{$command} };
         my ($blocktag, $result);
@@ -205,26 +209,28 @@ sub expand {
             my $format = shift @args;
             ($blocktag, $result) = &$handler ($format, @args);
         }
-        if ($block && !$blocktag && $text !~ /\S/) {
-            return (border . paragraph ($result . $text), '');
-        } else {
-            return ($result, $text);
-        }
+        return ($result, $blocktag, $text);
     }
 }
 
-# Given a text string, check it for escape sequences.  If there are any,
-# expand them, returning the final string after all expansions have been done.
-# This function is mutually recursive with expand.  Takes one flag, saying
-# whether we're at the block level.
-sub parse {
+# Given a text string, check it for escape sequences and expand them.  This
+# function is mutually recursive with expand.  Takes one flag, saying whether
+# we're at the block level.  Returns the expanded text and a flag saying
+# whether the result is suitable for block level.
+sub parse_context {
     my ($text, $block) = @_;
     if (index ($text, '\\') == -1) {
-        return $block ? (border . paragraph ($text)) : $text;
+        my $output = $text;
+        $output = border . paragraph ($output) if $block;
+        return ($output, $block);
     }
 
     # Chop off everything up to the first backslash and save it in output.
     # Then grab the escape and figure out what to do with it.
+    #
+    # $complex is a flag indicating whether the paragraph that we're parsing
+    # is made up of intermixed commands and text.  If it is, the result needs
+    # to be wrapped in paragraph tags if we're at block level.
     my $output = '';
     my $complex = 0;
     while ($text) {
@@ -238,17 +244,33 @@ sub parse {
             $complex = 1 if ($string =~ /\S/);
         } else {
             $command = $2;
-            my $result;
             my $block = $block && ($output !~ /\S/);
-            ($result, $text) = expand ($command, $text, $block);
+            my ($result, $blocktag);
+            ($result, $blocktag, $text) = expand ($command, $text, $block);
+            $complex = 1 if !$blocktag;
             $output .= $result;
         }
         if ($text =~ s/^\n(\s*)//) {
-            $output .= "\n" if ($text || $complex);
+            $output .= "\n" if $text || $complex;
             $output .= $1;
         }
     }
-    return ($block && $complex) ? (border . paragraph ($output)) : $output;
+
+    # If we're at block level, we have to decide whether or not to wrap the
+    # output in paragraph tags.  We do this iff $complex is true and we're at
+    # block level.  If we were at block level, our result is always suitable
+    # for block level.  If what we parsed was not complex, meaning that it
+    # consisted solely of commands suitable for block level, the result is
+    # also suitable for block level.
+    $output = border . paragraph ($output) if ($block && $complex);
+    return ($output, $block || !$complex);
+}
+
+# A wrapper around parse_context for callers who don't care about the block
+# level of the results.
+sub parse {
+    my ($output) = parse_context (@_);
+    return $output;
 }
 
 ##############################################################################
@@ -471,7 +493,8 @@ sub block {
         $output .= border_clear;
     }
     $output = $border . "<$tag" . format_string ($format) . '>' . $output;
-    $output =~ s%\s*\z%</$tag>\n%;
+    $output =~ s%\s*\z%</$tag>%;
+    $output .= "\n" unless $format eq 'packed';
     return (1, $output);
 }
 
@@ -534,13 +557,13 @@ sub do_rule   { return (1, border . "<hr />\n") }
 
 # Basic block commands.
 sub do_block  { block ('blockquote', '', @_) }
-sub do_bullet { block ('li', border ('bullet', "<ul>\n", "</ul>\n"), @_) }
-sub do_number { block ('li', border ('number', "<ol>\n", "</ol>\n"), @_) }
+sub do_bullet { block ('li', border ('bullet', "<ul>\n", "</ul>\n\n"), @_) }
+sub do_number { block ('li', border ('number', "<ol>\n", "</ol>\n\n"), @_) }
 
 # A description list entry, which takes the heading and the body as arguments.
 sub do_desc {
     my ($format, $heading, $text) = @_;
-    my $initial = border ('desc', "<dl>\n", "</dl>\n");
+    my $initial = border ('desc', "<dl>\n", "</dl>\n\n");
     $initial .= '<dt>' . parse ($heading) . "</dt>\n";
     return block ('dd', $initial, $format, $text);
 }
@@ -776,7 +799,7 @@ sub spin {
             $close += ($extra =~ tr/\]//);
             $_ .= $extra;
         }
-        my $result = parse (escape ($_), 1, 1);
+        my $result = parse (escape ($_), 1);
         output $result unless ($result =~ /^\s*$/);
     }
     print OUT border_clear, $SPACE;
