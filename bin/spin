@@ -711,7 +711,7 @@ sub do_tablerow {
 sub do_verbatim {
     my ($format, $text) = @_;
     $text = unescape ($text);
-    return (1, $output);
+    return (1, $text);
 }
 
 # The table of available commands.  First column is the number of arguments,
