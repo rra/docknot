@@ -421,6 +421,9 @@ sub format_string {
     my $format = shift;
     if ($format) {
         if ($format =~ s/^\#//) {
+            if ($format =~ /\s/) {
+                warn qq($0:$FILE:$.: Space in anchor "$format"\n);
+            }
             return ' id="' . $format . '"';
         } else {
             return ' class="' . $format . '"';
@@ -927,7 +930,7 @@ sub read_pointer {
 # it.  It's called from within File::Find and therefore uses the standard
 # File::Find variables.
 sub process_file {
-    return if /^\./;
+    $File::Find::prune = 1, return if (/^\./ && $_ ne '.htaccess');
     $File::Find::prune = 1, return if ($_ eq 'CVS' || $_ eq 'Makefile');
     my $input = $File::Find::name;
     my $output = $input;
@@ -1073,7 +1076,8 @@ Which converter to run is based on the extension of the file as follows:
     .rpod       pod2thread <file> | spin -f
 
 All other files not beginning with a period are copied as-is, except that
-files or directories named C<CVS> or C<Makefile> are ignored.
+files or directories named C<CVS> or C<Makefile> are ignored.  As an
+exception, F<.htaccess> files are also copied over.
 
 The exact details of the macro language are as yet not documented.  The
 basic format, however, is that macro invocations start with C<\>, take an
