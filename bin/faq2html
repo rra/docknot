@@ -1,0 +1,161 @@
+#!/usr/bin/perl
+$ID = q$Id$;
+#
+# faq2html -- Convert some particular text formats into HTML.
+#             Copyright 1999 by Russ Allbery <rra@stanford.edu>
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the same terms as Perl itself.
+#
+# This program is an ad hoc set of heuristics and tricks, attempting to
+# convert a few text file formats that I commonly use into reasonable HTML.
+# It's my opinion that general text to HTML conversions is impossible due to
+# the huge number of differing formats used by different people when writing
+# text; this doesn't try to solve the general problem.  Rather, it's good
+# enough to turn the FAQs I maintain into HTML documents, which is all that
+# I need of it.
+
+############################################################################
+# Utility functions
+############################################################################
+
+# Escapes &, <, and > characters found in a string.
+sub escape {
+    my $string = shift;
+    for ($string) { s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g }
+    $string;
+}
+
+# Returns the length of the indentation of a line or paragraph.
+sub indent { $_[0] =~ /^(\s*)/; length $1 }
+
+# Returns the number of lines in a paragraph, not counting trailing blanks.
+sub lines { my $string = shift; $string =~ s/\s+$/\n/; $string =~ tr/\n// }
+
+# Remove all whitespace in a string.
+sub smash { my $string = shift; $string =~ s/\s//g; $string }
+
+# Undoes HTML character escapes.
+sub unescape {
+    my $string = shift;
+    for ($string) { s/&amp;/&/g; s/&lt;/</g; s/&gt;/>/g }
+    $string;
+}
+
+# Remove a constant prefix at the beginning of each line of a paragraph.
+sub unquote {
+    my ($string, $quote) = @_;
+    $string =~ s/((?:^|\n)\s*)\Q$quote\E\s+/$1/g;
+    $string;
+}
+
+# Replace tabs with spaces.
+sub untabify {
+    local $_ = shift;
+    1 while s/^(.*)(\t+)/' ' x (length ($2) * 8 - length ($1) % 8)/me;
+    $_;
+}
+
+# Given a special-character-escaped URL and some text, wrap <a href></a> to
+# that URL around the text.
+sub href { '<a href="' . smash (unescape $_[0]) . '">' . $_[1] . '</a>' }
+
+# Looks for a URL in <URL:...> form and wraps a link around it.
+sub urlize {
+    my $string = shift;
+    $string =~ s%(&lt;URL:([^.&][^&]+)&gt;)%href ($2, $1)%ge;
+    $string;
+}
+
+
+############################################################################
+# Identification functions
+############################################################################
+
+# Expects a paragraph, returns whether it's in all capital letters.
+sub is_allcaps { $_[0] !~ /[^A-Z\"\(\),:-]/ }
+
+# Expects a paragraph, returns whether it looks like it's broken into a
+# series of short lines.
+sub is_broken {
+    my $string = shift;
+    $string =~ s/\s+$/\n/;
+    my @lines = split ("\n", $string);
+    my $short = grep { length ($_) < 60 } @lines;
+    $short == @lines || $short > 1;
+}
+
+# Expects a paragraph, returns whether we're dealing with a bulletted item.
+sub is_bullet { $_[0] =~ /^\s*[-*o]\s/ }
+
+# Expects a line, returns whether it's centered (in 74 columns).
+sub is_centered {
+    $_[0] =~ /^(\s+)(.+)/ && abs (74 - (length $2) - (length $1) * 2) < 2;
+}
+
+# Expects a line, returns whether it's a digest divider.
+sub is_divider { $_[0] =~ /^-{30}\s*$/ }
+
+# Expects a line, returns whether it fits the content of a header.
+sub is_header { $_[0] !~ /[^\w\"\(\),:-]/ }
+
+# Expects a line, returns whether it appears to have internal whitespace.
+sub is_literal { $_[0] =~ /^\s*\S.*(?:[^.?!\"\)\]]  |   )\S/ }
+
+# Expects a paragraph, returns undef if it doesn't look like a numbered
+# paragraph or the number if it does.
+sub is_numbered { ($_[0] =~ /^\s*(\d\d?)[.\)]\s/) ? $1 : undef }
+
+# Expects a paragraph, returns undef if not quoted or the quote character if
+# it is quoted.
+sub is_quoted { $_[0] =~ /^\s*([^\w\s])\s+.*\n(\s*\1\s+.*\n)*$/ && $1 }
+
+# Expects a line, returns whether it's a rule.
+sub is_rule { $_[0] =~ /^[-=]{70,80}$/ }
+
+# Expects a line, returns whether it's short (<60 columns).
+sub is_short { length $_[0] < 60 }
+
+
+############################################################################
+# HTML constructors
+############################################################################
+
+# Paragraph, <blockquote></blockquote>
+sub blockquote {
+    local $_ = shift;
+    s/(\s+)\n$/\n/;
+    my $space = $1;
+    "<blockquote>\n" . $_ . "</blockquote>\n" . $space;
+}
+
+# Paragraph, <p>
+sub p { "<p>\n" . $_[0] }
+
+
+############################################################################
+# Main routine
+############################################################################
+
+# Trim extraneous garbage from the path.
+my $fullpath = $0;
+$0 =~ s%.*/%%;
+
+# Figure out what file we're going to be processing.
+my ($input, $output) = @ARGV or die "Usage: faq2html infile outfile\n";
+open (IN, $input) or die "$0: can't open $input: $!\n";
+open (OUT, "> $output") or die "$0: can't write to $output: $!\n";
+
+# Simple scan.
+$/ = '';
+while (<IN>) {
+    $_ = urlize (untabify (escape ($_)));
+    my $quote = is_quoted ($_);
+    if ($quote) {
+        s/(\s+)\n$/\n/;
+        my $space = $1;
+        print OUT blockquote (unquote ($_, $quote));
+    } else {
+        print OUT p ($_);
+    }
+}
