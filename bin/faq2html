@@ -230,7 +230,7 @@ sub is_heading {
     my $even = !defined ($INDENT) || $indent <= $INDENT;
     return if ($even && length ($_) < 10 && !/[A-Z]/);
     ($outdented && lines ($_) == 1 && (/\S\s\S/ || length ($_) < 30))
-        || ($even && /^\s*[ \w\"\(\),.:-]{0,30}[\w\"\)]\s*\n([-=~]+\s*)?$/);
+        || ($even && m%^\s*[ \w\"\(\),.:/-]{0,30}[\w\"\)]\s*\n([-=~]+\s*)?$%);
 }
 
 # Expects a line, returns whether it's an RCS/CVS $\Id$ string.
@@ -835,8 +835,10 @@ while (defined $BUFFER) {
 
     # Looks like a normal paragraph.  Establish our indentation baseline if we
     # haven't already.
+    if (!defined $STATE{baseline} && !$INDENT) {
+        $STATE{baseline} = $indent;
+    }
     $INDENT = $indent;
-    $STATE{baseline} = $indent unless defined $STATE{baseline};
     s%(\n\s*\S)%<br />$1%g if $broken;
     output p (embolden $_);
 
