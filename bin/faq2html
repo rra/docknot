@@ -205,7 +205,7 @@ sub is_heading {
     local $_ = shift;
     my $indent = indent $_;
     my $outdented = defined $STATE{baseline} && $indent < $STATE{baseline};
-    my $even = !defined $INDENT || $indent == $INDENT;
+    my $even = !defined ($INDENT) || $indent <= $INDENT;
     ($outdented && lines ($_) == 1 && (/\S\s\S/ || length ($_) < 30))
         || ($even && /^\s*[ \w\"\(\),:-]+[\w\"\)]\s*\n(?:[-=~]+\s*)?$/);
 }
