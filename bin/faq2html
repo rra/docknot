@@ -75,7 +75,6 @@ sub lines { local $_ = shift; s/\s+$/\n/; tr/\n// }
 # Deal with miniature indents in regular paragraphs.
 sub minident {
     local $_ = shift;
-    my $space = $INDENT + 2;
     s/\n(\s{$INDENT})\s{1,2}(\S)/<br>\n$1&nbsp;$2/;
     $_;
 }
