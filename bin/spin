@@ -228,7 +228,7 @@ sub placement {
                 $titles{$placement[$i]} . '</a>';
             $href =~ s/^(<[^>]+>)the /the $1/;
             output $br, '    ', $text[$i], ' ', $href;
-            $br = " <br />\n";
+            $br = "<br />\n";
         }
         output "\n</p>\n\n";
     }
