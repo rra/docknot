@@ -339,8 +339,7 @@ sub read_sitemap {
     # matching stack of the previous page at each level of indentation.  If
     # $prev[0] is undef, there is no previous page at that level.
     my @indents = (0);
-    my @parents = ('/');
-    my @prev;
+    my (@parents, @prev);
     open (MAP, $map) or return;
     local $_;
     while (<MAP>) {
@@ -368,13 +367,12 @@ sub read_sitemap {
             shift @prev;
             shift @parents;
         }
-        $SITELINKS{$url} = [ $prev[0], undef, $parents[0] ];
+        $SITELINKS{$url} = [ $prev[0], undef, @parents ];
         $SITELINKS{$prev[0]}[1] = $url if defined $prev[0];
         $prev[0] = $url;
         $SITEDESCS{$url} = $desc;
     }
     close MAP;
-    $SITEDESCS{'/'} = 'the main page';
 }
 
 # Given a date and time in ISO format, convert it to seconds since epoch.
@@ -450,8 +448,8 @@ sub relative {
 
 # Given the name of the current file being processed, return the <link> tags
 # for that file suitable for the <head> section.  Uses the global %SITEDESCS
-# and %SITELINKS variables.  If the partial URL isn't found in those
-# variables, nothing is returned.
+# and %SITELINKS variables.  If the partial URL isn't found in those variables
+# or we're at the top page, nothing is returned.
 sub sitelinks {
     my $file = shift;
     $file = $File::Find::dir . '/' . $file;
@@ -459,11 +457,10 @@ sub sitelinks {
     $file =~ s%/index\.html$%/%;
 
     my $output = '';
-    if ($SITELINKS{$file}) {
+    if ($file ne '/' && $SITELINKS{$file}) {
         my @links = @{ $SITELINKS{$file} };
         my @descs = map { defined ($_) ? $SITEDESCS{$_} : '' } @links;
         @descs = map { s/\"/&quot;/g; $_ } map { escape $_ } @descs;
-        @descs = map { $_ eq 'the main page' ? '' : $_ } @descs;
         @links = map { defined ($_) ? relative ($file, $_) : undef } @links;
 
         # Make the HTML for the footer.
@@ -487,9 +484,10 @@ sub sitelinks {
     return $output;
 }
 
-# Given the name of the current file being processed, return the navigation
-# links for that file.  Uses the global %SITEDESCS and %SITELINKS variables.
-# If the partial URL isn't found in those variables, nothing is returned.
+# Given the name of the current file being processed, return the HTML for the
+# navigation links for that file.  Uses the global %SITEDESCS and %SITELINKS
+# variables.  If the partial URL isn't found in those variables or we're at
+# the top page, nothing is returned.
 sub placement {
     my $file = shift;
     $file = $File::Find::dir . '/' . $file;
@@ -497,28 +495,40 @@ sub placement {
     $file =~ s%/index\.html$%/%;
 
     my $output = '';
-    if ($SITELINKS{$file}) {
+    if ($file ne '/' && $SITELINKS{$file}) {
         my @links = @{ $SITELINKS{$file} };
         my @descs = map { defined ($_) ? $SITEDESCS{$_} : '' } @links;
         @descs = map { escape $_ } @descs;
         @links = map { defined ($_) ? relative ($file, $_) : undef } @links;
 
-        # Swap the order to make next before previous.
-        @links[0,1] = @links[1,0];
-        @descs[0,1] = @descs[1,0];
-
-        # Make the HTML for the footer.
-        my @text = ('Onward to', 'Back to', 'Return to');
-        my $br = '';
-        $output .= qq(<p class="navigation">\n);
-        for my $i (0..2) {
-            next unless defined $links[$i];
-            my $href = '<a href="' . $links[$i] . '">' . $descs[$i] . '</a>';
-            $href =~ s/^(<[^>]+>)the /the $1/;
-            $output .= $br . '    ' . $text[$i] . ' ' . $href;
-            $br = "<br />\n";
+        # Build the table for the navigation bar.
+        $output = qq(<table class="navbar"><tr>\n);
+        $output .= qq(  <td class="navleft">);
+        if (defined $links[0]) {
+            $output .= qq(&lt; <a href="$links[0]">$descs[0]</a>);
         }
-        $output .= "\n</p>\n\n";
+        $output .= qq(</td>\n);
+        if (defined $links[2]) {
+            $output .= qq(  <td>\n);
+            my $first = 1;
+            for my $i (reverse (2 .. $#links)) {
+                next unless defined $links[$i];
+                $output .= '    ';
+                if ($first) {
+                    $first = 0;
+                } else {
+                    $output .= qq(&lt; );
+                }
+                $output .= qq(<a href="$links[$i]">$descs[$i]</a>\n);
+            }
+            $output .= qq(  </td>\n);
+        }
+        $output .= qq(  <td class="navright">);
+        if (defined $links[1]) {
+            $output .= qq(<a href="$links[1]">$descs[1]</a> &gt;);
+        }
+        $output .= qq(</td>\n);
+        $output .= qq(</tr></table>\n\n);
     }
     return $output;
 }
@@ -725,6 +735,8 @@ sub do_entity {
 # come from.
 sub do_heading {
     my ($format, $title, $style) = @_;
+    my $file = $FILE;
+    $file =~ s/\.th$/.html/;
     my $output = qq(<?xml version="1.0" encoding="iso-8859-1"?>\n);
     $output .= qq(<!DOCTYPE html\n);
     $output .= qq(    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"\n);
@@ -741,8 +753,6 @@ sub do_heading {
         $output .= qq( type="text/css" />\n);
     }
     if ($FILE ne '-') {
-        my $file = $FILE;
-        $file =~ s/\.th$/.html/;
         $output .= sitelinks $file;
     }
     $output .= "</head>\n\n";
@@ -752,6 +762,9 @@ sub do_heading {
         . " by spin $version on $date -->\n";
     $output .= "<!-- $DOCID -->\n" if $DOCID;
     $output .= "\n<body>\n";
+    if ($FILE ne '-') {
+        $output .= placement ($file);
+    }
     return (1, $output);
 }
 
@@ -1004,11 +1017,11 @@ sub run_converter {
 
     # Grab the first few lines of input, looking for a blurb and Id string.
     # Give up if we encounter <body> first.  Also look for a </head> tag and
-    # add the navigation link tags before it, if applicable.
+    # add the navigation link tags before it, if applicable.  Add the
+    # navigation bar right at the beginning of the body.
     my ($blurb, $docid);
     local $_;
     while (defined ($_ = shift @page)) {
-        last if /<body/i;
         if (/<!--\s*(\$Id.*?)\s*-->/) {
             $docid = $1;
         }
@@ -1021,6 +1034,10 @@ sub run_converter {
             print OUT sitelinks $file;
         }
         print OUT $_;
+        if (m%<body%i) {
+            print OUT placement $file;
+            last;
+        }
     }
     print OUT $_ if defined;
 
