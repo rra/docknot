@@ -109,7 +109,7 @@ sub border_clear {
 # Extract some number of arguments from the front of the given string.  If the
 # optional third argument is true, try to pull off a parenthesized formatting
 # instruction first, returning it as the first result (or undef if it's not
-# found).
+# found).  If the count is -1, pull off as many arguments as we can find.
 sub extract {
     my ($text, $count, $format) = @_;
     my (@result, $code);
@@ -120,12 +120,22 @@ sub extract {
     } else {
         $result[0] = '';
     }
-    for (1..$count) {
-        ($result[$_], $text) = extract_bracketed ($text, '[]');
-        if ($result[$_]) {
-            $result[$_] = substr ($result[$_], 1, -1);
-        } else {
-            warn "$0:$FILE:$.: Can't find argument $_\n";
+    if ($count >= 0) {
+        for (1..$count) {
+            ($result[$_], $text) = extract_bracketed ($text, '[]');
+            if ($result[$_]) {
+                $result[$_] = substr ($result[$_], 1, -1);
+            } else {
+                warn "$0:$FILE:$.: Can't find argument $_\n";
+            }
+        }
+    } else {
+        while ($text =~ /^\s*\[/) {
+            my $result;
+            ($result, $text) = extract_bracketed ($text, '[]');
+            last unless $result;
+            $result = substr ($result, 1, -1);
+            push (@result, $result);
         }
     }
     unless ($format) { shift @result }
@@ -171,7 +181,7 @@ sub expand {
     } elsif (ref $macros{$command}) {
         my ($args, $definition) = @{ $macros{$command} };
         my @args;
-        if ($args > 0) {
+        if ($args != 0) {
             @args = extract ($text, $args, 0);
             $text = pop @args;
         }
@@ -486,6 +496,22 @@ sub inline {
     return (0, $output);
 }
 
+# Enclose some text in another tag.  The one special thing that we do is if
+# the enclosed text is entirely enclosed in <span> tags, we pull the options
+# of the <span> out and instead apply them to the parent tag.  Takes the tag
+# and the text to enclose.
+sub enclose {
+    my ($tag, $text) = @_;
+    my $close = $tag;
+    $close =~ s/ .*//;
+    if ($text =~ m%^(\s*)<span(?!.*<span)([^>]*)>(.*)</span>(\s*)\z%s) {
+        my ($lead, $class, $text, $trail) = ($1, $2, $3, $4);
+        return "$lead<$tag$class>$text</$close>$trail";
+    } else {
+        return "<$tag>$text</$close>";
+    }
+}
+
 ##############################################################################
 # Commands
 ##############################################################################
@@ -646,29 +672,65 @@ sub do_signature {
     return (1, $output);
 }
 
+# Start a table.  Takes any additional HTML attributes to set for the table
+# (this is ugly, but <table> takes so many attributes for which there is no
+# style sheet equivalent that it's unavoidable) and the body of the table
+# (which should consist of \tablehead and \tablerow lines).
+sub do_table {
+    my ($format, $options, $body) = @_;
+    my $tag = $options ? "table $options" : 'table';
+    return block ($tag, '', $format, $body);
+}
+
+# A heading of a table.  Takes the contents of the cells in that heading.
+sub do_tablehead {
+    my ($format, @cells) = @_;
+    my $output = '  <tr' . format_string ($format) . ">\n";
+    for (@cells) {
+        $output .= '    ' . enclose ('th', parse ($_)) . "\n";
+    }
+    $output .= "  </tr>\n";
+    return (1, $output);
+}
+
+# A data line of a table.  Takes the contents of the cells in that row.
+sub do_tablerow {
+    my ($format, @cells) = @_;
+    my $output = '  <tr' . format_string ($format) . ">\n";
+    for (@cells) {
+        $output .= '    ' . enclose ('td', parse ($_)) . "\n";
+    }
+    $output .= "  </tr>\n";
+    return (1, $output);
+}
+
 # The table of available commands.  First column is the number of arguments,
 # second column is the handler, and the third column is whether this is its
-# own top-level element or whether it needs to be wrapped in <p> tags.
-%commands = (block      => [ 1, \&do_block      ],
-             break      => [ 0, \&do_break      ],
-             bullet     => [ 1, \&do_bullet     ],
-             class      => [ 1, \&do_class      ],
-             cite       => [ 1, \&do_cite       ],
-             code       => [ 1, \&do_code       ],
-             bold       => [ 1, \&do_bold       ],
-             desc       => [ 2, \&do_desc       ],
-             emph       => [ 1, \&do_emph       ],
-             entity     => [ 1, \&do_entity     ],
-             heading    => [ 2, \&do_heading    ],
-             id         => [ 1, \&do_id         ],
-             image      => [ 2, \&do_image      ],
-             italic     => [ 1, \&do_italic     ],
-             link       => [ 2, \&do_link       ],
-             number     => [ 1, \&do_number     ],
-             pre        => [ 1, \&do_pre        ],
-             quote      => [ 3, \&do_quote      ],
-             rule       => [ 0, \&do_rule       ],
-             signature  => [ 0, \&do_signature  ]);
+# own top-level element or whether it needs to be wrapped in <p> tags.  A
+# count of -1 means pull off as many arguments as we can find.
+%commands = (block      => [  1, \&do_block      ],
+             break      => [  0, \&do_break      ],
+             bullet     => [  1, \&do_bullet     ],
+             class      => [  1, \&do_class      ],
+             cite       => [  1, \&do_cite       ],
+             code       => [  1, \&do_code       ],
+             bold       => [  1, \&do_bold       ],
+             desc       => [  2, \&do_desc       ],
+             emph       => [  1, \&do_emph       ],
+             entity     => [  1, \&do_entity     ],
+             heading    => [  2, \&do_heading    ],
+             id         => [  1, \&do_id         ],
+             image      => [  2, \&do_image      ],
+             italic     => [  1, \&do_italic     ],
+             link       => [  2, \&do_link       ],
+             number     => [  1, \&do_number     ],
+             pre        => [  1, \&do_pre        ],
+             quote      => [  3, \&do_quote      ],
+             rule       => [  0, \&do_rule       ],
+             signature  => [  0, \&do_signature  ],
+             table      => [  2, \&do_table      ],
+             tablehead  => [ -1, \&do_tablehead  ],
+             tablerow   => [ -1, \&do_tablerow   ]);
 
 # Add handlers for all the headings.
 for (1..6) { $commands{"h$_"} = [ 1, eval "sub { heading ($_, \@_) }" ] }
