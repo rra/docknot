@@ -150,18 +150,19 @@ sub whitechomp { local $_ = shift; s/^\s+//; s/\s+$//; $_ }
 sub is_allcaps { $_[0] !~ /[^A-Z\s\"\(\),:-]/ }
 
 # Expects a paragraph, returns whether it looks like it's broken into a
-# series of short lines.  The last line of the paragraph doesn't matter for
-# this determination.  We go to some extra lengths to avoid thinking a
-# two-line paragraph with a minidented second line is broken without always
-# thinking two-line paragraphs are unbroken.
+# series of short lines or a series of lines without internal space.  The
+# last line of the paragraph doesn't matter for this determination.  We go
+# to some extra lengths to avoid thinking a two-line paragraph with a
+# minidented second line is broken without always thinking two-line
+# paragraphs are unbroken.
 sub is_broken {
     local $_ = shift;
     s/\s+$/\n/;
     my @lines = split ("\n", $_);
-    return if (@lines == 1 || (@lines == 2 && /^(\s*).*\n\1\s{1,2}\S/));
+    return if (@lines == 1 || (@lines == 2 && /^(\s*)\S.*\n\1\s{1,2}\S/));
     pop @lines;
     my $short = grep { length ($_) < 60 } @lines;
-    $short >= int (@lines / 2) + 1;
+    ($short >= int (@lines / 2) + 1) || /^(?:\s*\S+[ \t]*\n)+$/;
 }
 
 # Expects a paragraph, returns whether it's a bulletted item.
@@ -190,9 +191,19 @@ sub is_divider { $_[0] =~ /^-{30}\s*$/ }
 # Expects a line, returns whether it's a mail/news header.
 sub is_header { $_[0] =~ /^[\w-]+:\s/ }
 
-# Expects a paragraph, returns whether it fits the content of a heading.
+# Expects a paragraph, returns whether it's a heading.  This is all about
+# heuristics and guesses, and there are a number of other things we could
+# confuse for headings, so we have to be careful.  If it's a single line and
+# outdented from the baseline, it's probably a heading.  If it's at the
+# baseline, check to see if the content looks reasonable for a heading and
+# also allow for a rule underneath it.
 sub is_heading {
-    $_[0] =~ /^\s*[ \w\"\(\),:-]+[\w\"\)]\s*\n(?:[-=~]+\s*)?$/;
+    local $_ = shift;
+    my $indent = indent $_;
+    my $outdented = defined $STATE{baseline} && $indent < $STATE{baseline};
+    my $even = !defined $INDENT || $indent == $INDENT;
+    ($outdented && lines ($_) == 1 && (/\S\s\S/ || length ($_) < 30))
+        || ($even && /^\s*[ \w\"\(\),:-]+[\w\"\)]\s*\n(?:[-=~]+\s*)?$/);
 }
 
 # Expects a line, returns whether it's an RCS/CVS $\Id$ string.
@@ -213,10 +224,8 @@ sub is_quoted { $_[0] =~ /^\s*([^\w\s])\s+.*\n(\s*\1\s+.*\n)*$/ && $1 }
 # Expects a paragraph, returns whether it's a rule.
 sub is_rule { $_[0] =~ /^\s*[-=][-=\s]*$/ }
 
-# Expects a paragraph, returns whether it ends with a sentence.  Don't allow
-# colons here although we do elsewhere since we use this to decide whether
-# to make things <pre> and mjqmail has <pre> lines ending in :.
-sub is_sentence { $_[0] =~ /[.?!,;][\)\]\"]?\s*$/ }
+# Expects a paragraph, returns whether it ends with a sentence.
+sub is_sentence { $_[0] =~ /[.?!][\)\]\"]?\s*$/ }
 
 
 ############################################################################
@@ -428,6 +437,24 @@ my $space;
 while (defined $line) {
     $_ = slurp (\*IN, \$line);
 
+    # Do this first, 'cause it's special.  Check to see if this paragraph
+    # looks like literal text.  If so, we wrap it in <pre> and output it as
+    # is.  As a special exception to our normal paragraph handling, this
+    # paragraph doesn't end until we find a literal blank line; this hack
+    # lets full diffs be included in a FAQ without confusing the parser.
+    if (is_literal $_) {
+        if (/\n[ \t]+$/) {
+            $_ .= $line;
+            $_ .= $line while (defined ($line = <IN>) && $line !~ /^$/);
+            $_ .= $line if defined $line;
+            $_ .= $line while (defined ($line = <IN>) && $line =~ /^\s*$/);
+        }
+        output pre ($_);
+        s/\n(\n\s*)$/\n/;
+        $space = $1;
+        next;
+    }
+
     # Stash our whitespace.
     s/\n(\s*)$/\n/;
     $space = $1;
@@ -459,23 +486,16 @@ while (defined $line) {
     # Everything needs to have special characters escaped.
     $_ = escape $_;
 
-    # Check to see if this paragraph looks like literal text.  If so, we
-    # wrap it in <pre> and output it as is.
-    if (is_literal $_) { output pre ($_); next }
-
     # We're not dealing with literal text, so untabify it.
     $_ = untabify $_;
 
-    # Check for a heading.  A paragraph is actually a heading if it matches
-    # is_heading and either we don't know our indentation or its indentation
-    # is the same as or less than the surrounding text.  We distinguish
-    # between level 2 headings and level 3 headings as follows:  The first
-    # heading we encounter is assumed to be a level 2 heading, and any
-    # further headers at that same indentation level are also level 2
-    # headings.  If we detect any other headings at a greater indent,
-    # they're marked as level 3.
+    # Check for a heading.  We distinguish between level 2 headings and
+    # level 3 headings as follows: The first heading we encounter is assumed
+    # to be a level 2 heading, and any further headers at that same
+    # indentation level are also level 2 headings.  If we detect any other
+    # headings at a greater indent, they're marked as level 3.
     my $indent = indent $_;
-    if ((!defined $INDENT || $indent <= $INDENT) && is_heading ($_)) {
+    if (is_heading $_) {
         s/^\s+//;
         $STATE{contents} = /\bcontents\b/i;
         my $h;
@@ -538,7 +558,10 @@ while (defined $line) {
     }
 
     # Check for things that look like description lists and handle them.
-    if (is_description $_) {
+    # Note that we don't allow indented description lists, because they're
+    # usually something we actually want to make <pre>.  This is another
+    # fairly fragile heuristic.
+    if (is_description $_ && defined $INDENT && $indent == $INDENT) {
         my $title;
         ($title, $_) = split ("\n", $_, 2);
         $title = embolden ($title . "\n");
