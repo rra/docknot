@@ -517,7 +517,7 @@ sub placement {
                 if ($first) {
                     $first = 0;
                 } else {
-                    $output .= qq(&lt; );
+                    $output .= qq(&gt; );
                 }
                 $output .= qq(<a href="$links[$i]">$descs[$i]</a>\n);
             }
