@@ -215,11 +215,14 @@ sub is_header { $_[0] =~ /^[\w-]+:\s/ }
 # confuse for headings, so we have to be careful.  If it's a single line and
 # outdented from the baseline, it's probably a heading.  If it's at the
 # baseline, check to see if the content looks reasonable for a heading and
-# also allow for a rule underneath it.
+# also allow for a rule underneath it.  If we're inside a contents block, be
+# even more careful and disallow numbered things that look like a heading
+# unless they're outdented.
 sub is_heading {
     local $_ = shift;
     my $indent = indent $_;
     my $outdented = defined $STATE{baseline} && $indent < $STATE{baseline};
+    return if (!$outdented && $STATE{contents} && /^[\d.]+[.\)]\s/);
     my $even = !defined ($INDENT) || $indent <= $INDENT;
     ($outdented && lines ($_) == 1 && (/\S\s\S/ || length ($_) < 30))
         || ($even && /^\s*[ \w\"\(\),.:-]{0,30}[\w\"\)]\s*\n([-=~]+\s*)?$/);
@@ -569,7 +572,7 @@ while (defined $BUFFER) {
     # indentation level are also level 2 headings.  If we detect any other
     # headings at a greater indent, they're marked as level 3.
     my $indent = indent $_;
-    if (is_heading $_) {
+    if (is_heading ($_)) {
         s/^\s+//;
         $STATE{contents} = /\bcontents\b/i;
         my $h;
