@@ -730,7 +730,10 @@ while (defined $BUFFER) {
     }
 
     # We're dealing with a normal paragraph of some sort, so go ahead and turn
-    # URLs into links.
+    # URLs into links.  Check whether the paragraph is broken first, though,
+    # and stash that information, since turning URLs into links can
+    # artificially lengthen lines.
+    my $broken = is_broken $_;
     $_ = urlize $_;
 
     # Check to see if we're in a contents section, and if so if this paragraph
@@ -762,7 +765,7 @@ while (defined $BUFFER) {
     # Check for paragraphs quoted with some character and turn them into
     # blockquotes provided they don't have inconsisted indentation.
     my $quote = is_quoted ($_);
-    if ($quote && !is_broken ($_)) {
+    if ($quote && lines ($_) > 1 && !$broken) {
         $_ = unquote ($_, $quote);
         $INDENT = indent $_;
         output start ('blockquote', p (embolden $_));
@@ -772,10 +775,10 @@ while (defined $BUFFER) {
     # Check for numbered paragraphs and turn them into lists.
     my $number = is_numbered ($_);
     if (defined $number) {
-        my $broken = is_broken ($_) || is_contents ($_);
+        my $contents = is_contents ($_);
         $_ = denumber $_;
         $INDENT = indent $_;
-        s%(\n\s*\S)%<br />$1%g if $broken;
+        s%(\n\s*\S)%<br />$1%g if ($broken || $contents);
         output start ('ol', li (p (embolden $_), $number));
         next;
     }
@@ -792,7 +795,7 @@ while (defined $BUFFER) {
             $_ = $body;
             $title = embolden ($title . "\n");
             $INDENT = indent $_;
-            s%(\n\s*\S)%<br />$1%g if is_broken $_;
+            s%(\n\s*\S)%<br />$1%g if $broken;
             output start ('dl', dt ($title));
             output start ('dd', (p (embolden $_)));
             next;
@@ -812,7 +815,7 @@ while (defined $BUFFER) {
     # be what's wanted for things like quotes of poetry... this is probably
     # worth looking at in more detail.
     if (defined $INDENT && $indent > $INDENT) {
-        if (is_broken ($_) || (lines ($_) == 1 && !is_sentence $_)) {
+        if ($broken || (lines ($_) == 1 && !is_sentence $_)) {
             output pre (strip_indent ($_, $INDENT));
             $STATE{pre} = 1;
         } else {
@@ -829,7 +832,7 @@ while (defined $BUFFER) {
     # haven't already.
     $INDENT = $indent;
     $STATE{baseline} = $indent unless defined $STATE{baseline};
-    s%(\n\s*\S)%<br />$1%g if is_broken $_;
+    s%(\n\s*\S)%<br />$1%g if $broken;
     output p (embolden $_);
 
 } continue {
