@@ -531,6 +531,56 @@ sub spin {
 # Per-file operations
 ##############################################################################
 
+# A wrapper around the cvs2xhtml script, used to handle .log pointers in a
+# tree being spun.  Adds the navigation links and the signature to the
+# cvs2xhtml output.
+sub cvs2xhtml {
+    my ($source, $output) = @_;
+    my $dir = $source;
+    $dir =~ s%/+[^/]+$%%;
+    my $name = $source;
+    $name =~ s%^.*/%%;
+    my $style = '/~eagle/styles/cvs.css';
+    my @page = `(cd $dir && cvs log $source) | cvs2xhtml -n $name -s $style`;
+    open (OUT, "> $output") or die "$0: can't create $output: $!\n";
+    $OUT = \*OUT;
+
+    # Grab the first few lines of input, looking for a blurb.  Give up if we
+    # encounter <html> first.
+    my $blurb;
+    local $_;
+    while (defined ($_ = shift @page)) {
+        last if /<html>/i;
+        if (/<!--\s*(Generated.*?)\s*-->/) {
+            $blurb = $1;
+            $blurb =~ s/ \d\d:\d\d:\d\d -0000//;
+            $blurb =~ s/ \(\d{4}-\d\d-\d\d\)//;
+            last;
+        }
+        print OUT $_;
+    }
+    print OUT $_;
+
+    # Snarf input and write it to output until we see </body>, which is our
+    # signal to start adding things.  We just got very confused if </body> was
+    # on the same line as <html>, so don't do that.
+    print $OUT $_ while (defined ($_ = shift @page) && !m%</body>%i);
+    print OUT "\n";
+
+    # Print out our separator line and placement information, if any.
+    my $file = $output;
+    $file =~ s%^.*/%%;
+    placement $file;
+
+    # Print out the signature and blurb.
+    output "<address>\n    ";
+    sign;
+    output "$blurb\n</address>\n\n";
+
+    # Finish with the cvs2xhtml output.
+    print $OUT $_, @page;
+}
+
 # A wrapper around the faq2html script, used to handle .faq pointers in a tree
 # being spun.  Adds the navigation links and the signature to the faq2html
 # output.
@@ -602,6 +652,16 @@ sub process_file {
         return if (-e $output && -M $master >= -M $output);
         print "Formatting $shortout\n";
         faq2html ($master, $output);
+    } elsif (/\.log$/) {
+        $output =~ s/\.log$/.html/;
+        $shortout =~ s/\.log$/.html/;
+        open (POINTER, $input) or die "$0: can't open $input: $!\n";
+        my $file = <POINTER>;
+        close POINTER;
+        chomp $file;
+        return if (-e $output && -M $file >= -M $output);
+        print "Generating log for $shortout\n";
+        cvs2xhtml ($file, $output);
     } elsif (/\.th$/) {
         $output =~ s/\.th$/.html/;
         $shortout =~ s/\.th$/.html/;
@@ -659,8 +719,10 @@ the same file name but with the extension changed to C<.html>.  Missing
 directories are created.  Files that end in C<.th> are assumed to be in
 thread and are turned into HTML.  Files that end in C<.faq> are assumed to
 contain a path to a text FAQ, which is run through B<faq2html> and the
-output is saved into I<output>.  All other files not beginning with a period
-are copied as-is.
+output is saved into I<output>.  Files that end in C<.log> are assumed to
+contain a path to a file on which CVS log should be run, the results of
+which are run through B<cvs2xhtml> and saved to I<output>.  All other files
+not beginning with a period are copied as-is.
 
 The exact details of the macro language are as yet not documented.  The
 basic format, however, is that macro invocations start with C<\>, take an
