@@ -5,7 +5,7 @@ $ID = q$Id$;
 #
 # Copyright 1999, 2000, 2001, 2002 by Russ Allbery <rra@stanford.edu>
 #
-# This program is free software; you can redistribute it and/or modify it
+# This program is free software; you may redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
 # This program is an ad hoc set of heuristics and tricks, attempting to
@@ -112,6 +112,19 @@ sub slurp {
 # Remove all whitespace in a string.
 sub smash { local $_ = shift; s/\s//g; $_ }
 
+# Strip a number of characters of indentation from a line that's given by the
+# second argument, returning the result.  Used to strip leading indentation
+# off of <pre> text so that it isn't indented excessively just because in the
+# text version it had to be indented relative to the surrounding text.
+sub strip_indent {
+    local $_ = shift;
+    my $indent = shift;
+    if (defined $indent && $indent > 0) {
+        s/^ {$indent}//gm;
+    }
+    $_;
+}
+
 # Undoes HTML character escapes.
 sub unescape { local $_ = shift; s/&amp;/&/g; s/&lt;/</g; s/&gt;/>/g; $_ }
 
@@ -136,7 +149,7 @@ sub url {
     my $text = $link;
     $link = smash (unescape $link);
     $text =~ s/^(?:mailto|news)://;
-    '<a href="' . $link . '">' . $text . '</a>';
+    '&lt;<a href="' . $link . '">' . $text . '</a>&gt;';
 }
 
 # Looks for a URL in <URL:...> form, with or without the URL: part, and wraps
@@ -639,7 +652,7 @@ while (defined $BUFFER) {
     # FAQ without confusing the parser.
     if (is_literal $_) {
         if (/\n[ \t]+$/) { $_ .= slurp (1) }
-        output pre ($_);
+        output pre (strip_indent ($_, $INDENT));
         s/\n(\n\s*)$/\n/;
         $space = $1;
         $STATE{pre} = 1;
@@ -657,7 +670,7 @@ while (defined $BUFFER) {
     # <pre>, assume that this paragraph belongs in <pre> as well.
     if ($STATE{pre}) {
         if (is_offset ($_) || (defined $INDENT && $indent > $INDENT)) {
-            output pre ($_);
+            output pre (strip_indent ($_, $INDENT));
             next;
         } else {
             $STATE{pre} = 0;
@@ -693,7 +706,7 @@ while (defined $BUFFER) {
     # A sudden change to an indentation of 0 when that's less than our
     # indentation baseline is also a sign of literal text.
     if ($INDENT && $indent == 0 && $INDENT > 0 && $STATE{baseline} > 0) {
-        output pre ($_);
+        output pre (strip_indent ($_, $INDENT));
         $STATE{pre} = 1;
         next;
     }
@@ -771,7 +784,7 @@ while (defined $BUFFER) {
     # If the paragraph has inconsistent indentation, we should output it in
     # <pre>.
     if (is_offset $_) {
-        output pre ($_);
+        output pre (strip_indent ($_, $INDENT));
         $STATE{pre} = 1;
         next;
     }
@@ -782,7 +795,7 @@ while (defined $BUFFER) {
     # worth looking at in more detail.
     if (defined $INDENT && $indent > $INDENT) {
         if (is_broken ($_) || (lines ($_) == 1 && !is_sentence $_)) {
-            output pre ($_);
+            output pre (strip_indent ($_, $INDENT));
             $STATE{pre} = 1;
         } else {
             output start ('blockquote', p (embolden $_));
@@ -846,27 +859,26 @@ successful if you outdent your section headers (in other words, indent all
 of the normal text by a few spaces and start headers in column 0).
 
 Section headers that begin with numbers (with any number of periods) will be
-given E<lt>a idE<gt> tags.  As a special case of the parsing, any section
-with a header containing "contents" will have lines beginning with numbers
-turned into links to the appropriate E<lt>a idE<gt> tags in the same
-document.  You can use this to turn the table of contents of your minimal
-digest format FAQ into a real table of contents with links in the HTML
-version.
+given <a id> tags containing that number prepended with C<S>.  As a special
+case of the parsing, any section with a header containing "contents" will
+have lines beginning with numbers turned into links to the appropriate <a
+id> tags in the same document.  You can use this to turn the table of
+contents of your minimal digest format FAQ into a real table of contents
+with links in the HTML version.
 
 Text with embedded whitespace more than a single space or a couple of spaces
 at a sentence boundary or after a colon (and any text with literal tabs)
-will be wrapped in E<lt>preE<gt> tags.  So will any indented text that
-doesn't look like English paragraphs.  URLs surrounded by <URL:...> will be
-turned into links.  URLs not surrounded by <URL:...> will not be turned into
-links, nor is any effort made to turn random body text into links because it
-happens to look like a link.  I dislike link syndrome.  If you want to
-include a URL in unstructured text, see RFC 1738 and use <URL:...>.
+will be wrapped in <pre> tags.  So will any indented text that doesn't look
+like English paragraphs.  URLs surrounded by <...> or <URL:...> will be
+turned into links.  Other URLs will not be turned into links, nor is any
+effort made to turn random body text into links because it happens to look
+like a link.  I dislike link syndrome.
 
 Bulletted lists and numbered lists will be turned into the appropriate HTML
 structures.  Some attempt is also made to recognize description lists, but
 B<faq2html> was written by someone who writes a lot of technical
-documentation and therefore tends to prefer E<lt>preE<gt>; description lists
-are therefore only going to work if the description titles aren't indented
+documentation and therefore tends to prefer <pre>; description lists are
+therefore only going to work if the description titles aren't indented
 relative to the surrounding text.
 
 Regular indented paragraphs or paragraphs quoted with a consistent
@@ -894,12 +906,12 @@ replaced by a nicely formatted heading generated from the RCS Id
 information in the HTML output.
 
 Text marked as *bold* using the standard asterix notation will be surrounded
-by E<lt>strongE<gt> tags, if the asterixes appear to be marking bold text
-rather than serving as wildcards or some other function.
+by <strong> tags, if the asterixes appear to be marking bold text rather
+than serving as wildcards or some other function.
 
 B<faq2html> produces output (at least in the absence of any lurking bugs)
 which complies with the XHTML 1.0 Transitional standard.  (Transitional
-solely because it uses the value attribute of E<lt>liE<gt>.)
+solely because it uses the value attribute of <li>.)
 
 =head1 OPTIONS
 
@@ -960,8 +972,31 @@ given up on more than one text to HTML converter because it had more options
 than ls and expected you to try to figure out which ones should be used for
 a document yourself.  That's not the way I want this program to work.
 
+All XHTML generated by this program will be tagged as being in the ISO
+8859-1 character set because that's what I use.  Right now, there isn't any
+handling of other character sets, although it would be fairly easy to change
+the default character set to some other default by modifying the program
+slightly.
+
+English month names are used for the last modification dates.  To change the
+names used, see the top of the script.
+
+=head1 SEE ALSO
+
+The XHTML 1.0 standard at L<http://www.w3.org/TR/xhtml1/>.
+
+Current versions of this program are available from my web tools page at
+L<http://www.eyrie.org/~eagle/software/web/>.
+
 =head1 AUTHOR
 
 Russ Allbery <rra@stanford.edu>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright 1999, 2000, 2001, 2002 by Russ Allbery <rra@stanford.edu>.
+
+This program is free software; you may redistribute it and/or modify it
+under the same terms as Perl itself.
 
 =cut
