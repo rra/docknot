@@ -13,10 +13,13 @@ $ID = q$Id$;
 
 require 5.005;
 
+# The URL to the software page for all of my web page generation software.
+$URL = 'http://www.eyrie.org/~eagle/software/web/';
+
 use strict;
 use subs qw(expand parse);
-use vars qw($DOCID $FILE $FULLPATH $ID $OUTPUT $SOURCE $SPACE $SPINID @STATE
-            $STYLES %commands %macros %strings);
+use vars qw($DOCID $FILE $FULLPATH $ID $OUTPUT $SOURCE $SPACE @STATE $STYLES
+            $URL %commands %macros %strings);
 
 use Getopt::Long qw(GetOptions);
 use Image::Size qw(html_imgsize);
@@ -235,7 +238,7 @@ sub parse {
 }
 
 ##############################################################################
-# Page placement
+# Page footers
 ##############################################################################
 
 # Given the name of the current file being processed, opens a .placement file
@@ -301,6 +304,41 @@ sub sign {
         $output .= join ("\n    ", @signature);
         $output .= " <br />\n    ";
     }
+    return $output;
+}
+
+# Returns the page footer, which consists of the navigation links, the regular
+# signature, and the last modified date.  Takes as arguments the full path to
+# the source file, the name of the destination file, the CVS Id of the source
+# file if known, the template to use if the modification and current dates are
+# the same, and the temlate to use if they're different.  The templates will
+# have the strings %MOD% and %NOW% replaced by the appropriate dates and %URL%
+# with the URL to my HTML generation software..
+sub footer {
+    my ($source, $file, $id, @templates) = @_;
+    my $output = placement $file;
+    $output .= "<address>\n    " . sign;
+
+    # Figure out the modified dates.
+    my $modified = (split (' ', $id || ''))[3];
+    if ($modified && $modified =~ m%^(\d+)/(\d+)/(\d+)%) {
+        $modified = sprintf ("%d-%02d-%02d", $1, $2, $3);
+    } else {
+        $modified = strftime ('%Y-%m-%d', gmtime ((stat $source)[9]));
+    }
+    my $now = strftime ('%Y-%m-%d', gmtime);
+
+    # Determine which template to use and substitute in the appropriate times.
+    my $template = ($modified eq $now) ? $templates[0] : $templates[1];
+    if ($template) {
+        for ($template) {
+            s/%MOD%/$modified/g;
+            s/%NOW%/$now/g;
+            s/%URL%/$URL/g;
+        }
+        $output .= "$template\n";
+    }
+    $output .= "</address>\n";
     return $output;
 }
 
@@ -451,7 +489,11 @@ sub do_heading {
         $output .= qq(  <link rel="stylesheet" href="$style");
         $output .= qq( type="text/css" />\n);
     }
-    $output .= "</head>\n\n<!-- $SPINID -->\n";
+    $output .= "</head>\n\n";
+    my $version = (split (' ', $ID))[2];
+    my $date = strftime ('%Y-%m-%d %T -0000', gmtime);
+    $output .= '<!-- Spun from ' . ($FILE eq '-' ? 'stdin' : $FILE)
+        . " by spin $version on $date -->\n";
     $output .= "<!-- $DOCID -->\n" if $DOCID;
     $output .= "\n<body>\n";
     return (1, $output);
@@ -541,26 +583,11 @@ sub do_signature {
     }
     my $file = $FILE;
     $file =~ s/\.th$/.html/;
-    $output .= placement $file;
-
-    # Figure out the modified dates and print out the rest of the footer.
-    my $modified = (split (' ', $DOCID))[3];
-    if ($modified) {
-        $modified =~ s{^(\d+)/(\d+)/(\d+)}{
-            sprintf ("%d-%02d-%02d", $1, $2, $3)
-        }e;
-    } else {
-        $modified = strftime ('%Y-%m-%d', gmtime ((stat $FILE)[9]));
-    }
-    my $spun = strftime ('%Y-%m-%d', gmtime);
-    my $ref = '<a href="http://www.eyrie.org/~eagle/software/web/">spun</a>';
-    if ($modified eq $spun) {
-        $modified = "Last modified and\n    $ref $modified";
-    } else {
-        $modified = "Last $ref\n    $spun from thread modified $modified";
-    }
-    $output .= "<address>\n    " . sign;
-    $output .= "$modified\n</address>\n</body>\n</html>\n";
+    my $link = '<a href="%URL%">spun</a>';
+    $output .= footer ($FILE, $file, $DOCID,
+                       "Last modified and\n    $link %MOD%",
+                       "Last $link\n    %NOW% from thread modified %MOD%");
+    $output .= "</body>\n</html>\n";
     return (1, $output);
 }
 
@@ -604,12 +631,6 @@ sub spin {
     open (OUT, "> $output") or die "$0: can't create $output: $!\n";
     $SPACE = '';
 
-    # Set up our initial comment.
-    my $version = (split (' ', $ID))[2];
-    my $date = strftime ('%Y-%m-%d %T -0000', gmtime);
-    $SPINID = "Spun from " . ($thread eq '-' ? 'stdin' : $thread)
-        . " by spin $version on $date";
-
     # Parse the thread file a paragraph at a time (but pick up macro contents
     # that are continued across paragraphs.
     local $/ = '';
@@ -633,166 +654,37 @@ sub spin {
 }
 
 ##############################################################################
-# Per-file operations
+# External converters
 ##############################################################################
 
-# A wrapper around the cl2xhtml script, used to handle .changelog pointers in
-# a tree being spun.  Adds the navigation links and the signature to the
-# cl2xhtml output.
-sub cl2xhtml {
-    my ($source, $output, $name) = @_;
-    my $style = $STYLES . 'changelog.css';
-    my @page = `cl2xhtml -n $name -s $style $source`;
+# Given the command to run to generate the page, the file to save the output
+# in, and an anonymous sub that takes three arguments, the first being the
+# captured blurb, the second being the document ID if found, and the third
+# being the base name of the output file, and prints out a last modified line,
+# handle a call to an external converter.
+sub run_converter {
+    my ($command, $output, $footer) = @_;
+    my @page = `$command`;
+    if ($? != 0) {
+        $command =~ s/ .*//;
+        die "$0: command failed with exit status ", ($? >> 8), "\n";
+    }
     open (OUT, "> $output") or die "$0: can't create $output: $!\n";
 
-    # Grab the first few lines of input, looking for a blurb.  Give up if we
-    # encounter <html> first.
-    my $blurb;
+    # Grab the first few lines of input, looking for a blurb and Id string.
+    # Give up if we encounter <html> first.
+    my ($blurb, $docid);
     local $_;
     while (defined ($_ = shift @page)) {
-        last if /<html>/i;
-        if (/<!--\s*(Generated.*?)\s*-->/) {
+        last if /<body/i;
+        if (/<!--\s*(\$Id.*?)\s*-->/) {
+            $docid = $1;
+        }
+        if (/<!--\s*((?:Generated|Converted).*?)\s*-->/) {
             $blurb = $1;
             $blurb =~ s/ \d\d:\d\d:\d\d -0000//;
             $blurb =~ s/ \(\d{4}-\d\d-\d\d\)//;
-            last;
         }
-        print OUT $_;
-    }
-    print OUT $_;
-
-    # Snarf input and write it to output until we see </body>, which is our
-    # signal to start adding things.  We just got very confused if </body> was
-    # on the same line as <html>, so don't do that.
-    print OUT $_ while (defined ($_ = shift @page) && !m%</body>%i);
-
-    # Print out our separator line and placement information, if any.
-    my $file = $output;
-    $file =~ s%^.*/%%;
-    output placement $file;
-
-    # Print out the signature and blurb.
-    $blurb =~ s(cl2xhtml)
-        (\n<a href="http://www.eyrie.org/~eagle/software/web/">cl2xhtml</a>);
-    output "<address>\n    ";
-    output sign;
-    output "$blurb\n</address>\n\n";
-
-    # Finish with the cl2xhtml output.
-    print OUT $SPACE, $_, @page;
-}
-
-# A wrapper around the cvs2xhtml script, used to handle .log pointers in a
-# tree being spun.  Adds the navigation links and the signature to the
-# cvs2xhtml output.
-sub cvs2xhtml {
-    my ($source, $output) = @_;
-    my $dir = $source;
-    $dir =~ s%/+[^/]+$%%;
-    my $name = $source;
-    $name =~ s%^.*/%%;
-    my $style = $STYLES . 'cvs.css';
-    my @page = `(cd $dir && cvs log $source) | cvs2xhtml -n $name -s $style`;
-    open (OUT, "> $output") or die "$0: can't create $output: $!\n";
-
-    # Grab the first few lines of input, looking for a blurb.  Give up if we
-    # encounter <html> first.
-    my $blurb;
-    local $_;
-    while (defined ($_ = shift @page)) {
-        last if /<html>/i;
-        if (/<!--\s*(Generated.*?)\s*-->/) {
-            $blurb = $1;
-            $blurb =~ s/ \d\d:\d\d:\d\d -0000//;
-            $blurb =~ s/ \(\d{4}-\d\d-\d\d\)//;
-            last;
-        }
-        print OUT $_;
-    }
-    print OUT $_;
-
-    # Snarf input and write it to output until we see </body>, which is our
-    # signal to start adding things.  We just got very confused if </body> was
-    # on the same line as <html>, so don't do that.
-    print OUT $_ while (defined ($_ = shift @page) && !m%</body>%i);
-
-    # Print out our separator line and placement information, if any.
-    my $file = $output;
-    $file =~ s%^.*/%%;
-    output placement $file;
-
-    # Print out the signature and blurb.
-    $blurb =~ s(cvs2xhtml)
-        (\n<a href="http://www.eyrie.org/~eagle/software/web/">cvs2xhtml</a>);
-    output "<address>\n    ";
-    output sign;
-    output "$blurb\n</address>\n\n";
-
-    # Finish with the cvs2xhtml output.
-    print OUT $SPACE, $_, @page;
-}
-
-# A wrapper around the faq2html script, used to handle .faq pointers in a tree
-# being spun.  Adds the navigation links and the signature to the faq2html
-# output.
-sub faq2html {
-    my ($source, $output, $style) = @_;
-    if (!$style) {
-        $style = $STYLES . 'faq.css';
-    }
-    my @page = `faq2html -s '$style' $source`;
-    open (OUT, "> $output") or die "$0: can't create $output: $!\n";
-
-    # Grab the first few lines of input, looking for a blurb.  Give up if we
-    # encounter <html> first.
-    my $blurb;
-    local $_;
-    while (defined ($_ = shift @page)) {
-        last if /<html>/i;
-        if (/<!--\s*(Converted.*)\s*-->/) { $blurb = $1; last }
-        print OUT $_;
-    }
-    print OUT $_;
-
-    # Snarf input and write it to output until we see </body>, which is our
-    # signal to start adding things.  We just got very confused if </body> was
-    # on the same line as <html>, so don't do that.
-    print OUT $_ while (defined ($_ = shift @page) && !m%</body>%i);
-
-    # Print out our separator line and placement information, if any.
-    my $file = $output;
-    $file =~ s%^.*/%%;
-    output placement $file;
-
-    # Print out the signature and blurb.
-    $blurb =~ s(faq2html)
-        (\n<a href="http://www.eyrie.org/~eagle/software/web/">faq2html</a>);
-    output "<address>\n    ";
-    output sign;
-    output "$blurb\n</address>\n\n";
-
-    # Finish with the faq2html output.
-    print OUT $SPACE, $_, @page;
-}
-
-# A wrapper around pod2thread and spin -f, used to handle .pod pointers in a
-# tree being spun.  Adds the navigation links and the signature to the output.
-sub pod2html {
-    my ($source, $output, $options) = @_;
-    $options = '-n' unless $options;
-    my $style = ($STYLES ? " -s $STYLES" : '');
-    my @page = `pod2thread -s pod $options $source | $FULLPATH -f$style`;
-    open (OUT, "> $output") or die "$0: can't create $output: $!\n";
-
-    # Grab the first few lines of input, looking for a blurb.  Give up if we
-    # encounter <html> first.
-    my $blurb = '';
-    my $docid = '';
-    local $_;
-    while (defined ($_ = shift @page)) {
-        last if /<html/i;
-        if (/<!--\s*(Spun from stdin.*?)\s*-->/) { $blurb = $1 }
-        if (/<!--\s*(\$Id.*?)\s*-->/) { $docid = $1 }
         print OUT $_;
     }
     print OUT $_ if defined;
@@ -802,34 +694,103 @@ sub pod2html {
     # on the same line as <html>, so don't do that.
     print OUT $_ while (defined ($_ = shift @page) && !m%</body>%i);
 
-    # Print out our separator line and placement information, if any.
+    # Add the footer and finish with the output.
     my $file = $output;
     $file =~ s%^.*/%%;
-    output placement $file;
-
-    # Print out the signature and blurb.
-    output "<address>\n    ";
-    output sign;
-    my $modified = (split (' ', $docid))[3];
-    if ($modified) {
-        $modified =~ s{^(\d+)/(\d+)/(\d+)}{
-            sprintf ("%d-%02d-%02d", $1, $2, $3)
-        }e;
-    } else {
-        $modified = strftime ('%Y-%m-%d', gmtime ((stat $source)[9]));
-    }
-    my $spun = (split (' ', $blurb))[7];
-    unless ($spun) { $spun = strftime ('%Y-%m-%d', gmtime) }
-    my $ref = '<a href="http://www.eyrie.org/~eagle/software/web/">spun</a>';
-    if ($modified eq $spun) {
-        $blurb = "Last modified and\n$ref $modified";
-    } else {
-        $blurb = "Last\n$ref $spun\nfrom POD modified $modified";
-    }
-    output "$blurb\n</address>\n\n";
-
-    # Finish with the faq2html output.
+    print OUT &$footer ($blurb, $docid, $file);
     print OUT $SPACE, $_, @page;
+    close OUT;
+}
+
+# A wrapper around the cl2xhtml script, used to handle .changelog pointers in
+# a tree being spun.  Adds the navigation links and the signature to the
+# cl2xhtml output.
+sub cl2xhtml {
+    my ($source, $output, $options, $style) = @_;
+    $style = $STYLES . 'changelog.css' unless $style;
+    my $command = "cl2xhtml $options -s $style $source";
+    my $footer = sub {
+        my ($blurb, $id, $file) = @_;
+        $blurb =~ s%cl2xhtml%\n<a href="$URL">cl2xhtml</a>% if $blurb;
+        footer ($source, $file, $id, $blurb, $blurb);
+    };
+    run_converter ($command, $output, $footer);
+}
+
+# A wrapper around the cvs2xhtml script, used to handle .log pointers in a
+# tree being spun.  Adds the navigation links and the signature to the
+# cvs2xhtml output.
+sub cvs2xhtml {
+    my ($source, $output, $options, $style) = @_;
+    my $dir = $source;
+    $dir =~ s%/+[^/]+$%%;
+    my $name = $source;
+    $name =~ s%^.*/%%;
+    $options .= " -n $name" unless $options =~ /-n /;
+    $style = $STYLES . 'cvs.css' unless $style;
+    $options .= " -s $style";
+    my $command = "(cd $dir && cvs log $source) | cvs2xhtml $options";
+    my $footer = sub {
+        my ($blurb, $id, $file) = @_;
+        $blurb =~ s%cvs2xhtml%\n<a href="$URL">cvs2xhtml</a>% if $blurb;
+        footer ($source, $file, $id, $blurb, $blurb);
+    };
+    run_converter ($command, $output, $footer);
+}
+
+# A wrapper around the faq2html script, used to handle .faq pointers in a tree
+# being spun.  Adds the navigation links and the signature to the faq2html
+# output.
+sub faq2html {
+    my ($source, $output, $options, $style) = @_;
+    $style = $STYLES . 'faq.css' unless $style;
+    my $command = "faq2html $options -s $style $source";
+    my $footer = sub {
+        my ($blurb, $id, $file) = @_;
+        $blurb =~ s%faq2html%\n<a href="$URL">faq2html</a>%;
+        footer ($source, $file, $id, $blurb, $blurb);
+    };
+    run_converter ($command, $output, $footer);
+}
+
+# A wrapper around pod2thread and spin -f, used to handle .pod pointers in a
+# tree being spun.  Adds the navigation links and the signature to the output.
+sub pod2html {
+    my ($source, $output, $options, $style) = @_;
+    $options = '-n' unless $options;
+    my $styles = ($STYLES ? " -s $STYLES" : '');
+    $style = 'pod' unless $style;
+    $options .= " -s $style";
+    my $command = "pod2thread $options $source | $FULLPATH -f$styles";
+    my $footer = sub {
+        my ($blurb, $id, $file) = @_;
+        my $link = '<a href="%URL%">spun</a>';
+        footer ($source, $file, $id,
+                "Last modified and\n    $link %MOD%",
+                "Last $link\n    %NOW% from POD modified %MOD%");
+    };
+    run_converter ($command, $output, $footer);
+}
+
+##############################################################################
+# Per-file operations
+##############################################################################
+
+# Given a pointer file, read the master file and any options from that file,
+# returning them as a list with the newlines chomped off.
+sub read_pointer {
+    my $file = shift;
+    open (POINTER, $file) or die "$0: can't open $file: $!\n";
+    my $master = <POINTER>;
+    my $options = <POINTER>;
+    my $style = <POINTER>;
+    close POINTER;
+    die "$0: no master file specified in $file" unless $master;
+    chomp $master;
+    chomp $options if defined $options;
+    chomp $style if defined $style;
+    $options ||= '';
+    return ($master, $options, $style);
 }
 
 # This routine is called for every file in the source tree, and references the
@@ -845,76 +806,44 @@ sub process_file {
     $output =~ s/^\Q$SOURCE/$OUTPUT/ or die "$0: $input out of tree?\n";
     my $shortout = $output;
     $shortout =~ s/^\Q$OUTPUT/.../;
-    if (-d && -d $output) {
-        return;
-    } elsif (-d && !-d $output) {
+
+    # Conversion rules for pointers.  The key is the extension, the first
+    # value is the name of the command for the purposes of output, and the
+    # second is the sub to run.
+    my %rules = (changelog => [ 'cl2xhtml',   \&cl2xhtml  ],
+                 faq       => [ 'faq2html',   \&faq2html  ],
+                 log       => [ 'cvs2xhtml',  \&cvs2xhtml ],
+                 rpod      => [ 'pod2thread', \&pod2html  ]);
+
+    # Figure out what to do with the input.
+    if (-d) {
+        return if -d $output;
         if (-e $output) {
             die "$0: can't replace $output with a directory\n";
         } else {
             mkdir ($output, 0755) or die "$0: mkdir $output failed: $!\n";
         }
-    } elsif (/.changelog$/) {
-        $output =~ s/\.changelog$/.html/;
-        $shortout =~ s/\.changelog$/.html/;
-        open (POINTER, $input) or die "$0: can't open $input: $!\n";
-        my $file = <POINTER>;
-        my $name = <POINTER>;
-        close POINTER;
-        chomp $file;
-        chomp $name;
-        return if (-e $output && -M $file >= -M $output);
-        print "Formatting log for $shortout\n";
-        cl2xhtml ($file, $output, $name);
-    } elsif (/.faq$/) {
-        $output =~ s/\.faq$/.html/;
-        $shortout =~ s/\.faq$/.html/;
-        open (POINTER, $input) or die "$0: can't open $input: $!\n";
-        my $master = <POINTER>;
-        my $style = <POINTER>;
-        chomp $style if $style;
-        close POINTER;
-        if ($style && $style !~ /\./) {
-            $style .= '.css';
-        }
-        if ($style && $style !~ m%/%) {
-            $style = $STYLES . $style;
-        }
-        chomp $master;
-        return if (-e $output && -M $master >= -M $output);
-        print "Formatting $shortout\n";
-        faq2html ($master, $output, $style);
-    } elsif (/\.log$/) {
-        $output =~ s/\.log$/.html/;
-        $shortout =~ s/\.log$/.html/;
-        open (POINTER, $input) or die "$0: can't open $input: $!\n";
-        my $file = <POINTER>;
-        close POINTER;
-        chomp $file;
-        return if (-e $output && -M $file >= -M $output);
-        print "Generating log for $shortout\n";
-        cvs2xhtml ($file, $output);
-    } elsif (/\.rpod$/) {
-        $output =~ s/\.rpod$/.html/;
-        $shortout =~ s/\.rpod$/.html/;
-        open (POINTER, $input) or die "$0: can't open $input: $!\n";
-        my $file = <POINTER>;
-        my $options = <POINTER>;
-        close POINTER;
-        chomp $file;
-        chomp $options if $options;
-        return if (-e $output && -M $file >= -M $output);
-        print "Formatting $shortout\n";
-        pod2html ($file, $output, $options);
     } elsif (/\.th$/) {
         $output =~ s/\.th$/.html/;
         $shortout =~ s/\.th$/.html/;
         return if (-e $output && -M $_ >= -M $output);
         print "Spinning $shortout\n";
         spin ($_, $output);
-    } elsif (!-e $output || -M $_ < -M $output) {
-        print "Updating $shortout\n";
-        copy ($_, $output)
-            or die "$0: copy of $input to $output failed: $!\n";
+    } else {
+        my ($extension) = (/\.([^.]+)$/);
+        if ($extension && $rules{$extension}) {
+            my ($name, $sub) = @{ $rules{$extension} };
+            $output =~ s/\.\Q$extension\E$/.html/;
+            $shortout =~ s/\.\Q$extension\E$/.html/;
+            my ($file, $options, $style) = read_pointer ($input);
+            return if (-e $output && -M $file >= -M $output);
+            print "Running $name for $shortout\n";
+            &$sub ($file, $output, $options, $style);
+        } elsif (!-e $output || -M $_ < -M $output) {
+            print "Updating $shortout\n";
+            copy ($_, $output)
+                or die "$0: copy of $input to $output failed: $!\n";
+        }
     }
 }
 
@@ -1002,21 +931,16 @@ I<output> with the same file name but with the extension changed to
 C<.html>.  Missing directories are created.  Files that end in C<.th> are
 assumed to be in thread and are turned into HTML.
 
-Files that end in C<.faq> are assumed to contain a path to a text FAQ, which
-is run through B<faq2html> and the output is saved into I<output>.  If there
-is a second line in the C<.faq> file, it is taken to be the style sheet that
-should be used for the output; otherwise, C<faq.css> is used.
+Files that end in various other extensions are taken to be instructions to
+run an external converter on a file.  The first line of such a pointer file
+should be the path to the source file, the second line any arguments to the
+converter, and the third line the style sheet to use if not the default.
+Which converter to run is based on the extension of the file as follows:
 
-Files that end in C<.log> are assumed to contain a path to a file on which
-CVS log should be run, the results of which are run through B<cvs2xhtml> and
-saved to I<output>.
-
-Files that end in C<.rpod> are assumed to contain a path to a file on which
-B<pod2thread> and C<spin -f> are run to generate the output.
-
-Files that end in C<.changelog> are assumed to contain a path to a GNU-style
-ChangeLog file on which B<cl2xhtml> is run to generate the output and the
-package to which that ChangeLog applies on the second line.
+    .changelog  cl2xhtml
+    .faq        faq2html
+    .log        cvs log <file> | cvs2xhtml
+    .rpod       pod2thread <file> | spin -f
 
 All other files not beginning with a period are copied as-is.
 
@@ -1104,18 +1028,11 @@ Print out the version of B<spin> and exit.
 
 Currently, the style sheets for B<cl2xhtml>, B<cvs2xhtml>, B<faq2html>, and
 B<pod2thread> are hard-coded into this program to fit my web pages.  This
-makes this program rather unsuitable for use by anyone other than me.
+makes this program awkward for others to use, since the style sheet has to
+be specified in every pointer file if they're using different names.
 
 This documentation is woefully incomplete; there should really be a
 description of all of the pre-defined macros.
-
-The \p macro is rather ugly and doesn't fit well with the rest of spin; what
-should instead happen is that a \class that spans a complete paragraph
-should be lifted into the surrounding paragraph.  This is a bit tricky to do
-in the current architecture.
-
-There is a lot of duplicate code in B<spin> right now for dealing with the
-different processors that needs to be rethought and abstracted out.
 
 =head1 NOTES
 
