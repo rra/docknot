@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 $ID = q$Id$;
 #
-# faq2html -- Convert some particular text formats into HTML.
+# faq2html -- Convert some particular text formats into XHTML.
 #
 # Copyright 1999, 2000, 2001, 2002 by Russ Allbery <rra@stanford.edu>
 #
@@ -480,10 +480,10 @@ my $fullpath = $0;
 $0 =~ s%.*/%%;
 
 # Parse command-line options, if any.
-my ($help, $style, $version);
+my ($help, $style, $realtitle, $version);
 Getopt::Long::config ('bundling');
 GetOptions ('help|h' => \$help, 'style|s=s' => \$style,
-            'version|v' => \$version);
+            'title|t=s' => \$realtitle, 'version|v' => \$version);
 
 # If they asked for help, give them the documentation.
 if ($help) {
@@ -553,6 +553,7 @@ if (is_centered ($_)) {
     }
     do { $_ = <$IN> } while (defined && (/^\s*$/ || is_rule $_));
 }
+$title = $realtitle if $realtitle;
 $heading ||= $title;
 $heading = urlize $heading;
 
@@ -855,7 +856,8 @@ faq2html - Convert some particular text formats into XHTML
 
 =head1 SYNOPSIS
 
-B<faq2html> [B<-hv>] [B<-s> I<style>] [I<infile> [I<outfile>]]
+B<faq2html> [B<-hv>] [B<-s> I<style>] [B<-t> I<title>] [I<infile>
+[I<outfile>]]
 
 =head1 DESCRIPTION
 
@@ -953,6 +955,11 @@ Print out the version of B<faq2html> and exit.
 Insert a reference to I<style> as a style sheet into the generated web
 page.  Unless this argument is given, no style sheet will be referred to
 in the generated web page.
+
+=item B<-t> I<title>, B<--title>=I<title>
+
+Use I<title> as the page title rather than whatever may be determined from
+looking at the input file.
 
 =back
 
