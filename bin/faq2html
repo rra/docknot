@@ -224,6 +224,7 @@ sub is_heading {
     my $outdented = defined $STATE{baseline} && $indent < $STATE{baseline};
     return if (!$outdented && $STATE{contents} && /^[\d.]+[.\)]\s/);
     my $even = !defined ($INDENT) || $indent <= $INDENT;
+    return if ($even && length ($_) < 10 && !/[A-Z]/);
     ($outdented && lines ($_) == 1 && (/\S\s\S/ || length ($_) < 30))
         || ($even && /^\s*[ \w\"\(\),.:-]{0,30}[\w\"\)]\s*\n([-=~]+\s*)?$/);
 }
@@ -250,7 +251,7 @@ sub is_quoted { $_[0] =~ /^\s*([^\w\s])\s+.*\n(\s*\1\s+.*\n)*$/ && $1 }
 sub is_rule { $_[0] =~ /^\s*[-=][-=\s]*$/ }
 
 # Expects a paragraph, returns whether it ends with a sentence.
-sub is_sentence { $_[0] =~ /[.?!][\)\]\"]?\s*$/ }
+sub is_sentence { $_[0] =~ /\S[.?!][\)\]\"]?\s*$/ }
 
 # Expects a paragraph, returns whether it's the start of a signature block,
 # defined to be a paragraph whose first line is exactly "-- ".
