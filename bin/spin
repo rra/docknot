@@ -26,8 +26,8 @@ $URL = 'http://www.eyrie.org/~eagle/software/web/';
 use strict;
 use subs qw(expand parse parse_context);
 use vars qw(%DEPEND $DOCID @EXCLUDES $FILE @FILES $FULLPATH $ID $OUTPUT
-            %SITEDESCS %SITELINKS $SOURCE $SPACE @STATE $STYLES $URL %VERSIONS
-            %commands %macros %strings);
+            %OUTPUT %SITEDESCS %SITELINKS $SOURCE $SPACE @STATE $STYLES $URL
+            %VERSIONS %commands %macros %strings);
 
 use FileHandle ();
 use Getopt::Long qw(GetOptions);
@@ -768,7 +768,7 @@ sub do_heading {
     $output .= "</head>\n\n";
     my $version = (split (' ', $ID))[2];
     my $date = strftime ('%Y-%m-%d %T -0000', gmtime);
-    $output .= '<!-- Spun from ' . ($FILE eq '-' ? 'stdin' : $FILE)
+    $output .= '<!-- Spun' . ($FILE eq '-' ? '' : " from $FILE")
         . " by spin $version on $date -->\n";
     $output .= "<!-- $DOCID -->\n" if $DOCID;
     $output .= "\n<body>\n";
@@ -1213,6 +1213,7 @@ sub process_file {
 
     # Figure out what to do with the input.
     if (-d) {
+        $OUTPUT{$output} = 1;
         return if -d $output;
         if (-e $output) {
             die "$0: can't replace $output with a directory\n";
@@ -1221,6 +1222,7 @@ sub process_file {
         }
     } elsif (/\.th$/) {
         $output =~ s/\.th$/.html/;
+        $OUTPUT{$output} = 1;
         $shortout =~ s/\.th$/.html/;
         my $relative = $input;
         $relative =~ s%^\Q$SOURCE/%%;
@@ -1235,6 +1237,7 @@ sub process_file {
         if ($extension && $rules{$extension}) {
             my ($name, $sub) = @{ $rules{$extension} };
             $output =~ s/\.\Q$extension\E$/.html/;
+            $OUTPUT{$output} = 1;
             $shortout =~ s/\.\Q$extension\E$/.html/;
             my ($file, $options, $style) = read_pointer ($input);
             if (-e $output && -e $file) {
@@ -1242,11 +1245,34 @@ sub process_file {
             }
             print "Running $name for $shortout\n";
             &$sub ($file, $output, $options, $style);
-        } elsif (!-e $output || -M $_ < -M $output) {
+        } else {
+            $OUTPUT{$output} = 1;
+            return unless (!-e $output || -M $_ < -M $output);
             print "Updating $shortout\n";
             copy ($_, $output)
                 or die "$0: copy of $input to $output failed: $!\n";
         }
+    }
+}
+
+# This routine is called for every file in the destination tree, if the user
+# requested file deletion of files not generated from the source tree.  It
+# checks each file to see if it is in the %OUTPUT hash that was generated
+# during spin processing, and if not, removes it.  Directories are not
+# removed; instead, the user is told about them so that they can remove the
+# directories by hand.  It's called from within File::Find and therefore uses
+# the standard File::Find variables.
+sub delete_files {
+    return if ($_ eq '.' || $_ eq '..');
+    my $file = $File::Find::name;
+    my $shortfile = $file;
+    $shortfile =~ s/^\Q$OUTPUT/.../;
+    return if $OUTPUT{$file};
+    if (-d $file) {
+        print "Not deleting directory $shortfile, remove manually\n";
+    } else {
+        print "Deleting $shortfile\n";
+        unlink $file or die "$0: unable to remove $file: $!\n";
     }
 }
 
@@ -1259,10 +1285,11 @@ $FULLPATH = $0;
 $0 =~ s%.*/%%;
 
 # Parse command-line options.
-my (@excludes, $filter, $help, $overrides, $version);
+my ($delete, @excludes, $filter, $help, $overrides, $version);
 $STYLES = '';
 Getopt::Long::config ('bundling');
-GetOptions ('e|exclude=s'   => \@excludes,
+GetOptions ('d|delete'      => \$delete,
+            'e|exclude=s'   => \@excludes,
             'f|filter'      => \$filter,
             'h|help'        => \$help,
             'o|overrides=s' => \$overrides,
@@ -1302,10 +1329,18 @@ if ($filter) {
 } else {
     if (@ARGV != 2) { die "Usage: $0 <source> <output>\n" }
     ($SOURCE, $OUTPUT) = @ARGV;
-    read_sitemap ("$SOURCE/.sitemap");
-    read_versions ("$SOURCE/.versions");
-    $File::Find::dont_use_nlink = 1;
-    find (\&process_file, $SOURCE);
+    $OUTPUT =~ s%/+$%%;
+    if (-f $SOURCE) {
+        open (STDIN, $SOURCE) or die "$0: cannot open $SOURCE: $!\n";
+        open (STDOUT, "> $OUTPUT") or die "$0: cannot create $OUTPUT: $!\n";
+        spin ('-', '-');
+    } else {
+        read_sitemap ("$SOURCE/.sitemap");
+        read_versions ("$SOURCE/.versions");
+        $File::Find::dont_use_nlink = 1;
+        find (\&process_file, $SOURCE);
+        find (\&delete_files, $OUTPUT) if $delete;
+    }
 }
 
 ##############################################################################
@@ -1318,7 +1353,7 @@ spin - Translate thread, an HTML macro language, into XHTML
 
 =head1 SYNOPSIS
 
-spin [B<-hv>] [B<-e> I<pattern> ...] [B<-s> I<url>] [B<-o> I<overrides>]
+spin [B<-dhv>] [B<-e> I<pattern> ...] [B<-s> I<url>] [B<-o> I<overrides>]
 I<source> I<output>
 
 spin [B<-s> I<url>] [B<-o> I<overrides>] B<-f>
@@ -1341,13 +1376,20 @@ thread from stdin and writing the converted output to stdout.  Some
 features, such as appending a signature or navigation links, are disabled in
 this mode.
 
+If I<source> is a regular file, I<output> should be the name of the file
+into which to put the output, and B<spin> will process only that one file
+(which is assumed to be thread).  The same features are disabled in this
+mode as in filter mode.
+
 Otherwise, each file in the directory I<source> is examined recursively.
 For each one, it is either copied verbatim into the same relative path under
 I<output>, used as instructions to an external program (see the details on
 converters below), or converted to HTML.  The HTML output for external
 programs or for converted pages is put under I<output> with the same file
 name but with the extension changed to C<.html>.  Missing directories are
-created.
+created.  If the B<-d> flag is given, any regular files in the I<output>
+directory that do not correspond to files in the I<source> directory will be
+deleted.
 
 Files that end in C<.th> are assumed to be in thread and are turned into
 HTML.  For the details of the thread language, see L<THREAD LANGUAGE> below.
@@ -1428,6 +1470,13 @@ information).
 =head1 OPTIONS
 
 =over 4
+
+=item B<-d>, B<--delete>
+
+After populating the I<output> tree with the results of converting or
+copying all the files in the I<source> tree, delete all regular files in the
+I<output> tree that do not have a corresponding file in the I<source> tree.
+Directories will be mentioned in B<spin>'s output but will not be deleted.
 
 =item B<-e> I<pattern>, B<--exclude>=I<pattern>
 
@@ -1826,6 +1875,14 @@ support is used.
 that each \include be in its own paragraph.  It should be possible to
 support \heading and \signature in included files without breaking the
 navigation link support.
+
+=head1 NOTES
+
+The sitemap support currently only adds previous, next, up, and top links in
+the header of the generated web page.  Most browsers that support this
+functionality also support first and last links, and the information is
+available in the sitemap file to generate those.  They should also be
+included.
 
 =head1 SEE ALSO
 
