@@ -133,7 +133,7 @@ sub unquote {
 # Replace tabs with spaces.
 sub untabify {
     local $_ = shift;
-    1 while s/^(.*)(\t+)/' ' x (length ($2) * 8 - length ($1) % 8)/me;
+    1 while s/^(.*?)(\t+)/' ' x (length ($2) * 8 - length ($1) % 8)/me;
     $_;
 }
 
