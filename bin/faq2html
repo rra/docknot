@@ -207,8 +207,9 @@ sub is_centered {
 sub is_contents { $_[0] =~ /^(?:\s*[\d.]+[.\)][ \t].*\n)+\s*$/ }
 
 # Expects a paragraph, returns whether it looks like a title and description.
+# Allow for multiple titles.
 sub is_description {
-    $_[0] =~ /^(\s*)\S.*\n(\s+)\S.*\n(?:\2\S.*\n)*\s*$/
+    $_[0] =~ /^(\s*)\S.*\n(?:\1\S.*\n)*(\s+)\S.*\n(?:\2\S.*\n)*\s*$/
         && length ($1) < length ($2);
 }
 
@@ -815,16 +816,22 @@ while (defined $BUFFER) {
     # something we actually want to make <pre>.  This is another fairly
     # fragile heuristic.
     if (is_description ($_) && defined $INDENT) {
-        my ($title, $body);
-        ($title, $body) = split ("\n", $_, 2);
+        my (@title, $body);
+        ($title[0], $body) = split ("\n", $_, 2);
+        my ($space) = ($title[0] =~ /^(\s*)/);
+        while ($body =~ /^$space\S/) {
+            my $title;
+            ($title, $body) = split ("\n", $body, 2);
+            push (@title, $title);
+        }
         my $newdl = ($indent == $INDENT && !$STATE{dl});
         if ($newdl || indent ($body) == $INDENT) {
-            $_ = $body;
-            $title = embolden ($title . "\n");
-            $INDENT = indent $_;
-            s%(\n\s*\S)%<br />$1%g if is_broken $_;
+            @title = map { embolden ($_) } @title;
+            my $title = join ("<br />\n", @title) . "\n";
+            $INDENT = indent $body;
+            s%(\n\s*\S)%<br />$1%g if is_broken $body;
             output start ('dl', dt ($title));
-            output start ('dd', (p (embolden $_)));
+            output start ('dd', (p (embolden $body)));
             next;
         }
     }
