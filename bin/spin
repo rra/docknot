@@ -122,7 +122,7 @@ sub expand {
         return ($strings{$command}, $text);
     } else {
         if (!ref $commands{$command}) {
-            die "$0:$FILE:$.: bad command $command";
+            die "$0:$FILE:$.: bad command $command\n";
         }
         my ($args, $handler) = @{$commands{$command}};
         if ($args == 0) {
@@ -182,16 +182,18 @@ sub parse {
 
 sub align { 'align=center' }
 
-sub do_cite  { '<cite>' . $_[1] . '</cite>' }
-sub do_bold  { '<strong>' . $_[1] . '</strong>' }
-sub do_id    { $DOCID = $_[1]; output "<!-- $_[1] -->\n\n"; '' }
-sub do_link  { '<a href="' . $_[1] . '">' . $_[2] . '</a>' }
-sub do_rule  { border; output "<hr>\n\n"; '' }
+sub do_cite   { '<cite>' . $_[1] . '</cite>' }
+sub do_bold   { '<strong>' . $_[1] . '</strong>' }
+sub do_emph   { '<em>' . $_[1] . '</em>' }
+sub do_id     { $DOCID = $_[1]; output "<!-- $_[1] -->\n\n"; '' }
+sub do_italic { '<i>' . $_[1] . '</i>' }
+sub do_link   { '<a href="' . $_[1] . '">' . $_[2] . '</a>' }
+sub do_rule   { border; output "<hr>\n\n"; '' }
 
 sub do_desc {
     my ($format, $heading, $text) = @_;
     border ('desc', "<dl>\n", "</dl>\n");
-    $text =~ s%\n\n\s*\S%\n</p>\n\n<p>%g;
+    $text =~ s%\n\n\s*(\S)%\n</p>\n\n<p>$1%g;
     $text =~ s/\s*\n\n+$/\n/;
     output "<dt>$heading</dt>\n<dd><p>$text</p></dd>\n\n";
     '';
@@ -289,14 +291,15 @@ sub do_signature {
     }
 
     # Figure out the modified dates and print out the rest of the footer.
-    my @months = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
     my $modified = (split (' ', $DOCID))[3];
     if ($modified) {
-        $modified =~ s%^(\d+)/(\d+)/(\d+)%$3-$months[$2 - 1]-$1%;
+        $modified =~ s{^(\d+)/(\d+)/(\d+)}{
+            sprintf ("%d-%02d-%02d", $1, $2, $3)
+        }e;
     } else {
-        $modified = strftime ('%d-%b-%Y', gmtime ((stat $FILE)[9]));
+        $modified = strftime ('%Y-%m-%d', gmtime ((stat $FILE)[9]));
     }
-    my $spun = strftime ('%d-%b-%Y', gmtime);
+    my $spun = strftime ('%Y-%m-%d', gmtime);
     if ($modified eq $spun) {
         $modified = 'Last modified and spun ' . $modified;
     } else {
@@ -325,8 +328,10 @@ sub do_title {
 %commands = (cite      => [ 1, \&do_cite      ],
              bold      => [ 1, \&do_bold      ],
              desc      => [ 2, \&do_desc      ],
+             emph      => [ 1, \&do_emph      ],
              id        => [ 1, \&do_id        ],
              image     => [ 2, \&do_image     ],
+             italic    => [ 1, \&do_italic    ],
              link      => [ 2, \&do_link      ],
              quote     => [ 3, \&do_quote     ],
              rule      => [ 0, \&do_rule      ],
@@ -351,7 +356,7 @@ sub spin {
 
     # Add our initial comment.
     my $version = (split (' ', $ID))[2];
-    my $date = strftime ('%d-%b-%Y, %T UTC', gmtime);
+    my $date = strftime ('%Y-%m-%d %T -0000', gmtime);
     output "<!-- Spun from $thread by spin $version on $date -->\n";
 
     # Parse the thread file a paragraph at a time (but pick up macro
