@@ -696,6 +696,7 @@ sub do_italic { inline ('i', @_) }
 sub do_rule   { return (1, border . "<hr />\n") }
 
 # Basic block commands.
+sub do_div    { block ('div', '', @_) }
 sub do_block  { block ('blockquote', '', @_) }
 sub do_bullet { block ('li', border ('bullet', "<ul>\n", "</ul>\n\n"), @_) }
 sub do_number { block ('li', border ('number', "<ol>\n", "</ol>\n\n"), @_) }
@@ -923,6 +924,7 @@ sub do_version {
              code       => [  1, \&do_code       ],
              bold       => [  1, \&do_bold       ],
              desc       => [  2, \&do_desc       ],
+             div        => [  1, \&do_div        ],
              emph       => [  1, \&do_emph       ],
              entity     => [  1, \&do_entity     ],
              heading    => [  2, \&do_heading    ],
