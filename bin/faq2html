@@ -449,32 +449,12 @@ my $space;
 while (defined $BUFFER) {
     $_ = slurp;
 
-    # Do this first, 'cause it's special.  Check to see if this paragraph
-    # looks like literal text.  If so, we wrap it in <pre> and output it as
-    # is.  As a special exception to our normal paragraph handling, this
-    # paragraph doesn't end until we find a literal blank line; this hack
-    # lets full diffs be included in a FAQ without confusing the parser.
-    if (is_literal $_) {
-        if (/\n[ \t]+$/) { $_ .= slurp (1) }
-        output pre ($_);
-        s/\n(\n\s*)$/\n/;
-        $space = $1;
-        next;
-    }
-
-    # We're not dealing with literal text, so untabify it.
-    $_ = untabify $_;
-
-    # Stash our whitespace.
-    s/\n(\s*)$/\n/;
-    $space = $1;
-
     # If we just hit a digest divider, the next thing will likely be a
     # Subject: line that we want to turn into a section header.  Digest
     # section titles are always level 2 headers currently.
     if (is_divider $_) {
         output start, "<hr>\n";
-        $WS = $space;
+        ($WS) = /\n(\s*)$/;
         $_ = slurp;
         s/\n(\s*)$/\n/;
         $space = $1;
@@ -492,10 +472,31 @@ while (defined $BUFFER) {
     }
 
     # Treat lines of dash-type characters as rules.
-    if (is_rule $_) { output start, "<hr>\n"; next }
+    if (is_rule $_) { ($space) = /\n(\s*)$/; output start, "<hr>\n"; next }
 
-    # Everything needs to have special characters escaped.
+    # Everything else needs to have special characters escaped.  We don't do
+    # this earlier because if we want to allow < and > in rules, the
+    # escaping would make our lives miserable.
     $_ = escape $_;
+
+    # Do this before untabification and stashing of trailing whitespace, but
+    # after escaping.  Check to see if this paragraph looks like literal
+    # text.  If so, we wrap it in <pre> and output it as is.  As a special
+    # exception to our normal paragraph handling, this paragraph doesn't end
+    # until we find a literal blank line; this hack lets full diffs be
+    # included in a FAQ without confusing the parser.
+    if (is_literal $_) {
+        if (/\n[ \t]+$/) { $_ .= slurp (1) }
+        output pre ($_);
+        s/\n(\n\s*)$/\n/;
+        $space = $1;
+        next;
+    }
+
+    # Not literal text, so untabify it and stash whitespace.
+    $_ = untabify $_;
+    s/\n(\s*)$/\n/;
+    $space = $1;
 
     # Check for a heading.  We distinguish between level 2 headings and
     # level 3 headings as follows: The first heading we encounter is assumed
