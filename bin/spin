@@ -855,7 +855,7 @@ sub read_pointer {
 # File::Find variables.
 sub process_file {
     return if /^\./;
-    $File::Find::prune = 1, return if $_ eq 'CVS';
+    $File::Find::prune = 1, return if ($_ eq 'CVS' || $_ eq 'Makefile');
     my $input = $File::Find::name;
     my $output = $input;
     $output =~ s/^\Q$SOURCE/$OUTPUT/ or die "$0: $input out of tree?\n";
@@ -910,15 +910,13 @@ $| = 1;
 $FULLPATH = $0;
 $0 =~ s%.*/%%;
 
-# Load overrides from the user's home directory, if applicable.
-if (-r "$ENV{HOME}/.spinrc") { do "$ENV{HOME}/.spinrc" }
-
 # Parse command-line options.
-my ($help, $version, $filter);
+my ($help, $version, $filter, $overrides);
 $STYLES = '';
 Getopt::Long::config ('bundling');
 GetOptions ('filter|f'      => \$filter,
             'help|h'        => \$help,
+            'overrides|o=s' => \$overrides,
             'style-url|s=s' => \$STYLES,
             'version|v'     => \$version) or exit 1;
 if ($help) {
@@ -933,6 +931,9 @@ if ($help) {
     exit;
 }
 $STYLES =~ s%/*$%/% if $STYLES;
+
+# Load overrides from the specified file, if desired.
+if ($overrides) { do "$overrides" }
 
 # The arguments depend on whether -f is given.  If it is, just filter stdin to
 # stdout; otherwise, take the input tree and the output tree on the command
@@ -958,9 +959,9 @@ spin - Translate thread, an HTML macro language, into XHTML
 
 =head1 SYNOPSIS
 
-spin [B<-hv>] [B<-s> I<url>] I<source> I<output>
+spin [B<-hv>] [B<-s> I<url>] [B<-o> I<overrides>] I<source> I<output>
 
-spin [B<-s> I<url>] B<-f>
+spin [B<-s> I<url>] [B<-o> I<overrides>] B<-f>
 
 =head1 REQUIREMENTS
 
@@ -998,7 +999,8 @@ Which converter to run is based on the extension of the file as follows:
     .log        cvs log <file> | cvs2xhtml
     .rpod       pod2thread <file> | spin -f
 
-All other files not beginning with a period are copied as-is.
+All other files not beginning with a period are copied as-is, except that
+files or directories named C<CVS> or C<Makefile> are ignored.
 
 The exact details of the macro language are as yet not documented.  The
 basic format, however, is that macro invocations start with C<\>, take an
@@ -1064,6 +1066,13 @@ The signature and navigation links are disabled.
 
 Print out this documentation (which is done simply by feeding the script to
 C<perldoc -t>).
+
+=item B<-o> I<overrides>, B<--overrides>=I<overrides>
+
+Load the I<overrides> file using the Perl do command.  This file should
+contain Perl code that overrides or adds to the Perl code that's part of
+B<spin>.  It can be used to define new commands or change the behavior of
+existing commands.
 
 =item B<-s> I<url>, B<--style-url>=I<url>
 
