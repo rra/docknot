@@ -225,7 +225,7 @@ sub is_header { $_[0] =~ /^[\w-]+:\s/ }
 sub is_heading {
     local $_ = shift;
     my $indent = indent $_;
-    my $outdented = defined $STATE{baseline} && $indent < $STATE{baseline};
+    my $outdented = defined ($STATE{baseline}) && $indent < $STATE{baseline};
     return if (!$outdented && $STATE{contents} && /^[\d.]+[.\)]\s/);
     my $even = !defined ($INDENT) || $indent <= $INDENT;
     return if ($even && length ($_) < 10 && !/[A-Z]/);
@@ -723,7 +723,8 @@ while (defined $BUFFER) {
 
     # A sudden change to an indentation of 0 when that's less than our
     # indentation baseline is also a sign of literal text.
-    if ($INDENT && $indent == 0 && $INDENT > 0 && $STATE{baseline} > 0) {
+    if ($INDENT && $indent == 0 && $INDENT > 0 && defined ($STATE{baseline})
+        && $STATE{baseline} > 0) {
         output pre (strip_indent ($_, $INDENT));
         $STATE{pre} = 1;
         next;
