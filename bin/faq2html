@@ -136,8 +136,14 @@ sub untabify {
 }
 
 # Given a special-character-escaped URL, wrap <a href></a> to that URL
-# around it.
-sub url { '<a href="' . smash (unescape ($_[0])) . '">' . $_[0] . '</a>' }
+# around it.  Remove a leading mailto: in the link text.
+sub url {
+    my $link = shift;
+    my $text = $link;
+    $link = smash (unescape $link);
+    $text =~ s/^(?:mailto|news)://;
+    '<a href="' . $link . '">' . $text . '</a>';
+}
 
 # Looks for a URL in <URL:...> form and wraps a link around it.
 sub urlize { local $_ = shift; s%&lt;URL:(.+?)&gt;%url ($1)%ge; $_ }
