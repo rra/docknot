@@ -402,6 +402,7 @@ sub sitelinks {
         my @links = @{ $SITELINKS{$file} };
         my @descs = map { defined ($_) ? $SITEDESCS{$_} : '' } @links;
         @descs = map { s/\"/&quot;/g; $_ } map { escape $_ } @descs;
+        @descs = map { $_ eq 'the main page' ? () : $_ } @descs;
         @links = map { defined ($_) ? relative ($file, $_) : undef } @links;
 
         # Make the HTML for the footer.
