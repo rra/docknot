@@ -22,7 +22,7 @@ $ID = q$Id$;
 require 5.003;
 
 use strict;
-use vars qw($ID $INDENT @MONTHS %STATE);
+use vars qw($ID $INDENT @MONTHS $OUT %STATE $WS);
 
 # Replace with the month names you want to use, if you don't want English.
 @MONTHS = qw(January February March April May June July August September
@@ -73,6 +73,14 @@ sub modified {
         . " (revision $version)";
 }
 
+# Output some text to the $OUT file handle, adding any preserved whitespace
+# from before first, but after any closing tags.
+sub output {
+    my $line = shift;
+    $line =~ s%^((?:\s*</[^>]+>\s*)*)%$1$WS% if $WS;
+    print $OUT $line, @_;
+}
+
 # Read a paragraph in from a file handle, allowing whitespace on the lines
 # serving as paragraph dividers but otherwise duplicating paragraph mode.
 # It treats the second argument as a buffer, modifying it to hold the unread
@@ -90,9 +98,6 @@ sub slurp {
 
 # Remove all whitespace in a string.
 sub smash { local $_ = shift; s/\s//g; $_ }
-
-# Return the trailing whitespace of a paragraph.
-sub trailspace { $_[0] =~ /(\s+)$/; $1 }
 
 # Undoes HTML character escapes.
 sub unescape { local $_ = shift; s/&amp;/&/g; s/&lt;/</g; s/&gt;/>/g; $_ }
@@ -113,18 +118,10 @@ sub untabify {
 
 # Given a special-character-escaped URL, wrap <a href></a> to that URL
 # around it.
-sub url {
-    my $url = shift;
-    my $href = smash (unescape ($url));
-    '<a href="' . $href . '">' . $url . '</a>';
-}
+sub url { '<a href="' . smash (unescape ($_[0])) . '">' . $_[0] . '</a>' }
 
 # Looks for a URL in <URL:...> form and wraps a link around it.
-sub urlize {
-    local $_ = shift;
-    s%&lt;URL:([^.&][^&]+)&gt;%url ($1)%ge;
-    $_;
-}
+sub urlize { local $_ = shift; s%&lt;URL:(.+?)&gt;%url ($1)%ge; $_ }
 
 # Remove whitespace at the beginning and end of a string.
 sub whitechomp { local $_ = shift; s/^\s+//; s/\s+$//; $_ }
@@ -216,21 +213,17 @@ sub container {
 # for what I use it for).
 sub li {
     my ($data, $value) = @_;
-    container (defined $value ? "li value=$value" : 'li', $data);
+    my $output = $STATE{li} ? "</li>\n" : '';
+    $STATE{li} = 1;
+    $output . (defined $value ? "<li value=$value>\n" : "<li>\n") . $data;
 }
 
 # Wrap a container around data, preserving trailing blank lines outside and
 # putting the tags on lines of their own.
 sub paragraph {
     my ($tag, $data) = @_;
-    my $space;
-    if ($data =~ s/(\s+)\n$/\n/) {
-        $space = $1;
-    } else {
-        $space = '';
-    }
     $data .= "\n" unless ($data =~ /\n$/);
-    '<' . $tag . ">\n" . $data . '</' . $tag . ">\n" . $space;
+    '<' . $tag . ">\n" . $data . '</' . $tag . ">\n";
 }
 
 # Close any pending open structure elements except the one given and then
@@ -246,29 +239,19 @@ sub start {
     $data = '' unless $data;
     my $output = '';
     for (qw/blockquote dd dl li ol ul/) {
-        if ((!$e || $e ne $_ || $e eq 'li') && defined $STATE{$_}) {
+        if ((!$e || $e ne $_) && $STATE{$_}) {
             if ($e) {
-                next if ($e eq 'li' && ($_ eq 'ol' || $_ eq 'ul'));
-                next if ($e eq 'ol' && $_ eq 'li');
-                next if ($e eq 'ul' && $_ eq 'li');
+                next if (($e eq 'ol' || $e eq 'ul') && $_ eq 'li');
                 next if ($e eq 'dd' && $_ eq 'dl');
                 next if ($e eq 'dl' && $_ eq 'dd');
             }
-            $output .= "</$_>$STATE{$_}\n";
+            $output .= "</$_>\n";
             delete $STATE{$_};
         }
     }
-    if ($e) {
-        $output .= $STATE{$e} if defined $STATE{$e};
-        if (!$STATE{$e}) {
-            $STATE{$e}++;
-            $output .= "<$tag>\n";
-        }
-        if ($data =~ s/(\s+)\n$/\n/) {
-            $STATE{$e} = $1;
-        } else {
-            $STATE{$e} = "\n";
-        }
+    if ($e && !$STATE{$e}) {
+        $STATE{$e}++;
+        $output .= "<$tag>\n";
     }
     $output . $data;
 }
@@ -301,9 +284,15 @@ my $fullpath = $0;
 $0 =~ s%.*/%%;
 
 # Figure out what file we're going to be processing.
-my ($input, $output) = @ARGV or die "Usage: faq2html infile outfile\n";
+my ($input, $output) = @ARGV;
+unless ($input) { die "$0: must specify an input file: $!\n" }
 open (IN, $input) or die "$0: can't open $input: $!\n";
-open (OUT, "> $output") or die "$0: can't write to $output: $!\n";
+if ($output) {
+    open (OUT, "> $output") or die "$0: can't write to $output: $!\n";
+    $OUT = \*OUT;
+} else {
+    $OUT = \*STDOUT;
+}
 
 # Check for a leading RCS/CVS version identifier.  For FAQs that I'm posting
 # to Usenet using postfaq, this will always be the first line of the file
@@ -357,14 +346,14 @@ if (is_centered ($_) && is_heading ($_)) {
 
 # Generate the heading of the HTML file, using the filename as the title if
 # we haven't been able to find a title.
-print OUT "<html>\n", head (title ($title || $output));
+output "<html>\n", head (title ($title || $output));
 
 # Open the body of the document, and print out the heading if we found one.
 # Otherwise, print out the page title (probably from the Subject header) as
 # the main heading if we have a page title.
-print OUT "\n<body>\n";
+output "\n<body>\n";
 $heading ||= $title;
-print OUT "<h1 align=center>$heading</h1>\n" if $heading;
+output "<h1 align=center>$heading</h1>\n" if $heading;
 
 # If we have additional headers, print them out.  Otherwise, If we have
 # author information from a From header, print that out under the main
@@ -375,51 +364,56 @@ print OUT "<h1 align=center>$heading</h1>\n" if $heading;
 if ($heading) {
     my $subheading;
     while (defined && is_centered ($_)) {
-        print OUT "<p align=center><strong>\n" unless $subheading;
+        output "<p align=center><strong>\n" unless $subheading;
         $subheading++;
         if ($id && (/\$Revision/ || /\$Date/)) {
-            print OUT '  ', modified ($id), "\n";
+            output '  ', modified ($id), "\n";
         } else {
             $_ = escape $_;
             s/\n$/<br>\n/;
             s/^\s+//;
-            print OUT '  ', $_;
+            output '  ', $_;
         }
         $_ = <IN>;
         if (/^\s*$/) {
-            print OUT "</strong></p>\n";
+            output "</strong></p>\n";
             $subheading = 0;
         }
         $_ = <IN> while (defined && (/^\s*$/ || is_rule $_));
     }
     if (!defined $subheading && $author) {
         $subheading++;
-        print OUT "<p align=center><strong>\n";
-        print OUT '  ', escape ($author), "\n";
-        print OUT '  ', modified ($id), "\n" if $id;
+        output "<p align=center><strong>\n";
+        output '  ', escape ($author), "\n";
+        output '  ', modified ($id), "\n" if $id;
     }
-    print OUT "</strong></p>\n" if $subheading;
+    output "</strong></p>\n" if $subheading;
 }
 
 # Scan the actual body of the text.  We don't use paragraph mode, since it
 # doesn't work with blank lines that contain whitespace; instead, we cobble
 # together our own paragraph mode that does.  Note that $_ already has a
 # non-blank line of input coming into this loop.
-print OUT "\n" if $heading;
+output "\n" if $heading;
 my $line = $_;
+my $space;
 while (defined $line) {
     $_ = slurp (\*IN, \$line);
+
+    # Stash our whitespace.
+    s/\n(\s*)$/\n/;
+    $space = $1;
 
     # If we just hit a digest divider, the next thing will likely be a
     # Subject: line that we want to turn into a section header.
     if (is_divider $_) {
-        print OUT start, '<hr>', trailspace $_;
+        output start, '<hr>';
         $_ = slurp (\*IN, \$line);
         if (s/^Subject:\s+//) {
             if (/^([\d.]+)[.\)]\s/) {
-                print OUT start, h2 (container ("a name=\"$1\"", $_));
+                output start, h2 (container ("a name=\"$1\"", $_));
             } else {
-                print OUT start, h2 ($_);
+                output start, h2 ($_);
             }
             undef $INDENT;
             next;
@@ -427,14 +421,14 @@ while (defined $line) {
     }
 
     # Treat lines of dash-type characters as rules.
-    if (is_rule $_) { print OUT start, '<hr>', trailspace $_; next }
+    if (is_rule $_) { output start, '<hr>'; next }
 
     # Everything needs to have special characters escaped.
     $_ = escape $_;
 
     # Check to see if this paragraph looks like literal text.  If so, we
     # wrap it in <pre> and output it as is.
-    if (is_literal $_) { print OUT start, pre ($_); next }
+    if (is_literal $_) { output start, pre ($_); next }
 
     # We're not dealing with literal text, so untabify it.
     $_ = untabify $_;
@@ -445,9 +439,9 @@ while (defined $line) {
     if ((!defined $INDENT || indent ($_) <= $INDENT) && is_heading ($_)) {
         s/^\s+//;
         if (/^([\d.]+)[.\)]\s/) {
-            print OUT start, h2 (container ("a name=\"$1\"", derule ($_)));
+            output start, h2 (container ("a name=\"$1\"", derule ($_)));
         } else {
-            print OUT start, h2 (derule ($_));
+            output start, h2 (derule ($_));
         }
         undef $INDENT;
         next;
@@ -461,7 +455,7 @@ while (defined $line) {
     # blockquotes.
     my $quote = is_quoted ($_);
     if ($quote) {
-        print OUT start ('blockquote', p (unquote ($_, $quote)));
+        output start ('blockquote', p (unquote ($_, $quote)));
         next;
     }
 
@@ -470,7 +464,7 @@ while (defined $line) {
     if (defined $number) {
         $_ = denumber $_;
         $INDENT = indent $_;
-        print OUT start ('ol', start ("li value=$number", p ($_)));
+        output start ('ol', li (p ($_), $number));
         next;
     }
 
@@ -480,7 +474,7 @@ while (defined $line) {
         ($title, $_) = split ("\n", $_, 2);
         $title .= "\n";
         $INDENT = indent $_;
-        print OUT start ('dl', dt ($title) . start ('dd', (p ($_))));
+        output start ('dl', dt ($title) . start ('dd', (p ($_))));
         next;
     }
 
@@ -489,20 +483,22 @@ while (defined $line) {
     # so, add <br> tags.
     if (defined $INDENT && indent ($_) > $INDENT) {
         if (is_broken ($_) || (lines ($_) == 1 && !is_sentence $_)) {
-            print OUT start, pre ($_);
+            output start, pre ($_);
         } else {
-            print OUT start ('blockquote', p ($_));
+            output start ('blockquote', p ($_));
         }
         next;
     }
 
     # Close multiparagraph structure if we've outdented again.
-    if ($INDENT && indent ($_) < $INDENT) { print OUT start }
+    if ($INDENT && indent ($_) < $INDENT) { output start }
 
     # Looks like a normal paragraph.
     $INDENT = indent $_;
-    print OUT start, p (minident ($_));
+    output start, p (minident ($_));
+} continue {
+    $WS = $space;
 }
 
 # All done.  Print out our closing tags.
-print OUT start, "</body>\n</html>\n";
+output start, "</body>\n</html>\n";
