@@ -212,6 +212,9 @@ sub placement {
             die "$0: can't find placement for $file\n";
         }
         @placement = map { $_ eq '!' ? undef : $_ } @placement;
+        unless ($placement[0] || $placement[1] || $placement[2]) {
+            return;
+        }
 
         my @text = ('Onward to', 'Back to', 'Return to');
         my $br = '';
@@ -254,15 +257,14 @@ sub do_italic { '<i>' . $_[1] . '</i>' }
 sub do_link   { '<a href="' . $_[1] . '">' . $_[2] . '</a>' }
 sub do_rule   { border; output "<hr />\n\n"; '' }
 
-# Set a class (for style sheets) for the enclosing text.  This should be used
-# inside text elements (like regular paragraphs).
-sub do_class {
+# A blockquote, used primarily to indent a section of text that's being
+# referred to by the main text.
+sub do_block {
     my ($format, $text) = @_;
-    if ($format) {
-        qq(<span class="$format">$text</span>);
-    } else {
-        $text;
-    }
+    $text =~ s%\n\n\s*(\S)%\n</p>\n\n<p>$1%g;
+    $text =~ s/\s*\n+$//;
+    output "<blockquote>\n<p>\n$text</p>\n</blockquote>\n\n";
+    '';
 }
 
 # An item in a bulletted list.  If not already in a bulletted list, one is
@@ -295,6 +297,17 @@ sub do_packbullet {
         output qq(<li>$text</li>\n\n);
     }
     '';
+}
+
+# Set a class (for style sheets) for the enclosing text.  This should be used
+# inside text elements (like regular paragraphs).
+sub do_class {
+    my ($format, $text) = @_;
+    if ($format) {
+        qq(<span class="$format">$text</span>);
+    } else {
+        $text;
+    }
 }
 
 # A description list entry, which takes the heading and the body as arguments.
@@ -452,7 +465,8 @@ sub do_signature {
 }
 
 # The table of available commands.
-%commands = (break      => [ 0, \&do_break      ],
+%commands = (block      => [ 1, \&do_block      ],
+             break      => [ 0, \&do_break      ],
              bullet     => [ 1, \&do_bullet     ],
              class      => [ 1, \&do_class      ],
              cite       => [ 1, \&do_cite       ],
