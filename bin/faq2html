@@ -155,7 +155,14 @@ sub is_centered {
     $_[0] =~ /^(\s+)(.+)/ && abs (74 - (length $2) - (length $1) * 2) < 2;
 }
 
-# Expects a line, returns whether it's a digest divider.
+# Expects a paragraph, returns whether it looks like a title and
+# description.
+sub is_description {
+    $_[0] =~ /^(\s*).*\n(\s+).*\n(?:\2\S.*\n)*/
+        && length ($1) < length ($2);
+}
+
+# Expects a paragraph, returns whether it's a digest divider.
 sub is_divider { $_[0] =~ /^-{30}\s*$/ }
 
 # Expects a line, returns whether it's a mail/news header.
@@ -233,20 +240,29 @@ sub paragraph {
 # paragraph within a structure element to follow the closing tag, so I stash
 # that whitespace away in %STATE.
 sub start {
-    my ($e, $data) = @_;
+    my ($tag, $data) = @_;
+    my $e = $tag || '';
+    $e =~ s/ .*//;
     $data = '' unless $data;
     my $output = '';
-    for (qw/blockquote dl ol ul/) {
-        if ((!$e || $e ne $_) && defined $STATE{$_}) {
+    for (qw/blockquote dd dl li ol ul/) {
+        if ((!$e || $e ne $_ || $e eq 'li') && defined $STATE{$_}) {
+            if ($e) {
+                next if ($e eq 'li' && ($_ eq 'ol' || $_ eq 'ul'));
+                next if ($e eq 'ol' && $_ eq 'li');
+                next if ($e eq 'ul' && $_ eq 'li');
+                next if ($e eq 'dd' && $_ eq 'dl');
+                next if ($e eq 'dl' && $_ eq 'dd');
+            }
             $output .= "</$_>$STATE{$_}\n";
             delete $STATE{$_};
         }
     }
-    if (defined $e) {
+    if ($e) {
         $output .= $STATE{$e} if defined $STATE{$e};
         if (!$STATE{$e}) {
             $STATE{$e}++;
-            $output .= "<$e>\n";
+            $output .= "<$tag>\n";
         }
         if ($data =~ s/(\s+)\n$/\n/) {
             $STATE{$e} = $1;
@@ -269,6 +285,7 @@ sub title {
 
 # Various containers.
 sub blockquote { paragraph ('blockquote', @_) }
+sub dt         { container ('dt',         @_) }
 sub h2         { container ('h2',         @_) }
 sub head       { paragraph ('head',       @_) }
 sub p          { paragraph ('p',          @_) }
@@ -393,13 +410,17 @@ my $line = $_;
 while (defined $line) {
     $_ = slurp (\*IN, \$line);
 
-    # If we just hit a MIME divider, the next thing will likely be a
+    # If we just hit a digest divider, the next thing will likely be a
     # Subject: line that we want to turn into a section header.
     if (is_divider $_) {
         print OUT start, '<hr>', trailspace $_;
         $_ = slurp (\*IN, \$line);
         if (s/^Subject:\s+//) {
-            print OUT start, h2 ($_);
+            if (/^([\d.]+)[.\)]\s/) {
+                print OUT start, h2 (container ("a name=\"$1\"", $_));
+            } else {
+                print OUT start, h2 ($_);
+            }
             undef $INDENT;
             next;
         }
@@ -423,7 +444,11 @@ while (defined $line) {
     # is the same as or less than the surrounding text.
     if ((!defined $INDENT || indent ($_) <= $INDENT) && is_heading ($_)) {
         s/^\s+//;
-        print OUT start, h2 (derule ($_));
+        if (/^([\d.]+)[.\)]\s/) {
+            print OUT start, h2 (container ("a name=\"$1\"", derule ($_)));
+        } else {
+            print OUT start, h2 (derule ($_));
+        }
         undef $INDENT;
         next;
     }
@@ -445,7 +470,17 @@ while (defined $line) {
     if (defined $number) {
         $_ = denumber $_;
         $INDENT = indent $_;
-        print OUT start ('ol', li (p ($_), $number));
+        print OUT start ('ol', start ("li value=$number", p ($_)));
+        next;
+    }
+
+    # Check for things that look like description lists and handle them.
+    if (is_description $_) {
+        my $title;
+        ($title, $_) = split ("\n", $_, 2);
+        $title .= "\n";
+        $INDENT = indent $_;
+        print OUT start ('dl', dt ($title) . start ('dd', (p ($_))));
         next;
     }
 
@@ -461,10 +496,8 @@ while (defined $line) {
         next;
     }
 
-    # Close a blockquote if we've outdented again.
-    if ($STATE{blockquote} && $INDENT && indent $_ < $INDENT) {
-        print OUT start;
-    }
+    # Close multiparagraph structure if we've outdented again.
+    if ($INDENT && indent ($_) < $INDENT) { print OUT start }
 
     # Looks like a normal paragraph.
     $INDENT = indent $_;
