@@ -178,9 +178,13 @@ sub is_broken {
 # Expects a paragraph, returns whether it's a bulletted item.
 sub is_bullet { $_[0] =~ /^\s*[-*o]\s/ }
 
-# Expects a line, returns whether it's centered (in 74 columns).
+# Expects a line, returns whether it's centered (in 74 columns).  Also
+# require at least 10 spaces of whitespace so that we don't catch
+# accidentally centered paragraph lines by mistake.
 sub is_centered {
-    $_[0] =~ /^(\s+)(.+)/ && abs (74 - (length $2) - (length $1) * 2) < 2;
+    $_[0] =~ /^(\s+)(.+)/
+        && abs (74 - length ($2) - length ($1) * 2) < 2
+        && length (untabify $1) >= 10;
 }
 
 # Expects a paragraph, returns whether it looks like a content listing.
@@ -236,6 +240,10 @@ sub is_rule { $_[0] =~ /^\s*[-=][-=\s]*$/ }
 
 # Expects a paragraph, returns whether it ends with a sentence.
 sub is_sentence { $_[0] =~ /[.?!][\)\]\"]?\s*$/ }
+
+# Expects a paragraph, returns whether it's the start of a signature block,
+# defined to be a paragraph whose first line is exactly "-- ".
+sub is_signature { $_[0] =~ /^-- \n/ }
 
 
 ############################################################################
@@ -401,7 +409,7 @@ $_ = <$IN> while (defined && (/^\s*$/ || is_rule $_));
 # make that the document title unless we also saw a Subject header.  Titles
 # shouldn't be in all caps, though.
 my $heading;
-if (is_centered ($_) && is_heading ($_)) {
+if (is_centered ($_)) {
     $heading = whitechomp $_;
     if (!$title) {
         $title = $heading;
@@ -474,6 +482,9 @@ $BUFFER = $_;
 my $space;
 while (defined $BUFFER) {
     $_ = slurp;
+
+    # Ignore any text after a signature block.
+    last if (is_signature $_);
 
     # If we just hit a digest divider, the next thing will likely be a
     # Subject: line that we want to turn into a section header.  Digest
