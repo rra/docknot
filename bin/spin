@@ -1156,7 +1156,7 @@ Print out the version of B<spin> and exit.
 
 =head1 THREAD LANGUAGE
 
-=head1 Basic Syntax
+=head2 Basic Syntax
 
 A thread file is mostly plain ASCII text with a blank line between
 paragraphs.  There is no need to explicitly mark paragraphs; paragraph
