@@ -84,7 +84,11 @@ sub extract {
     }
     for (1..$count) {
         ($result[$_], $text) = extract_bracketed ($text, '[]');
-        $result[$_] = substr ($result[$_], 1, -1);
+        if ($result[$_]) {
+            $result[$_] = substr ($result[$_], 1, -1);
+        } else {
+            warn "$0:$FILE:$.: Can't find argument $_\n";
+        }
     }
     unless ($format) { shift @result }
     (@result, $text);
