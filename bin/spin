@@ -15,14 +15,19 @@ $ID = q$Id$;
 
 require 5.005;
 
+# The default list of files and/or directories to exclude from spinning.  This
+# can be added to with the -e option.  Each of these should be a regular
+# expression.
+@EXCLUDES = (qr/^\.(?!\.\z)(?!htaccess\z)/, qr/^CVS\z/, qr/^Makefile\z/);
+
 # The URL to the software page for all of my web page generation software.
 $URL = 'http://www.eyrie.org/~eagle/software/web/';
 
 use strict;
 use subs qw(expand parse parse_context);
-use vars qw(%DEPEND $DOCID $FILE $FULLPATH $ID $OUTPUT %SITEDESCS %SITELINKS
-            $SOURCE $SPACE @STATE $STYLES $URL %VERSIONS %commands %macros
-            %strings);
+use vars qw(%DEPEND $DOCID @EXCLUDES $FILE $FULLPATH $ID $OUTPUT %SITEDESCS
+            %SITELINKS $SOURCE $SPACE @STATE $STYLES $URL %VERSIONS %commands
+            %macros %strings);
 
 use Getopt::Long qw(GetOptions);
 use Image::Size qw(html_imgsize);
@@ -1119,8 +1124,12 @@ sub read_pointer {
 # File::Find variables.
 sub process_file {
     return if ($_ eq '.' || $_ eq '..');
-    $File::Find::prune = 1, return if (/^\./ && $_ ne '.htaccess');
-    $File::Find::prune = 1, return if ($_ eq 'CVS' || $_ eq 'Makefile');
+    for my $regex (@EXCLUDES) {
+        if (/$regex/) {
+            $File::Find::prune = 1;
+            return;
+        }
+    }
     my $input = $File::Find::name;
     my $output = $input;
     $output =~ s/^\Q$SOURCE/$OUTPUT/ or die "$0: $input out of tree?\n";
@@ -1183,14 +1192,15 @@ $FULLPATH = $0;
 $0 =~ s%.*/%%;
 
 # Parse command-line options.
-my ($help, $version, $filter, $overrides);
+my (@excludes, $filter, $help, $overrides, $version);
 $STYLES = '';
 Getopt::Long::config ('bundling');
-GetOptions ('filter|f'      => \$filter,
-            'help|h'        => \$help,
-            'overrides|o=s' => \$overrides,
-            'style-url|s=s' => \$STYLES,
-            'version|v'     => \$version) or exit 1;
+GetOptions ('e|exclude=s'   => \@excludes,
+            'f|filter'      => \$filter,
+            'h|help'        => \$help,
+            'o|overrides=s' => \$overrides,
+            's|style-url=s' => \$STYLES,
+            'v|version'     => \$version) or exit 1;
 if ($help) {
     print "Feeding myself to perldoc, please wait....\n";
     exec ('perldoc', '-t', $FULLPATH);
@@ -1203,9 +1213,10 @@ if ($help) {
     exit;
 }
 $STYLES =~ s%/*$%/% if $STYLES;
+push (@EXCLUDES, map { qr/$_/ } @excludes);
 
 # Load overrides from the specified file, if desired.
-if ($overrides) { do "$overrides" }
+do "$overrides" if $overrides;
 
 # The arguments depend on whether -f is given.  If it is, just filter stdin to
 # stdout; otherwise, take the input tree and the output tree on the command
@@ -1232,7 +1243,8 @@ spin - Translate thread, an HTML macro language, into XHTML
 
 =head1 SYNOPSIS
 
-spin [B<-hv>] [B<-s> I<url>] [B<-o> I<overrides>] I<source> I<output>
+spin [B<-hv>] [B<-e> I<pattern> ...] [B<-s> I<url>] [B<-o> I<overrides>]
+I<source> I<output>
 
 spin [B<-s> I<url>] [B<-o> I<overrides>] B<-f>
 
@@ -1341,6 +1353,11 @@ information).
 =head1 OPTIONS
 
 =over 4
+
+=item B<-e> I<pattern>, B<--exclude>=I<pattern>
+
+Exclude files matching the given regular expression I<pattern> from being
+converted.  This flag may be used multiple times.
 
 =item B<-f>, B<--filter>
 
