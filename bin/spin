@@ -15,8 +15,8 @@ require 5.005;
 
 use strict;
 use subs qw(expand parse);
-use vars qw($DOCID $FILE $ID $OUT $OUTPUT $SOURCE $SPACE $SPINID @STATE
-            $STYLES %commands %strings);
+use vars qw($DOCID $FILE $FULLPATH $ID $OUT $OUTPUT $SOURCE $SPACE $SPINID
+            @STATE $STYLES %commands %strings);
 
 use Getopt::Long qw(GetOptions);
 use Image::Size qw(html_imgsize);
@@ -247,6 +247,26 @@ sub sign {
 }
 
 ##############################################################################
+# Supporting functions
+##############################################################################
+
+# Given the format argument to a command, return the class or id attribute
+# that should be used preceeded by a space, or an empty string if none should
+# be used.
+sub format_string {
+    my $format = shift;
+    if ($format) {
+        if ($format =~ s/^\#//) {
+            return ' id="' . $format . '"';
+        } else {
+            return ' class="' . $format . '"';
+        }
+    } else {
+        return '';
+    }
+}
+
+##############################################################################
 # Commands
 ##############################################################################
 
@@ -282,11 +302,7 @@ sub do_bullet {
     $text =~ s%<p><pre>%<pre>%g;
     $text =~ s%</pre>\n</p>%</pre>%g;
     $text =~ s%\s*\n+$%%;
-    if ($format) {
-        output qq(<li class="$format"><p>$text</p></li>\n\n);
-    } else {
-        output qq(<li><p>$text</p></li>\n\n);
-    }
+    output '<li', format_string ($format), qq(><p>$text</p></li>\n\n);
     '';
 }
 
@@ -295,7 +311,7 @@ sub do_bullet {
 sub do_class {
     my ($format, $text) = @_;
     if ($format) {
-        qq(<span class="$format">$text</span>);
+        qq(<span) . format_string ($format) . qq(>$text</span>);
     } else {
         $text;
     }
@@ -328,11 +344,12 @@ sub do_entity {
 sub do_h {
     my ($level, $format, $text) = @_;
     border;
-    if ($format) {
-        output qq(<h$level class="$format">$text</h$level>\n\n);
-    } else {
-        output qq(<h$level>$text</h$level>\n\n);
+    if ($format && $format =~ /^\#/) {
+        my $tag = $format;
+        $tag =~ s/^\#//;
+        $text = qq(<a name="$tag">$text</a>);
     }
+    output qq(<h$level), format_string ($format), qq(>$text</h$level>\n\n);
     '';
 }
 
@@ -359,8 +376,9 @@ sub do_heading {
         output qq(  <link rel="stylesheet" href="$style" type="text/css" />);
         output "\n";
     }
-    output "</head>\n\n<!-- $SPINID -->\n<!-- $DOCID -->\n\n";
-    output "<body>\n\n";
+    output "</head>\n\n<!-- $SPINID -->\n";
+    output "<!-- $DOCID -->\n" if $DOCID;
+    output "\n<body>\n\n";
     '';
 }
 
@@ -377,11 +395,7 @@ sub do_id {
 sub do_image {
     my ($format, $image, $text) = @_;
     my $size = lc html_imgsize ($image);
-    if ($format) {
-        qq(<img src="$image" alt="$text" $size class="$format" />);
-    } else {
-        qq(<img src="$image" alt="$text" $size />);
-    }
+    qq(<img src="$image" alt="$text" $size) . format_string ($format) . ' />';
 }
 
 # An item in a numbered list.  If not already in a numbered list, one is
@@ -395,11 +409,7 @@ sub do_number {
     $text =~ s%<p><pre>%<pre>%g;
     $text =~ s%</pre>\n</p>%</pre>%g;
     $text =~ s%\s*\n+$%%;
-    if ($format) {
-        output qq(<li class="$format"><p>$text</p></li>\n\n);
-    } else {
-        output qq(<li><p>$text</p></li>\n\n);
-    }
+    output qq(<li), format_string ($format), qq(><p>$text</p></li>\n\n);
     '';
 }
 
@@ -409,11 +419,7 @@ sub do_number {
 # maybe I should get rid of it at some point.
 sub do_p {
     my ($format, $text) = @_;
-    if ($format) {
-        qq(<p class="$format">$text</p>);
-    } else {
-        qq(<p>$text</p>);
-    }
+    qq(<p) . format_string ($format) . qq(>$text</p>);
 }
 
 # An item in a bulletted list.  If not already in a bulletted list, one is
@@ -421,24 +427,27 @@ sub do_p {
 # which will make the list more compact on some browsers.
 sub do_packbullet {
     my ($format, $text) = @_;
-    border ('bullet', "<ul>\n", "</ul>\n");
+    border ('bullet', "<ul>\n", "</ul>\n\n");
     $text =~ s%\s*\n+$%%;
-    if ($format) {
-        output qq(<li class="$format">$text</li>\n\n);
-    } else {
-        output qq(<li>$text</li>\n\n);
-    }
+    output qq(<li), format_string ($format), qq(>$text</li>\n);
+    '';
+}
+
+# An numbered item in a bulletted list.  If not already in a numbered list,
+# one is opened for this element.  The items are not surrounded by paragraph
+# markers, which will make the list more compact on some browsers.
+sub do_packnumber {
+    my ($format, $text) = @_;
+    border ('bullet', "<ol>\n", "</ol>\n\n");
+    $text =~ s%\s*\n+$%%;
+    output qq(<li), format_string ($format), qq(>$text</li>\n);
     '';
 }
 
 # Preformatted text, the same as the HTML tag.
 sub do_pre {
     my ($format, $text) = @_;
-    if ($format) {
-        qq(<pre class="$format">$text</pre>);
-    } else {
-        qq(<pre>$text</pre>);
-    }
+    qq(<pre) . format_string ($format) . qq(>$text</pre>);
 }
 
 # Used for the leading quotes that I have on many of my pages.  Takes the
@@ -527,6 +536,7 @@ sub do_signature {
              number     => [ 1, \&do_number     ],
              p          => [ 1, \&do_p          ],
              packbullet => [ 1, \&do_packbullet ],
+             packnumber => [ 1, \&do_packnumber ],
              pre        => [ 1, \&do_pre        ],
              quote      => [ 3, \&do_quote      ],
              rule       => [ 0, \&do_rule       ],
@@ -728,9 +738,10 @@ sub faq2html {
 # A wrapper around pod2thread and spin -f, used to handle .pod pointers in a
 # tree being spun.  Adds the navigation links and the signature to the output.
 sub pod2html {
-    my ($source, $output) = @_;
+    my ($source, $output, $options) = @_;
+    $options = '-n' unless $options;
     my $style = ($STYLES ? " -s $STYLES" : '');
-    my @page = `pod2thread -s pod $source | spin -f$style`;
+    my @page = `pod2thread -s pod $options $source | $FULLPATH -f$style`;
     open (OUT, "> $output") or die "$0: can't create $output: $!\n";
     $OUT = \*OUT;
 
@@ -849,11 +860,13 @@ sub process_file {
         $shortout =~ s/\.rpod$/.html/;
         open (POINTER, $input) or die "$0: can't open $input: $!\n";
         my $file = <POINTER>;
+        my $options = <POINTER>;
         close POINTER;
         chomp $file;
+        chomp $options if $options;
         return if (-e $output && -M $file >= -M $output);
         print "Formatting $shortout\n";
-        pod2html ($file, $output);
+        pod2html ($file, $output, $options);
     } elsif (/\.th$/) {
         $output =~ s/\.th$/.html/;
         $shortout =~ s/\.th$/.html/;
@@ -872,6 +885,7 @@ sub process_file {
 ##############################################################################
 
 $| = 1;
+$FULLPATH = $0;
 $0 =~ s%.*/%%;
 
 # Load overrides from the user's home directory, if applicable.
@@ -887,7 +901,7 @@ GetOptions ('filter|f'      => \$filter,
             'version|v'     => \$version) or exit 1;
 if ($help) {
     print "Feeding myself to perldoc, please wait....\n";
-    exec ('perldoc', '-t', $0);
+    exec ('perldoc', '-t', $FULLPATH);
 } elsif ($version) {
     my $version = join (' ', (split (' ', $ID))[1..3]);
     $version =~ s/,v\b//;
