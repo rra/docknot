@@ -565,9 +565,7 @@ sub spin {
 # a tree being spun.  Adds the navigation links and the signature to the
 # cl2xhtml output.
 sub cl2xhtml {
-    my ($source, $output) = @_;
-    my $name = $source;
-    $name =~ s%^.*/%%;
+    my ($source, $output, $name) = @_;
     my $style = '/~eagle/styles/changelog.css';
     my @page = `cl2xhtml -n $name -s $style $source`;
     open (OUT, "> $output") or die "$0: can't create $output: $!\n";
@@ -781,11 +779,13 @@ sub process_file {
         $shortout =~ s/\.changelog$/.html/;
         open (POINTER, $input) or die "$0: can't open $input: $!\n";
         my $file = <POINTER>;
+        my $name = <POINTER>;
         close POINTER;
         chomp $file;
+        chomp $name;
         return if (-e $output && -M $file >= -M $output);
         print "Formatting log for $shortout\n";
-        cl2xhtml ($file, $output);
+        cl2xhtml ($file, $output, $name);
     } elsif (/.faq$/) {
         $output =~ s/\.faq$/.html/;
         $shortout =~ s/\.faq$/.html/;
@@ -913,8 +913,9 @@ run, the results of which are run through B<cvs2xhtml> and saved to
 I<output>.  Files that end in C<.rpod> are assumed to contain a path to a
 file on which B<pod2thread> and C<spin -f> are run to generate the output.
 Files that end in C<.changelog> are assumed to contain a path to a GNU-style
-ChangeLog file on which B<cl2xhtml> is run to generate the output.  All
-other files not beginning with a period are copied as-is.
+ChangeLog file on which B<cl2xhtml> is run to generate the output and the
+package to which that ChangeLog applies on the second line.  All other files
+not beginning with a period are copied as-is.
 
 The exact details of the macro language are as yet not documented.  The
 basic format, however, is that macro invocations start with C<\>, take an
