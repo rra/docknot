@@ -186,7 +186,7 @@ sub is_bullet { $_[0] =~ /^\s*[-*o]\s/ }
 sub is_centered {
     $_[0] =~ /^(\s+)(.+)/
         && abs (74 - length ($2) - length ($1) * 2) < 2
-        && length (untabify $1) >= 10;
+        && length (untabify $1) >= 8;
 }
 
 # Expects a paragraph, returns whether it looks like a content listing.
@@ -227,7 +227,7 @@ sub is_id { $_[0] =~ /^\s*\$Id.*\$\s*$/ }
 
 # Expects a paragraph, returns whether it appears to have internal
 # whitespace.
-sub is_literal { $_[0] =~ /^[ \t]*\S.*(?:[^.?!\"\)\]:\n]  |   |\t)\S/m }
+sub is_literal { $_[0] =~ /^[ \t]*\S.*(?:[^.?!\"\)\]:*_\n]  |   |\t)\S/m }
 
 # Expects a paragraph, returns undef if it doesn't look like a numbered
 # paragraph or the number if it does.
