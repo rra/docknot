@@ -1058,12 +1058,16 @@ thread from stdin and writing the converted output to stdout.  Some
 features, such as appending a signature or navigation links, are disabled in
 this mode.
 
-Otherwise, for each file in the directory I<source>, recursively through the
-directory structure, it is either copied verbatim into the same relative
-path under I<output> or converted to HTML with the HTML output put under
-I<output> with the same file name but with the extension changed to
-C<.html>.  Missing directories are created.  Files that end in C<.th> are
-assumed to be in thread and are turned into HTML.
+Otherwise, each file in the directory I<source> is examined recursively.
+For each one, it is either copied verbatim into the same relative path under
+I<output>, used as instructions to an external program (see the details on
+converters below), or converted to HTML.  The HTML output for external
+programs or for converted pages is put under I<output> with the same file
+name but with the extension changed to C<.html>.  Missing directories are
+created.
+
+Files that end in C<.th> are assumed to be in thread and are turned into
+HTML.  For the details of the thread language, see L<THREAD LANGUAGE> below.
 
 Files that end in various other extensions are taken to be instructions to
 run an external converter on a file.  The first line of such a pointer file
@@ -1077,42 +1081,8 @@ Which converter to run is based on the extension of the file as follows:
     .rpod       pod2thread <file> | spin -f
 
 All other files not beginning with a period are copied as-is, except that
-files or directories named C<CVS> or C<Makefile> are ignored.  As an
+files or directories named F<CVS> or F<Makefile> are ignored.  As an
 exception, F<.htaccess> files are also copied over.
-
-The exact details of the macro language are as yet not documented.  The
-basic format, however, is that macro invocations start with C<\>, take an
-optional initial argument specifying the class (in the style sheet sense,
-resulting in a class attribute in the XHTML to which a style sheet can
-refer) enclosed in parentheses, and then some number of arguments enclosed
-in square brackets.  Any amount of space can separate the macro name from
-the class argument or regular arguments, or the arguments from each other,
-and that whitesepace is ignored.
-
-In addition, a new macro can be defined using syntax like:
-
-    \==[name] [arguments] [definition]
-
-where name is the name of the macro, arguments is the number of arguments
-that it takes, and definition is the definition of the macro, in which \1 is
-replaced by the first argument, \2 by the second argument, and so forth.
-
-Similarly, strings can be defined with:
-
-    \=[name] [value]
-
-and then later referred to in the page with \=name.  This is useful for
-things like URLs for links, so that they're all collected at the top of the
-page for easy updating.
-
-Paragraphs can be left without markup and will automatically be wrapped in
-HTML <p> tags.  The content of macros can span paragraphs.  Macros can be
-nested arbitrarily.
-
-Each page should begin with an \id macro containing an RCS Id string, and
-then a \header macro specifying the page title and style sheet; this will
-set up the proper XHTML headers.  Each page should also end with \signature,
-which will append the navigation links and an address block.
 
 B<spin> looks for a file named F<.sitemap> at the top of the I<source>
 directory and reads it for navigation information to generate the navigation
@@ -1124,10 +1094,27 @@ between them at the same indentation level.  The partial URLs should start
 with / representing the top of the hierarchy (the I<source> directory), but
 all generated links will be relative.
 
+Here's an example of a simple F<.sitemap> file:
+
+    /personal/: Personal Information
+      /personal/contact.html: Contact Information
+      ---
+      /personal/projects.html: Current Projects
+    /links/: Links
+      /links/lit.html: Other Literature
+      /links/music.html: Music
+      /links/sf.html: Science Fiction and Fantasy
+
+This defines two sub-pages of the top page, /personal/ and /links/.
+/personal/ has two pages under it that are not part of the same set (and
+therefore shouldn't have links to each other).  /links/ has three pages
+under it which are part of a set and should be linked between each other.
+
 B<spin> also looks for a file named F<.signature> in the same directory as a
-thread file and uses its contents as the basis of the <address> block at the
-end of the XHTML page.  The contents will be surrounded by an <address> tag
-and added to the end will be information about when the page was last
+thread file and copies its contents verbatim into an <address> block at the
+end of the XHTML page (so the contents should be valid XHTML).  The contents
+will be surrounded by an <address> tag, and added to the end of the supplied
+F<.signature> contents will be information about when the page was last
 modified and generated.
 
 =head1 OPTIONS
@@ -1167,6 +1154,321 @@ Print out the version of B<spin> and exit.
 
 =back
 
+=head1 THREAD LANGUAGE
+
+=head1 Basic Syntax
+
+A thread file is mostly plain ASCII text with a blank line between
+paragraphs.  There is no need to explicitly mark paragraphs; paragraph
+boundaries will be inferred from the blank line between them and the
+appropriate <p> tags will be added to the HTML output.  There is no need to
+escape any character except C<\> (which should be written as C<\\>).
+
+Commands begin with C<\>.  For example, the command to insert a line break
+(corresponding to the <br> tag in HTML) is \break.  If the command takes
+arguments, they are enclosed in square brackets after the command.  If there
+are multiple arguments, they are each enclosed in square brackets and follow
+each other.  Any amount of whitespace (but nothing else) is allowed between
+the command and the arguments, or between the arguments.  So, for example,
+all of the following are entirely equivalent:
+
+    \link[index.html][Main page]
+    \link  [index.html]  [Main page]
+
+    \link[index.html]
+    [Main page]
+
+    \link
+    [index.html]
+    [Main page]
+
+(\link is a command that takes two arguments.)
+
+Commands can take multiple paragraphs of text as arguments in some cases
+(for things like list items).  Commands can be arbitrarily nested.
+
+Some commands take an additional optional argument which specifies the class
+attribute for that HTML tag, for use with style sheets, or the id attribute,
+for use with style sheets or as an anchor.  That argument is enclosed in
+parentheses and placed before any other arguments.  If the argument begins
+with C<#>, it will be taken to be an id.  Otherwise, it will be taken as a
+class.  For example, a first-level heading is normally written as:
+
+    \h1[Heading]
+
+(with one argument).  Either of the following will add a class attribute of
+C<header> to that HTML container that can be referred to in style sheets:
+
+    \h1(header)[Heading]
+    \h1  (header)  [Heading]
+
+and the following would add an id attribute of C<intro> to the heading so
+that it could be referred to with the anchor C<#intro>:
+
+    \h1(#intro)[Introduction]
+
+Note that the heading commands have special handling for id attributes; see
+below for more details.
+
+=head2 Basic Format
+
+There are two commands that are required to occur in every document.  The
+first is \heading, which must occur before any regular page text.  It
+takes two arguments, the first of which is the page title (the title that
+shows up in the window title bar for the browser and is the default text for
+bookmarks, not anything that's displayed as part of the body of the page)
+and the second of which is the style sheet to use.  If there is no style
+sheet for this page, the second argument should be empty ([]).
+
+The second required command is \signature, which must be the last command in
+the file.  \signature will take care of appending the signature, appending
+navigation links, closing any open blocks, and any other cleanup that has to
+happen at the end of a generated HTML page.
+
+It is also highly recommended, if you are using CVS or RCS for revision
+control, to put \id[$Z<>Id$] as the first command in each file.  B<spin>
+will then take care of putting the last modified date in the footer for you
+based on the CVS timestamp (which may be more accurate than the last
+modified time of the thread file).
+
+=head2 Block Commands
+
+Block commands are commands that should occur in a paragraph by themselves,
+not containined in a paragraph with other text.  They indicate high-level
+structural elements of the page.  Two of them were already discussed above:
+
+=over 4
+
+=item \heading[<title>][<style>]
+
+As described above, this sets the page title to <title> and the style sheet
+to <style>.  If the B<-s> option was given, that base URL will be prepended
+to <style> to form the URL for the style sheet; otherwise, <style> will be
+used verbatim as a URL.
+
+=item \id[$Z<>Id$]
+
+Tells B<spin> the CVS or RCS revision number and time.  This string is
+embedded verbatim in an HTML comment near the beginning of the generated
+output as well as used for the last modified information added by the
+\signature command.
+
+=back
+
+Here are the rest of the block commands.  Any argument of <text> can be
+multiple paragraphs and contain other embedded block commands (so you can
+nest a list inside another list, for example).
+
+=over 4
+
+=item \block[<text>]
+
+Put text in an indented block, equivalent to <blockquote> in HTML.  Used
+primarily for quotations or things like license statements embedded in
+regular text.
+
+=item \bullet[<text>]
+
+<text> is formatted as an item in a bullet list.  This is like <li> inside
+<ul> in HTML, but the surrounding list tags are inferred automatically and
+handled correctly when multiple \bullet commands are used in a row.
+Normally, <text> is treated like a paragraph.
+
+If used with a class attribute of C<packed>, such as with:
+
+    \bullet(packed)[First item]
+
+then the <text> argument will not be treated as a paragraph and will not be
+surrounded in <p> tags.  No block commands should be used inside this type
+of \bullet command.  This variation will, on most browsers, not put any
+additional whitespace around the line and will look better for bulleted
+lists where each item is a single line.
+
+=item \desc[<heading>][<text>]
+
+An element in a description list, where each item has a tag <heading> and an
+associated body text of <text>, like <dt> and <dd> in HTML.  As with
+\bullet, the <dl> tags are inferred automatically.
+
+=item \h1[<heading>] .. \h6[<heading>]
+
+Level one through level six headings, just like <h1> .. <h6> in HTML.  If
+given an id argument, such as:
+
+    \h1(#anchor)[Heading]
+
+then not only will an id attribute be added to the <h1> container but the
+text of the heading will also be enclosed in an <a name> container to ensure
+that C<#anchor> can be used as an anchor in a link even in older browsers
+that don't understand id attributes.  This is special handling that only
+works with \h1 through \h6, not with other commands.
+
+=item \number[<text>]
+
+<text> is formatted as an item in a numbered list, like <li> inside <ol> in
+HTML.  As with \bullet and \desc, the surrounding tags are inferred
+automatically.  As with \bullet, a class attribute of C<packed> will omit
+the paragraph tags around <text> for better formatting with a list of short
+items.  See the description under \bullet for more information.
+
+=item \pre[<text>]
+
+Insert <text> preformatted, preserving spacing and line breaks.  This uses
+the HTML <pre> tag, and therefore is normally also shown in a fixed-width
+font by the browser.
+
+When using \pre inside indented blocks or lists, it's worth bearing in mind
+how browsers show indentation with \pre.  Normally, the browser indents text
+inside \pre relative to the enclosing block, so you should only put as much
+whitespace before each line in \pre as those lines should be indented
+relative to the enclosing text.  However lynx, unfortunately, indents
+relative to the left margin, so it's difficult to use indentation that looks
+good in both lynx and other browsers.
+
+=item \quote[<text>][<author>][<work>]
+
+Used for quotes at the top of a web page.  The whole text will be enclosed
+in a <blockquote> tag with class C<quote> for style sheets.  <text> may be
+multiple paragraphs, and then a final paragraph will be added (with class
+C<attribution>) containing the author, a comma, and the <work> inside <cite>
+tags.  <work> can be omitted by passing an empty third argument.  If \quote
+is given a class argument of C<broken>, <text> will be treated as a series
+of lines and a line break (<br>) will be added to the end of each line.
+
+=item \rule
+
+A horizontal rule, <hr> in HTML.
+
+=item \table[<options>][<body>]
+
+Creates a table.  The <options> text is added verbatim to the <table> tag in
+the generated HTML, so it can be used to set various HTML attributes like
+C<cellpadding> that aren't easily accessible in a portable fashion from
+style sheets.  <body> is the body of the table, which should generally
+consist exclusively of \tablehead and \tablerow commands.
+
+The descriptions are somewhat hard to read, so here's a sample table:
+
+    \table[rules="cols" borders="1"][
+        \tablehead [Older Versions]     [Webauth v3]
+        \tablerow  [suauthSidentSrvtab] [WebAuthKeytab]
+        \tablerow  [suauthFailAction]   [WebAuthLoginURL]
+        \tablerow  [suauthDebug]        [WebAuthDebug]
+        \tablerow  [suauthProxyHeader]  [(use mod_headers)]
+    ]
+
+The table support is currently preliminary.  I've not yet found a good way
+of expressing tables, and it's possible that the syntax will change later.
+
+=item \tablehead[<cell>][<cell>] ...
+
+A heading row in a table.  \tablehead takes any number of <cell> arguments,
+wraps them all in a <tr> table row tag, and puts each cell inside <th>.  If
+a cell should have a certain class attribute, the easiest way to do that is
+to use a \class command around the <cell> text, and the class attribute will
+be "lifted" up to become an attribute of the enclosing <th> tag.
+
+=item \tablerow[<cell>][<cell>] ...
+
+A regular row in a table.  \tablerow takes any number of <cell> arguments,
+wraps them all in a <tr> table row tag, and puts each cell inside <td>.  If
+a cell should have a certain class attribute, the easiest way to do that is
+to use a \class command around the <cell> text, and the class attribute will
+be "lifted" up to become an attribute of the enclosing <th> tag.
+
+=back
+
+=head2 Inline Commands
+
+Inline commands can be used in the middle of a paragraph intermixed with
+other text.  Most of them are simple analogs to their HTML counterparts.
+All of the following take a single argument (the enclosed text) and map to
+simple HTML tags:
+
+    \cite       <cite></cite>
+    \code       <code></code>
+    \bold       <strong></strong>
+    \emph       <em></em>
+    \italic     <i></i>                 (usually use \emph)
+
+Here are the other inline commands:
+
+=over 4
+
+=item \break
+
+A forced line break, <br> in HTML.
+
+=item \class[<text>]
+
+Does nothing except wrap <text> in an HTML <span> tag.  The only purpose of
+this command is to use it with a class argument that can be used in a style
+sheet.  For example, you might write:
+
+    \class(red)[A style sheet can make this text red.]
+
+so that the style sheet can then refer to class C<red> and change its color.
+
+=item \entity[<code>]
+
+An HTML entity with code <code>.  Basically, becomes &<code>; in the
+generated HTML, or &#<code>; if <code> is entirely numeric.  About the only
+time you'd need to use this is for non-ASCII characters (European names, for
+example).
+
+=item \image[<url>][<text>]
+
+Insert an inline image.  <text> is the alt text for the image (which will be
+displayed on non-graphical browsers).  Height and width tags are added
+automatically assuming that <url> is a relative URL in the same tree of
+files as the thread source.
+
+=item \link[<url>][<text>]
+
+Create a link to <url> with link text <text>.  Basically <a href=""></a>.
+
+=back
+
+=head2 Defining New Macros
+
+One of the important things that thread supports over HTML is the ability to
+define new macros on the fly.  If there are particular constructs that are
+frequently used on the page, you can define a macro at the top of that page
+and then just use it repeatedly throughout the page.
+
+A string can be defined with the command:
+
+    \=[<string>][<value>]
+
+where <string> is the name that will be used (can only be alphanumerics plus
+underscore) and <value> is the value that string will expand into.  Any
+later occurrance of \=<string> in the file will be replaced with <value>.
+For example:
+
+    \=[HOME][http://www.stanford.edu/]
+
+will cause any later occurrences of \=HOME in the file to be replaced with
+the text C<http://www.stanford.edu/>.  This can be useful for things like
+URLs for links, so that all the URLs can be collected at the top of the page
+for easy updating.
+
+A new macro can be defined with the command:
+
+    \==[<name>][<arguments>][<definition>]
+
+where <name> is the name of the macro (again consisting only of
+alphanumerics or underscore), <arguments> is the number of arguments that it
+takes, and <definition> is the definition of the macro.  When the macro is
+expanded, any occurrence of \1 in the definition is replaced with the first
+argument, any occurrence of \2 with the second argument, and so forth.
+
+For example:
+
+    \==[bolddesc] [2] [\desc[\bold[\1]][\2]]
+
+defines a new macro \bolddesc that takes the same arguments as the regular
+\desc command but always wraps the first argument, the heading, in <strong>.
+
 =head1 BUGS
 
 Currently, the style sheets for B<cl2xhtml>, B<cvs2xhtml>, B<faq2html>, and
@@ -1174,8 +1476,10 @@ B<pod2thread> are hard-coded into this program to fit my web pages.  This
 makes this program awkward for others to use, since the style sheet has to
 be specified in every pointer file if they're using different names.
 
-This documentation is woefully incomplete; there should really be a
-description of all of the pre-defined macros.
+It is occasionally necessary to escape [ and ] if there would otherwise be
+unbalanced square brackets in a paragraph.  This can sort of be done with
+HTML entities, but it would be better if the HTML output actually contained
+the correct characters.
 
 =head1 NOTES
 
