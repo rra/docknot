@@ -622,6 +622,14 @@ while (defined $BUFFER) {
         next;
     }
 
+    # Check for bulletted paragraphs and turn them into lists.
+    if (is_bullet $_) {
+        $_ = debullet $_;
+        $INDENT = indent $_;
+        output start ('ul', li (p (embolden $_)));
+        next;
+    }
+
     # Check for paragraphs quoted with some character and turn them into
     # blockquotes.
     my $quote = is_quoted ($_);
@@ -629,14 +637,6 @@ while (defined $BUFFER) {
         $_ = unquote ($_, $quote);
         $INDENT = indent $_;
         output start ('blockquote', p (embolden $_));
-        next;
-    }
-
-    # Check for bulletted paragraphs and turn them into lists.
-    if (is_bullet $_) {
-        $_ = debullet $_;
-        $INDENT = indent $_;
-        output start ('ul', li (p (embolden $_)));
         next;
     }
 
