@@ -15,9 +15,17 @@ require 5.003;
 
 use strict;
 use subs qw(expand parse);
-use vars qw($DOCID $ID %commands %strings);
+use vars qw($DOCID $FILE $ID $OUT %STATE %commands %strings);
 
 use Text::Balanced qw(extract_bracketed);
+
+
+############################################################################
+# Output
+############################################################################
+
+# Sends something to the output file.
+sub output { print OUT @_ }
 
 
 ############################################################################
@@ -26,6 +34,23 @@ use Text::Balanced qw(extract_bracketed);
 
 # Escapes &, <, and > characters found in a string.
 sub escape { local $_ = shift; s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g; $_ }
+
+# Opens or closes a border of a continued structure.  Either takes the name
+# of the state and its start and end tags, or takes no arguments to close
+# all open states.
+sub border {
+    my ($border, $start, $end) = @_;
+    if ($border) {
+        output $start if !$STATE{$border};
+        unshift (@{ $STATE{$border} }, $end);
+        unshift (@{ $STATE{ORDER} }, $border);
+    } else {
+        for (@{ $STATE{ORDER} }) {
+            output shift @{ $STATE{$border} };
+            delete $STATE{$border} unless @{ $STATE{$border} };
+        }
+    }
+}
 
 # Extract some number of arguments from the front of the given string.  If
 # the optional third argument is true, try to pull off a parenthesized
@@ -81,7 +106,7 @@ sub expand {
         return ($strings{$command}, $text);
     } else {
         my ($args, $handler) = @{$commands{$command}}
-            or die "Bad command $command";
+            or die "$0:$FILE:$.: bad command $command";
         if ($args == 0) {
             return (&$handler (), $text);
         } else {
@@ -113,7 +138,8 @@ sub parse {
     my $output;
     while ($text) {
         $text =~ s/^([^\\]*)(?:\\([\w=]+|.))?//
-            or die "Unable to parse at '" . substr ($text, 0, 20) . "'";
+            or die "$0:$FILE:$.: unable to parse at '"
+                . substr ($text, 0, 20) . "'";
         $output .= $1;
         my $command = $2;
         if ($command) {
@@ -135,11 +161,20 @@ sub align { 'align=center' }
 sub do_cite  { '<cite>' . $_[1] . '</cite>' }
 sub do_id    { $DOCID = $_[1]; '<!-- ' . $_[1] . ' -->' }
 sub do_link  { '<a href="' . $_[1] . '">' . $_[2] . '</a>' }
-sub do_rule  { '<hr>' }
+sub do_rule  { border; '<hr>' }
 sub do_title { "<html>\n<head>\n  <title>$_[1]</title>\n</head>\n\n<body>" }
+
+sub do_desc {
+    my ($format, $heading, $text) = @_;
+    border ('desc', "<dl>\n", "</dl>\n");
+    $text =~ s%\n\n\s*\S%\n</p>\n\n<p>%g;
+    $text =~ s/\s*\n\n+$/\n/;
+    "<dt>$heading</dt>\n<dd><p>$text</p></dd>\n\n";
+}
 
 sub do_h {
     my ($level, $format, $text) = @_;
+    border;
     if ($format && $format =~ s/b//) { $text =~ s/(\n\s*\S)/<br>$1/g }
     if ($format) {
         "<h$level " . align ($format) . '>' . $text . "</h$level>";
@@ -159,7 +194,10 @@ sub do_image {
 
 sub do_quote {
     my ($format, $quote, $author, $cite) = @_;
-    if ($format && $format =~ s/b//) { $quote =~ s/(\n\s*\S)/<br>$1/g }
+    border;
+    if ($format && $format =~ s/b//) {
+        $quote =~ s/(\S *)(\n\s*\S)/$1<br>$2/g;
+    }
     my $output = '<blockquote>';
     if ($format) {
         $output .= '<p ' . align ($format) . '>';
@@ -171,7 +209,9 @@ sub do_quote {
 }
 
 sub do_signature {
-    '<address>
+    border;
+    '<hr>
+<address>
   <img align=right src="/images/eagle.gif" alt="">
   Russ Allbery
   &lt;<a href="mailto:rra@stanford.edu">rra@stanford.edu</a>&gt;<br>
@@ -196,8 +236,37 @@ for (1..7) { $commands{"h$_"} = [ 1, eval "sub { do_h ($_, \@_) }" ] }
 ############################################################################
 
 $| = 1;
+
+# Load overrides from the user's home directory, if applicable.
+if (-r "$ENV{HOME}/.spinrc") { do "$ENV{HOME}/.spinrc" }
+
+# We take the thread file on the command line and generate HTML in the same
+# directory.  Load an override from that directory if it exists.
+my $thread = shift or die "$0: no thread file specified\n";
+my $directory = $thread;
+$directory =~ s%/+[^/]*$%%;
+if (-r "$directory/.spinrc") { do "$directory/.spinrc" }
+$thread =~ s/(?:\.th)?$/.th/;
+$FILE = $thread;
+$FILE =~ s%.*/%%;
+my $html = $thread;
+$html =~ s/\.th$/.htm/;
+open (IN, $thread) or die "$0: can't open $thread: $!\n";
+open (OUT, "> $html") or die "$0: can't create $html: $!\n";
+$OUT = \*OUT;
+
+# Parse the thread file a paragraph at a time (but pick up macro contents
+# that are continued across files.
 $/ = '';
-while (<>) {
+while (<IN>) {
+    my $open = tr/\[//;
+    my $close = tr/\]//;
+    while (!eof && $open > $close) {
+        my $extra = <IN>;
+        $open += ($extra =~ tr/\[//);
+        $close += ($extra =~ tr/\]//);
+        $_ .= $extra;
+    }
     my $result = parse (escape ($_), 1);
-    print $result unless ($result =~ /^\s*$/);
+    output $result unless ($result =~ /^\s*$/);
 }
