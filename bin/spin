@@ -6,6 +6,11 @@ $ID = q$Id$;
 #
 # This program is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
+#
+# TODO:
+# - Add DOCTYPE.
+# - Generate <link> tags for the page hierarchy.
+# - Generate XHTML instead of HTML.
 
 ############################################################################
 # Modules and declarations
