@@ -22,7 +22,7 @@ $ID = q$Id$;
 require 5.003;
 
 use strict;
-use vars qw($ID $INDENT @MONTHS $OUT %STATE $WS);
+use vars qw($BUFFER $ID $IN $INDENT @MONTHS $OUT %STATE $WS);
 
 # Replace with the month names you want to use, if you don't want English.
 @MONTHS = qw(January February March April May June July August September
@@ -91,23 +91,24 @@ sub modified {
 # Output some text to the $OUT file handle, adding any preserved whitespace
 # from before first, but after any closing tags.
 sub output {
-    my $line = shift;
-    $line =~ s%^((?:\s*</[^>]+>\s*)*)%$1$WS% if $WS;
-    print $OUT $line, @_;
+    local $_ = shift;
+    s%^((?:\s*</[^>]+>\s*)*)%$1$WS% if $WS;
+    print $OUT $_, @_;
 }
 
-# Read a paragraph in from a file handle, allowing whitespace on the lines
-# serving as paragraph dividers but otherwise duplicating paragraph mode.
-# It treats the second argument as a buffer, modifying it to hold the unread
-# input.
+# Read a paragraph in from $IN.  If no argument is given or the argument is
+# false, lines with nothing but whitespace are paragraph dividers;
+# otherwise, only a completely blank line is a divider.  Use $BUFFER to
+# store the unwanted next line.
 sub slurp {
-    my ($fh, $buffer) = @_;
-    my ($p, $line);
-    $p = $$buffer;
-    $p .= $line while (defined ($line = <$fh>) && $line =~ /\S/);
-    $p .= $line if defined $line;
-    $p .= $line while (defined ($line = <$fh>) && $line =~ /^\s*$/);
-    $$buffer = $line;
+    my $ws = shift;
+    my $p;
+    local $_;
+    $p = $BUFFER;
+    $p .= $_ while (defined ($_ = <$IN>) && ($ws ? /\S/ : !/^$/));
+    $p .= $_ if defined;
+    $p .= $_ while (defined ($_ = <$IN>) && /^\s*$/);
+    $BUFFER = $_;
     $p;
 }
 
@@ -262,10 +263,11 @@ sub paragraph {
 
 # Close any pending open structure elements except the one given and then
 # start the given structure element, followed by the given initial data.  If
-# the parameter is undef, just close them all.  I, for purely cosmetic
-# reasons in the generated HTML, want the whitespace trailing the last
-# paragraph within a structure element to follow the closing tag, so I stash
-# that whitespace away in %STATE.
+# the parameter is undef, just close them all.  Note that there are some
+# exceptions to the tag closing policy; <li> is allowed in <ol> and <ul> and
+# <dd> is allowed in <dl> and vice versa so that lists will work properly.
+# One can pass attributes in for the opening tag; anything after a space
+# will be stripped out for determining the close tag.
 sub start {
     my ($tag, $data) = @_;
     my $e = $tag || '';
@@ -318,11 +320,16 @@ sub pre        { container ('pre',        @_) }
 my $fullpath = $0;
 $0 =~ s%.*/%%;
 
-# Figure out what file we're going to be processing.
+# Figure out what file we're going to be processing.  We can function as a
+# filter if so desired.
 my ($input, $output) = @ARGV;
-unless ($input) { die "$0: must specify an input file: $!\n" }
-open (IN, $input) or die "$0: can't open $input: $!\n";
-if ($output) {
+if (defined $input && $input ne '-') {
+    open (IN, $input) or die "$0: can't open $input: $!\n";
+    $IN = \*IN;
+} else {
+    $IN = \*STDIN;
+}
+if (defined $output) {
     open (OUT, "> $output") or die "$0: can't write to $output: $!\n";
     $OUT = \*OUT;
 } else {
@@ -333,11 +340,10 @@ if ($output) {
 # to Usenet using postfaq, this will always be the first line of the file
 # stored on disk.
 my $id;
-$_ = <IN>;
+$_ = <$IN>;
 if (is_id $_) {
     $id = $_;
-    $_ = <IN>;
-    $_ = <IN> while (defined && /^\s*$/);
+    do { $_ = <$IN> } while (defined && /^\s*$/);
 }
 
 # Check for mail/news headers.  If we see any, the only ones we care about
@@ -347,8 +353,8 @@ while (defined && is_header $_) {
     my ($header, $content) = /^([\w-]+):\s+(.*)/;
 
     # Deal with continuation lines.
-    $_ = <IN>;
-    while (defined && /^\s+\S/) { $content .= $_; $_ = <IN> }
+    $_ = <$IN>;
+    while (defined && /^\s+\S/) { $content .= $_; $_ = <$IN> }
 
     # Save information we care about.
     if    (lc $header eq 'from')    { $author = $content }
@@ -356,14 +362,14 @@ while (defined && is_header $_) {
 }
 
 # Skip blank lines (either initial ones or ones after headers.
-$_ = <IN> while (defined && /^\s*$/);
+$_ = <$IN> while (defined && /^\s*$/);
 
 # Skip over any FAQ subheaders, since currently we're not interested in any
 # of that information.  We don't support continuation lines here yet.
-$_ = <IN> while (defined && is_header $_);
+$_ = <$IN> while (defined && is_header $_);
 
 # Skip over whitespace after subheaders, and also skip over rules.
-$_ = <IN> while (defined && (/^\s*$/ || is_rule $_));
+$_ = <$IN> while (defined && (/^\s*$/ || is_rule $_));
 
 # See if we have a centered title at the top of the document.  If so, we'll
 # make that the document title unless we also saw a Subject header.  Titles
@@ -375,13 +381,18 @@ if (is_centered ($_) && is_heading ($_)) {
         $title = $heading;
         $title =~ s/\b([A-Z]+)\b/\L\u$1/g if (is_allcaps $title);
     }
-    $_ = <IN>;
-    $_ = <IN> while (defined && (/^\s*$/ || is_rule $_));
+    do { $_ = <$IN> } while (defined && (/^\s*$/ || is_rule $_));
 }
 
 # Generate the heading of the HTML file, using the filename as the title if
-# we haven't been able to find a title.
-output "<html>\n", head (title ($title || $output));
+# we haven't been able to find a title.  We claim "transitional" HTML 4.0
+# compliance; we can't claim strict solely because we use the value
+# attribute in <li> for the lack of any working alternative.
+my ($version) = (split (' ', $ID))[2];
+output '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"';
+output "\n" . '        "http://www.w3.org/TR/REC-html40/loose.dtd">' . "\n";
+output "<!-- HTML generated by faq2html version $version -->\n";
+output "<html>\n", head (title ($title || $output || 'faq2html output'));
 
 # Open the body of the document, and print out the heading if we found one.
 # Otherwise, print out the page title (probably from the Subject header) as
@@ -416,7 +427,7 @@ if ($heading) {
                 output '  ', $_;
             }
         }
-        do { $_ = <IN> } while (defined && is_rule $_);
+        do { $_ = <$IN> } while (defined && is_rule $_);
     }
     if (!defined $subheading && $author) {
         $subheading++;
@@ -432,10 +443,10 @@ if ($heading) {
 # together our own paragraph mode that does.  Note that $_ already has a
 # non-blank line of input coming into this loop.
 output "\n" if $heading;
-my $line = $_;
+$BUFFER = $_;
 my $space;
-while (defined $line) {
-    $_ = slurp (\*IN, \$line);
+while (defined $BUFFER) {
+    $_ = slurp;
 
     # Do this first, 'cause it's special.  Check to see if this paragraph
     # looks like literal text.  If so, we wrap it in <pre> and output it as
@@ -443,17 +454,15 @@ while (defined $line) {
     # paragraph doesn't end until we find a literal blank line; this hack
     # lets full diffs be included in a FAQ without confusing the parser.
     if (is_literal $_) {
-        if (/\n[ \t]+$/) {
-            $_ .= $line;
-            $_ .= $line while (defined ($line = <IN>) && $line !~ /^$/);
-            $_ .= $line if defined $line;
-            $_ .= $line while (defined ($line = <IN>) && $line =~ /^\s*$/);
-        }
+        if (/\n[ \t]+$/) { $_ .= slurp (1) }
         output pre ($_);
         s/\n(\n\s*)$/\n/;
         $space = $1;
         next;
     }
+
+    # We're not dealing with literal text, so untabify it.
+    $_ = untabify $_;
 
     # Stash our whitespace.
     s/\n(\s*)$/\n/;
@@ -465,7 +474,7 @@ while (defined $line) {
     if (is_divider $_) {
         output start, "<hr>\n";
         $WS = $space;
-        $_ = slurp (\*IN, \$line);
+        $_ = slurp;
         s/\n(\s*)$/\n/;
         $space = $1;
         if (s/^Subject:\s+//) {
@@ -485,9 +494,6 @@ while (defined $line) {
 
     # Everything needs to have special characters escaped.
     $_ = escape $_;
-
-    # We're not dealing with literal text, so untabify it.
-    $_ = untabify $_;
 
     # Check for a heading.  We distinguish between level 2 headings and
     # level 3 headings as follows: The first heading we encounter is assumed
@@ -594,6 +600,7 @@ while (defined $line) {
     $STATE{baseline} = $indent unless defined $STATE{baseline};
     s/(\n\s*\S)/<br>$1/g if is_broken $_;
     output p (minident (embolden $_));
+
 } continue {
     $WS = $space;
 }
