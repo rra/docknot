@@ -276,9 +276,15 @@ sub do_align {
 sub do_bullet {
     my ($format, $text) = @_;
     border ('bullet', "<ul>\n", "</ul>\n");
-    $text =~ s%\n\n\s*(\S)%\n</p>\n\n<p>$1%g;
-    $text =~ s/\s*\n\n+$/\n/;
-    output "<li><p>$text</p>\n\n";
+    if ($format && $format =~ /p/) {
+        $text =~ s/\n\n\s*(\S)/\n$1/g;
+        $text =~ s/\s*\n\n+$/\n/;
+        output "<li>$text\n";
+    } else {
+        $text =~ s%\n\n\s*(\S)%\n</p>\n\n<p>$1%g;
+        $text =~ s/\s*\n\n+$/\n/;
+        output "<li><p>$text</p>\n\n";
+    }
     '';
 }
 
