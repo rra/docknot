@@ -735,6 +735,8 @@ sub do_entity {
 # come from.
 sub do_heading {
     my ($format, $title, $style) = @_;
+    $title = parse ($title);
+    $style = parse ($style);
     my $file = $FILE;
     $file =~ s/\.th$/.html/;
     my $output = qq(<?xml version="1.0" encoding="iso-8859-1"?>\n);
