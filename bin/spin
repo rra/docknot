@@ -17,6 +17,7 @@ use strict;
 use subs qw(expand parse);
 use vars qw($DOCID $FILE $ID $OUT %STATE %commands %strings);
 
+use POSIX qw(strftime);
 use Text::Balanced qw(extract_bracketed);
 
 
@@ -210,12 +211,22 @@ sub do_quote {
 
 sub do_signature {
     border;
+    my @months = qw(January February March April May June July August
+                    September October November December);
+    my $modified = (split (' ', $DOCID))[3];
+    $modified =~ s%^(\d+)/(\d+)/(\d+)%$3-$months[$2 - 1]-$1%;
+    my $spun = strftime ('%d-%b-%Y', gmtime);
+    if ($modified eq $spun) {
+        $modified = 'Last modified and spun ' . $modified;
+    } else {
+        $modified = "Last spun $spun from thread modified $modified";
+    }
     '<hr>
 <address>
   <img align=right src="/images/eagle.gif" alt="">
   Russ Allbery
   &lt;<a href="mailto:rra@stanford.edu">rra@stanford.edu</a>&gt;<br>
-  Last Modified ' . join (' ', (split (' ', $DOCID))[3,4]) . '
+  ' . $modified . '
 </address>';
 }
 
@@ -254,6 +265,11 @@ $html =~ s/\.th$/.htm/;
 open (IN, $thread) or die "$0: can't open $thread: $!\n";
 open (OUT, "> $html") or die "$0: can't create $html: $!\n";
 $OUT = \*OUT;
+
+# Add our initial comment.
+my $version = (split (' ', $ID))[2];
+my $date = strftime ('%d-%b-%Y, %T UTC', gmtime);
+output "<!-- Spun from $FILE by spin $version on $date -->\n";
 
 # Parse the thread file a paragraph at a time (but pick up macro contents
 # that are continued across files.
