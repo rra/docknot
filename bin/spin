@@ -201,9 +201,8 @@ sub expand {
 
 # Given a text string, check it for escape sequences.  If there are any,
 # expand them, returning the final string after all expansions have been done.
-# This function is mutually recursive with expand.  Takes two flags, one to
-# say whether we're at the block level, and one to say whether we're at the
-# top of the file.
+# This function is mutually recursive with expand.  Takes one flag, saying
+# whether we're at the block level.
 sub parse {
     my ($text, $block) = @_;
     if (index ($text, '\\') == -1) {
@@ -220,8 +219,9 @@ sub parse {
                 . substr ($text, 0, 20) . "'";
         my $command;
         if (index ($1, '\\') == -1) {
-            $output .= $1;
-            $complex = 1;
+            my $string = $1;
+            $output .= $string;
+            $complex = 1 if ($string =~ /\S/);
         } else {
             $command = $2;
             my $result;
