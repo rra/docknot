@@ -254,6 +254,19 @@ sub do_italic { '<i>' . $_[1] . '</i>' }
 sub do_link   { '<a href="' . $_[1] . '">' . $_[2] . '</a>' }
 sub do_rule   { border; output "<hr>\n\n"; '' }
 
+sub do_align {
+    my ($format, $text) = @_;
+    if ($format && $format =~ s/b//) {
+        $text =~ s/(\S\s*)(\n\s*(?=\S))/$1<br>$2/g;
+    }
+    if ($format) {
+        output "<p " . align ($format) . '>' . $text . "</p>\n\n";
+    } else {
+        output '<p>' . $text . "</p>\n\n";
+    }
+    '';
+}
+
 sub do_desc {
     my ($format, $heading, $text) = @_;
     border ('desc', "<dl>\n", "</dl>\n");
@@ -298,13 +311,19 @@ sub do_quote {
     } else {
         $output .= '<p>';
     }
-    output $output . $quote . "</p><p align=center>\n";
-    if ($cite) {
-        output "    <strong>$author,\n    $cite";
+    output $output . $quote . "</p>";
+    if ($author) {
+        output "<p align=center>\n";
+        if ($cite) {
+            output "    <strong>$author,\n    $cite";
+        } else {
+            output "    <strong>$author";
+        }
+        output "</strong>\n</p>";
     } else {
-        output "    <strong>$author";
+        output "\n";
     }
-    output "</strong>\n</p></blockquote>\n\n";
+    output "</blockquote>\n\n";
     '';
 }
 
@@ -341,7 +360,8 @@ sub do_title {
     '';
 }
 
-%commands = (cite      => [ 1, \&do_cite      ],
+%commands = (align     => [ 1, \&do_align     ],
+             cite      => [ 1, \&do_cite      ],
              bold      => [ 1, \&do_bold      ],
              desc      => [ 2, \&do_desc      ],
              emph      => [ 1, \&do_emph      ],
