@@ -22,7 +22,7 @@ $ID = q$Id$;
 require 5.003;
 
 use strict;
-use vars qw($ID @MONTHS %STATE);
+use vars qw($ID $INDENT @MONTHS %STATE);
 
 # Replace with the month names you want to use, if you don't want English.
 @MONTHS = qw(January February March April May June July August September
@@ -55,15 +55,44 @@ sub indent { $_[0] =~ /^(\s*)/; length $1 }
 # Returns the number of lines in a paragraph, not counting trailing blanks.
 sub lines { local $_ = shift; s/\s+$/\n/; tr/\n// }
 
-# Returns a nicely formatted date from a YYYY/MM/DD string.
-sub nicedate {
-    my ($year, $month, $day) = split ('/', shift);
+# Deal with miniature indents in regular paragraphs.
+sub minident {
+    local $_ = shift;
+    my $space = $INDENT + 2;
+    s/\n\s{$space}/<br>\n&nbsp;&nbsp;/;
+    $_;
+}
+
+# Returns a nicely formatted "Last modified" string from an RCS/CVS Id.
+sub modified {
+    my $id = shift;
+    my ($version, $date) = (split (' ', $id))[2,3];
+    my ($year, $month, $day) = split ('/', $date);
     $day =~ s/^0//;
-    $MONTHS[$month - 1] . ' ' . $day . ', ' . $year;
+    'Last modified '. $MONTHS[$month - 1] . ' ' . $day . ', ' . $year
+        . " (revision $version)";
+}
+
+# Read a paragraph in from a file handle, allowing whitespace on the lines
+# serving as paragraph dividers but otherwise duplicating paragraph mode.
+# It treats the second argument as a buffer, modifying it to hold the unread
+# input.
+sub slurp {
+    my ($fh, $buffer) = @_;
+    my ($p, $line);
+    $p = $$buffer;
+    $p .= $line while (defined ($line = <$fh>) && $line =~ /\S/);
+    $p .= $line if defined $line;
+    $p .= $line while (defined ($line = <$fh>) && $line =~ /^\s*$/);
+    $$buffer = $line;
+    $p;
 }
 
 # Remove all whitespace in a string.
 sub smash { local $_ = shift; s/\s//g; $_ }
+
+# Return the trailing whitespace of a paragraph.
+sub trailspace { $_[0] =~ /(\s+)$/; $1 }
 
 # Undoes HTML character escapes.
 sub unescape { local $_ = shift; s/&amp;/&/g; s/&lt;/</g; s/&gt;/>/g; $_ }
@@ -82,14 +111,18 @@ sub untabify {
     $_;
 }
 
-# Given a special-character-escaped URL and some text, wrap <a href></a> to
-# that URL around the text.
-sub href { '<a href="' . smash (unescape $_[0]) . '">' . $_[1] . '</a>' }
+# Given a special-character-escaped URL, wrap <a href></a> to that URL
+# around it.
+sub url {
+    my $url = shift;
+    my $href = smash (unescape ($url));
+    '<a href="' . $href . '">' . $url . '</a>';
+}
 
 # Looks for a URL in <URL:...> form and wraps a link around it.
 sub urlize {
     local $_ = shift;
-    s%(&lt;URL:([^.&][^&]+)&gt;)%href ($2, $1)%ge;
+    s%&lt;URL:([^.&][^&]+)&gt;%url ($1)%ge;
     $_;
 }
 
@@ -111,7 +144,7 @@ sub is_broken {
     $string =~ s/\s+$/\n/;
     my @lines = split ("\n", $string);
     my $short = grep { length ($_) < 60 } @lines;
-    $short == @lines || $short > 1;
+    $short >= int (@lines / 2) + 1;
 }
 
 # Expects a paragraph, returns whether we're dealing with a bulletted item.
@@ -138,7 +171,7 @@ sub is_id { $_[0] =~ /^\s*\$Id.*\$\s*$/ }
 
 # Expects a paragraph, returns whether it appears to have internal
 # whitespace.
-sub is_literal { $_[0] =~ /^[ \t]*\S.*(?:[^.?!\"\)\]\n]  |   |\t)\S/m }
+sub is_literal { $_[0] =~ /^[ \t]*\S.*(?:[^.?!\"\)\]:\n]  |   |\t)\S/m }
 
 # Expects a paragraph, returns undef if it doesn't look like a numbered
 # paragraph or the number if it does.
@@ -148,11 +181,13 @@ sub is_numbered { ($_[0] =~ /^\s*(\d\d?)[.\)]\s/) ? $1 : undef }
 # it is quoted.
 sub is_quoted { $_[0] =~ /^\s*([^\w\s])\s+.*\n(\s*\1\s+.*\n)*$/ && $1 }
 
-# Expects a line, returns whether it's a rule.
+# Expects a paragraph, returns whether it's a rule.
 sub is_rule { $_[0] =~ /^\s*[-=]+\s*$/ }
 
-# Expects a line, returns whether it's short (<60 columns).
-sub is_short { length $_[0] < 60 }
+# Expects a paragraph, returns whether it ends with a sentence.  Don't allow
+# colons here although we do elsewhere since we use this to decide whether
+# to make things <pre> and mjqmail has <pre> lines ending in :.
+sub is_sentence { $_[0] =~ /[.?!,;][\)\]\"]?\s*$/ }
 
 
 ############################################################################
@@ -237,6 +272,7 @@ sub blockquote { paragraph ('blockquote', @_) }
 sub h2         { container ('h2',         @_) }
 sub head       { paragraph ('head',       @_) }
 sub p          { paragraph ('p',          @_) }
+sub pre        { container ('pre',        @_) }
 
 
 ############################################################################
@@ -313,20 +349,39 @@ print OUT "\n<body>\n";
 $heading ||= $title;
 print OUT "<h1 align=center>$heading</h1>\n" if $heading;
 
-# If we have author information from a From header, print that out under the
-# main heading.  If we have RCS/CVS Id information, add another subheading
-# containing the version number and the last modified date.
-if ($heading && $author) {
-    print OUT '<p align=center><strong>';
-    if ($id) {
-        my ($version, $date) = (split (' ', $id))[2,3];
-        print OUT "\n  ", escape ($author), "<br>\n";
-        print OUT "  Last modified ", nicedate ($date);
-        print OUT " (revision $version)\n";
-    } else {
-        print OUT escape ($author);
+# If we have additional headers, print them out.  Otherwise, If we have
+# author information from a From header, print that out under the main
+# heading.  If we have RCS/CVS Id information, add another subheading
+# containing the version number and the last modified date.  Existing
+# subheadings that look like they're just Revision or Date strings are
+# replaced by our more nicely formatted string.
+if ($heading) {
+    my $subheading;
+    while (defined && is_centered ($_)) {
+        print OUT "<p align=center><strong>\n" unless $subheading;
+        $subheading++;
+        if ($id && (/\$Revision/ || /\$Date/)) {
+            print OUT '  ', modified ($id), "\n";
+        } else {
+            $_ = escape $_;
+            s/\n$/<br>\n/;
+            s/^\s+//;
+            print OUT '  ', $_;
+        }
+        $_ = <IN>;
+        if (/^\s*$/) {
+            print OUT "</strong></p>\n";
+            $subheading = 0;
+        }
+        $_ = <IN> while (defined && (/^\s*$/ || is_rule $_));
     }
-    print OUT "</strong></p>\n";
+    if (!defined $subheading && $author) {
+        $subheading++;
+        print OUT "<p align=center><strong>\n";
+        print OUT '  ', escape ($author), "\n";
+        print OUT '  ', modified ($id), "\n" if $id;
+    }
+    print OUT "</strong></p>\n" if $subheading;
 }
 
 # Scan the actual body of the text.  We don't use paragraph mode, since it
@@ -336,13 +391,29 @@ if ($heading && $author) {
 print OUT "\n" if $heading;
 my $line = $_;
 while (defined $line) {
-    $_ = $line;
-    $_ .= $line while (defined ($line = <IN>) && $line =~ /\S/);
-    $_ .= $line if defined $line;
-    $_ .= $line while (defined ($line = <IN>) && $line =~ /^\s*$/);
+    $_ = slurp (\*IN, \$line);
+
+    # If we just hit a MIME divider, the next thing will likely be a
+    # Subject: line that we want to turn into a section header.
+    if (is_divider $_) {
+        print OUT start, '<hr>', trailspace $_;
+        $_ = slurp (\*IN, \$line);
+        if (s/^Subject:\s+//) {
+            print OUT start, h2 ($_);
+            undef $INDENT;
+            next;
+        }
+    }
+
+    # Treat lines of dash-type characters as rules.
+    if (is_rule $_) { print OUT start, '<hr>', trailspace $_; next }
 
     # Everything needs to have special characters escaped.
     $_ = escape $_;
+
+    # Check to see if this paragraph looks like literal text.  If so, we
+    # wrap it in <pre> and output it as is.
+    if (is_literal $_) { print OUT start, pre ($_); next }
 
     # We're not dealing with literal text, so untabify it.
     $_ = untabify $_;
@@ -350,10 +421,10 @@ while (defined $line) {
     # Check for a heading.  A paragraph is actually a heading if it matches
     # is_heading and either we don't know our indentation or its indentation
     # is the same as or less than the surrounding text.
-    my $outdent = !$STATE{indent} || indent ($_) <= $STATE{indent};
-    if ($outdent && is_heading ($_)) {
-        print OUT start, '<h2>', derule (whitechomp ($_)), "</h2>\n\n";
-        undef $STATE{indent};
+    if ((!defined $INDENT || indent ($_) <= $INDENT) && is_heading ($_)) {
+        s/^\s+//;
+        print OUT start, h2 (derule ($_));
+        undef $INDENT;
         next;
     }
 
@@ -365,22 +436,39 @@ while (defined $line) {
     # blockquotes.
     my $quote = is_quoted ($_);
     if ($quote) {
-        print OUT start ('blockquote', unquote ($_, $quote));
+        print OUT start ('blockquote', p (unquote ($_, $quote)));
         next;
     }
 
-    # Checked for numbered paragraphs and turn them into lists.
+    # Check for numbered paragraphs and turn them into lists.
     my $number = is_numbered ($_);
     if (defined $number) {
         $_ = denumber $_;
-        $STATE{indent} = indent $_;
+        $INDENT = indent $_;
         print OUT start ('ol', li (p ($_), $number));
         next;
     }
 
+    # A sudden indentation change also means the paragraph should be
+    # blockquoted.  Also check to see if it consists of short lines, and if
+    # so, add <br> tags.
+    if (defined $INDENT && indent ($_) > $INDENT) {
+        if (is_broken ($_) || (lines ($_) == 1 && !is_sentence $_)) {
+            print OUT start, pre ($_);
+        } else {
+            print OUT start ('blockquote', p ($_));
+        }
+        next;
+    }
+
+    # Close a blockquote if we've outdented again.
+    if ($STATE{blockquote} && $INDENT && indent $_ < $INDENT) {
+        print OUT start;
+    }
+
     # Looks like a normal paragraph.
-    $STATE{indent} = indent $_;
-    print OUT start, p ($_);
+    $INDENT = indent $_;
+    print OUT start, p (minident ($_));
 }
 
 # All done.  Print out our closing tags.
