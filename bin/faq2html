@@ -92,7 +92,10 @@ sub modified {
 # from before first, but after any closing tags.
 sub output {
     local $_ = shift;
-    s%^((?:\s*</[^>]+>\s*)*)%$1$WS% if $WS;
+    if ($WS) {
+        s%^((?:\s*</[^>]+>\s*)*)%$1$WS%;
+        $WS = '';
+    }
     print $OUT $_, @_;
 }
 
@@ -544,7 +547,9 @@ while (defined $BUFFER) {
     # blockquotes.
     my $quote = is_quoted ($_);
     if ($quote) {
-        output start ('blockquote', p (unquote (embolden ($_), $quote)));
+        $_ = unquote ($_, $quote);
+        $INDENT = indent $_;
+        output start ('blockquote', p (embolden $_));
         next;
     }
 
