@@ -264,9 +264,10 @@ sub do_rule   { border; output "<hr />\n\n"; '' }
 # referred to by the main text.
 sub do_block {
     my ($format, $text) = @_;
-    $text =~ s%\n\n\s*(\S)%\n</p>\n\n<p>$1%g;
+    $text =~ s/^\n+//;
+    $text =~ s%\n\n+(\s*\S)%\n</p>\n\n<p>\n$1%g;
     $text =~ s/\s*\n+$//;
-    output "<blockquote>\n<p>\n$text</p>\n</blockquote>\n\n";
+    output "<blockquote>\n<p>\n$text\n</p>\n</blockquote>\n\n";
     '';
 }
 
@@ -451,9 +452,9 @@ sub do_quote {
     }
     my $output;
     if ($format) {
-        $output = qq(<blockquote class="$format"><p class="$format">);
+        $output = qq(<blockquote class="quote"><p class="$format">);
     } else {
-        $output = '<blockquote><p>';
+        $output = '<blockquote class="quote"><p>';
     }
     output $output . $quote . "</p>";
     if ($author) {
@@ -495,9 +496,9 @@ sub do_signature {
     my $spun = strftime ('%Y-%m-%d', gmtime);
     my $ref = '<a href="http://www.eyrie.org/~eagle/software/web/">spun</a>';
     if ($modified eq $spun) {
-        $modified = "Last modified and $ref $modified";
+        $modified = "Last modified and\n    $ref $modified";
     } else {
-        $modified = "Last $ref $spun from thread modified $modified";
+        $modified = "Last $ref\n    $spun from thread modified $modified";
     }
     output "<address>\n    ";
     sign;
