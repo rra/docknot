@@ -1,0 +1,203 @@
+#!/usr/bin/perl -w
+$ID = q$Id$;
+#
+# spin -- Translate thread (an HTML macro language) into HTML.
+#         Copyright 1999 by Russ Allbery <rra@stanford.edu>
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the same terms as Perl itself.
+
+############################################################################
+# Modules and declarations
+############################################################################
+
+require 5.003;
+
+use strict;
+use subs qw(expand parse);
+use vars qw($DOCID $ID %commands %strings);
+
+use Text::Balanced qw(extract_bracketed);
+
+
+############################################################################
+# Basic parsing
+############################################################################
+
+# Escapes &, <, and > characters found in a string.
+sub escape { local $_ = shift; s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g; $_ }
+
+# Extract some number of arguments from the front of the given string.  If
+# the optional third argument is true, try to pull off a parenthesized
+# formatting instruction first, returning it as the first result (or undef
+# if it's not found).
+sub extract {
+    my ($text, $count, $format) = @_;
+    my (@result, $code);
+    $text =~ s/\s*//;
+    if ($format && $text =~ /^\(/) {
+        ($result[0], $text) = extract_bracketed ($text, '()');
+        $result[0] = substr ($result[0], 1, -1);
+    } else {
+        $result[0] = '';
+    }
+    for (1..$count) {
+        ($result[$_], $text) = extract_bracketed ($text, '[]');
+        $result[$_] = substr ($result[$_], 1, -1);
+    }
+    unless ($format) { shift @result }
+    (@result, $text);
+}
+
+# Delcare a new command.  Takes the command name, the number of arguments,
+# and the definition as arguments.  Only straight substitution commands are
+# allowed here, of course.  The body of the command isn't parsed at this
+# stage; it's parsed later when the command is actually invoked.
+sub declare {
+    my ($command, $args, $definition) = @_;
+    my $handler = sub {
+        local $_ = $commands{$command}[2];
+        s/\\(\d+)/($1 > $args) ? "\\$1" : $_[$1]/ge;
+        parse ($_);
+    };
+    $commands{$command} = [ $args, $handler, $definition ];
+}
+
+# Expand a given command into its representation.  This function is mutually
+# recursive with parse.
+sub expand {
+    my ($command, $text) = @_;
+    if ($command eq '==') {
+        my ($new, $args, $definition);
+        ($new, $args, $definition, $text) = extract ($text, 3);
+        declare ($new, $args, $definition);
+        return ('', $text);
+    } elsif ($command eq '=') {
+        my ($variable, $value);
+        ($variable, $value, $text) = extract ($text, 2);
+        $strings{$variable} = parse $value;
+        return ('', $text);
+    } elsif ($command =~ s/^=//) {
+        return ($strings{$command}, $text);
+    } else {
+        my ($args, $handler) = @{$commands{$command}}
+            or die "Bad command $command";
+        if ($args == 0) {
+            return (&$handler (), $text);
+        } else {
+            my @args = extract ($text, $args, 1);
+            $text = pop @args;
+            my $format = shift @args;
+            for (@args) { $_ = parse $_ }
+            return (&$handler ($format, @args), $text);
+        }
+    }
+}
+
+# Given a text string, check it for escape sequences.  If there are any,
+# expand them, returning the final string after all expansions have been
+# done.  This function is mutually recursive with expand.
+sub parse {
+    my ($text, $top) = @_;
+    if (index ($text, '\\') == -1) {
+        if ($top) {
+            $text =~ s%\n(\s*)\z%\n</p>\n$1%;
+            return "<p>\n" . $text;
+        } else {
+            return $text;
+        }
+    }
+
+    # Chop off everything up to the first backslash and save it in output.
+    # Then grab the escape and figure out what to do with it.
+    my $output;
+    while ($text) {
+        $text =~ s/^([^\\]*)(?:\\([\w=]+|.))?//
+            or die "Unable to parse at '" . substr ($text, 0, 20) . "'";
+        $output .= $1;
+        my $command = $2;
+        if ($command) {
+            my $result;
+            ($result, $text) = expand ($command, $text);
+            $output .= $result;
+        }
+    }
+    $output;
+}
+
+
+############################################################################
+# Basic commands
+############################################################################
+
+sub align { 'align=center' }
+
+sub do_cite  { '<cite>' . $_[1] . '</cite>' }
+sub do_id    { $DOCID = $_[1]; '<!-- ' . $_[1] . ' -->' }
+sub do_link  { '<a href="' . $_[1] . '">' . $_[2] . '</a>' }
+sub do_rule  { '<hr>' }
+sub do_title { "<html>\n<head>\n  <title>$_[1]</title>\n</head>\n\n<body>" }
+
+sub do_h {
+    my ($level, $format, $text) = @_;
+    if ($format && $format =~ s/b//) { $text =~ s/(\n\s*\S)/<br>$1/g }
+    if ($format) {
+        "<h$level " . align ($format) . '>' . $text . "</h$level>";
+    } else {
+        "<h$level>" . $text . "</h$level>";
+    }
+}
+
+sub do_image {
+    my ($format, $image, $text) = @_;
+    if ($format) {
+        "<img src=\"$image\" alt=\"$text\" " . align ($format) . '>';
+    } else {
+        "<img src=\"$image\" alt=\"$text\">";
+    }
+}
+
+sub do_quote {
+    my ($format, $quote, $author, $cite) = @_;
+    if ($format && $format =~ s/b//) { $quote =~ s/(\n\s*\S)/<br>$1/g }
+    my $output = '<blockquote>';
+    if ($format) {
+        $output .= '<p ' . align ($format) . '>';
+    } else {
+        $output .= '<p>';
+    }
+    $output . $quote . "</p><p align=center>\n  <strong>$author,\n  $cite"
+        . "</strong>\n</p></blockquote>";
+}
+
+sub do_signature {
+    '<address>
+  <img align=right src="/images/eagle.gif" alt="">
+  Russ Allbery
+  &lt;<a href="mailto:rra@stanford.edu">rra@stanford.edu</a>&gt;<br>
+  Last Modified ' . join (' ', (split (' ', $DOCID))[3,4]) . '
+</address>';
+}
+
+%commands = (cite      => [ 1, \&do_cite      ],
+             id        => [ 1, \&do_id        ],
+             image     => [ 2, \&do_image     ],
+             link      => [ 2, \&do_link      ],
+             quote     => [ 3, \&do_quote     ],
+             rule      => [ 0, \&do_rule      ],
+             signature => [ 0, \&do_signature ],
+             title     => [ 1, \&do_title     ]);
+
+for (1..7) { $commands{"h$_"} = [ 1, eval "sub { do_h ($_, \@_) }" ] }
+
+
+############################################################################
+# Main routine
+############################################################################
+
+$| = 1;
+$/ = '';
+while (<>) {
+    my $result = parse (escape ($_), 1);
+    print $result unless ($result =~ /^\s*$/);
+}
