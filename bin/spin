@@ -906,9 +906,9 @@ spin - Translate thread, an HTML macro language, into XHTML
 
 =head1 SYNOPSIS
 
-spin [B<-hv>] I<source> I<output>
+spin [B<-hv>] [B<-s> I<url>] I<source> I<output>
 
-spin B<-f>
+spin [B<-s> I<url>] B<-f>
 
 =head1 REQUIREMENTS
 
