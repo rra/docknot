@@ -946,12 +946,12 @@ sub do_version {
 # own top-level element or whether it needs to be wrapped in <p> tags.  A
 # count of -1 means pull off as many arguments as we can find.
 %commands = (block      => [  1, \&do_block      ],
+             bold       => [  1, \&do_bold       ],
              break      => [  0, \&do_break      ],
              bullet     => [  1, \&do_bullet     ],
              class      => [  1, \&do_class      ],
              cite       => [  1, \&do_cite       ],
              code       => [  1, \&do_code       ],
-             bold       => [  1, \&do_bold       ],
              desc       => [  2, \&do_desc       ],
              div        => [  1, \&do_div        ],
              emph       => [  1, \&do_emph       ],
@@ -968,6 +968,7 @@ sub do_version {
              release    => [  1, \&do_release    ],
              rule       => [  0, \&do_rule       ],
              signature  => [  0, \&do_signature  ],
+             strong     => [  1, \&do_strong     ],
              table      => [  2, \&do_table      ],
              tablehead  => [ -1, \&do_tablehead  ],
              tablerow   => [ -1, \&do_tablerow   ],
