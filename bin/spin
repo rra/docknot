@@ -54,6 +54,9 @@ sub output {
 # Escapes &, <, and > characters found in a string.
 sub escape { local $_ = shift; s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g; $_ }
 
+# Undo HTML entity escaping.
+sub unescape { local $_ = shift; s/&lt;/</g; s/&gt;/>/g; s/&amp;/&/g; $_ }
+
 # Wrap something in paragraph markers, being careful to get newlines right.
 # Special-case a paragraph consisting entirely of <span> by turning it into a
 # <p> with the same class.
@@ -704,6 +707,13 @@ sub do_tablerow {
     return (1, $output);
 }
 
+# Output HTML text completely verbatim.
+sub do_verbatim {
+    my ($format, $text) = @_;
+    $text = unescape ($text);
+    return (1, $output);
+}
+
 # The table of available commands.  First column is the number of arguments,
 # second column is the handler, and the third column is whether this is its
 # own top-level element or whether it needs to be wrapped in <p> tags.  A
@@ -730,7 +740,8 @@ sub do_tablerow {
              signature  => [  0, \&do_signature  ],
              table      => [  2, \&do_table      ],
              tablehead  => [ -1, \&do_tablehead  ],
-             tablerow   => [ -1, \&do_tablerow   ]);
+             tablerow   => [ -1, \&do_tablerow   ],
+             verbatim   => [  1, \&do_verbatim   ]);
 
 # Add handlers for all the headings.
 for (1..6) { $commands{"h$_"} = [ 1, eval "sub { heading ($_, \@_) }" ] }
