@@ -20,14 +20,15 @@ $URL = 'http://www.eyrie.org/~eagle/software/web/';
 
 use strict;
 use subs qw(expand parse parse_context);
-use vars qw($DOCID $FILE $FULLPATH $ID $OUTPUT %SITEDESCS %SITELINKS $SOURCE
-            $SPACE @STATE $STYLES $URL %commands %macros %strings);
+use vars qw(%DEPEND $DOCID $FILE $FULLPATH $ID $OUTPUT %SITEDESCS %SITELINKS
+            $SOURCE $SPACE @STATE $STYLES $URL %VERSIONS %commands %macros
+            %strings);
 
 use Getopt::Long qw(GetOptions);
 use Image::Size qw(html_imgsize);
 use File::Copy qw(copy);
 use File::Find qw(find);
-use POSIX qw(strftime);
+use POSIX qw(mktime strftime);
 use Text::Balanced qw(extract_bracketed);
 
 ##############################################################################
@@ -314,7 +315,7 @@ sub parse {
 }
 
 ##############################################################################
-# Page footers
+# Data files
 ##############################################################################
 
 # Read the sitemap file for a site and flesh out the %SITEDESCS and %SITELINKS
@@ -326,7 +327,7 @@ sub parse {
 # two pages at the same level aren't related, a line with three dashes should
 # be put between them at the same indentation level.
 sub read_sitemap {
-    my $map = shift;
+    my ($map) = @_;
 
     # @indents holds a stack of indentation levels.  @parents is a matching
     # stack of parent URLs for each level of indentation, and @prev is a
@@ -370,6 +371,53 @@ sub read_sitemap {
     close MAP;
     $SITEDESCS{'/'} = 'the main page';
 }
+
+# Given a date and time in ISO format, convert it to seconds since epoch.
+sub time_to_seconds {
+    my ($date, $time) = @_;
+    my @datetime = reverse split (':', $time);
+    push (@datetime, reverse split ('-', $date));
+    $datetime[4]--;
+    $datetime[5] -= 1900;
+    return mktime (@datetime);
+}
+
+# Read in the .versions file for a site and flesh out the %VERSIONS hash.  It
+# contains a mapping of product name to an anonymous array of version number
+# and date of the last update.  It also fleshes out the %DEPEND hash, which
+# holds a mapping of file names that use a particular version to the timestamp
+# of the last change in that version.
+sub read_versions {
+    my ($versions) = @_;
+    open (VERSIONS, $versions) or return;
+    local $_;
+    my $last;
+    while (<VERSIONS>) {
+        next if /^\s*$/;
+        next if /^\s*\#/;
+        if (/^\s/) {
+            $DEPEND{$_} = $last for split;
+        } else {
+            my ($product, $version, $date, $time, @files) = split;
+            my $timestamp;
+            if ($date) {
+                $time ||= '00:00:00';
+                $timestamp = time_to_seconds ($date, $time);
+            } else {
+                $timestamp = 0;
+            }
+            $date = strftime ('%Y-%m-%d', gmtime $timestamp);
+            $VERSIONS{$product} = [ $version, $date ];
+            $DEPEND{$_} = $timestamp for @files;
+            $last = $timestamp;
+        }
+    }
+    close VERSIONS;
+}
+
+##############################################################################
+# Page headers and footers
+##############################################################################
 
 # Given the partial URL to the current page and the partial URL to another
 # page, generate a relative URL between the two.
@@ -768,6 +816,20 @@ sub do_quote {
     return (1, $output);
 }
 
+# Given the name of a product, return the release date of the product.
+sub do_release {
+    my ($format, $product) = @_;
+    $product = parse ($product);
+    if ($VERSIONS{$product}) {
+        my $date = $VERSIONS{$product}[1];
+        $date =~ s/ .*//;
+        return (0, $date);
+    } else {
+        warn qq($0:$FILE:$.: No release date known for "$product"\n);
+        return (0, '');
+    }
+}
+
 # Used to end each page, this adds the navigation links and my standard
 # address block.
 sub do_signature {
@@ -825,6 +887,18 @@ sub do_verbatim {
     return (1, $text);
 }
 
+# Given the name of a product, return the version number of that product.
+sub do_version {
+    my ($format, $product) = @_;
+    $product = parse ($product);
+    if ($VERSIONS{$product}) {
+        return (0, $VERSIONS{$product}[0]);
+    } else {
+        warn qq($0:$FILE:$.: No version known for "$product"\n);
+        return (0, '');
+    }
+}
+
 # The table of available commands.  First column is the number of arguments,
 # second column is the handler, and the third column is whether this is its
 # own top-level element or whether it needs to be wrapped in <p> tags.  A
@@ -847,12 +921,14 @@ sub do_verbatim {
              number     => [  1, \&do_number     ],
              pre        => [  1, \&do_pre        ],
              quote      => [  3, \&do_quote      ],
+             release    => [  1, \&do_release    ],
              rule       => [  0, \&do_rule       ],
              signature  => [  0, \&do_signature  ],
              table      => [  2, \&do_table      ],
              tablehead  => [ -1, \&do_tablehead  ],
              tablerow   => [ -1, \&do_tablerow   ],
-             verbatim   => [  1, \&do_verbatim   ]);
+             verbatim   => [  1, \&do_verbatim   ],
+             version    => [  1, \&do_version    ]);
 
 # Add handlers for all the headings.
 for (1..6) { $commands{"h$_"} = [ 1, eval "sub { heading ($_, \@_) }" ] }
@@ -1070,7 +1146,12 @@ sub process_file {
     } elsif (/\.th$/) {
         $output =~ s/\.th$/.html/;
         $shortout =~ s/\.th$/.html/;
-        return if (-e $output && -M $_ >= -M $output);
+        my $relative = $input;
+        $relative =~ s%^\Q$SOURCE/%%;
+        my $time = $DEPEND{$relative} || 0;
+        if (-e $output) {
+            return if (-M $_ >= -M $output && (stat $output)[9] >= $time);
+        }
         print "Spinning $shortout\n";
         spin ($_, $output);
     } else {
@@ -1136,6 +1217,7 @@ if ($filter) {
     if (@ARGV != 2) { die "Usage: $0 <source> <output>\n" }
     ($SOURCE, $OUTPUT) = @ARGV;
     read_sitemap ("$SOURCE/.sitemap");
+    read_versions ("$SOURCE/.versions");
     $File::Find::dont_use_nlink = 1;
     find (\&process_file, $SOURCE);
 }
@@ -1157,8 +1239,8 @@ spin [B<-s> I<url>] [B<-o> I<overrides>] B<-f>
 =head1 REQUIREMENTS
 
 Perl 5.005 or later and the Image::Size and Text::Balanced modules.  Also
-expects to find B<faq2html>, B<cvs2xhtml>, and B<cl2xhtml> to convert
-certain types of files.
+expects to find B<faq2html>, B<cvs2xhtml>, B<cl2xhtml>, and B<pod2thread> to
+convert certain types of files.
 
 =head1 DESCRIPTION
 
@@ -1235,6 +1317,26 @@ at the end of the XHTML page (so the contents should be valid XHTML).  The
 contents will be surrounded by an <address> tag, and added to the end of the
 supplied F<.signature> contents will be information about when the page was
 last modified and generated.
+
+B<spin> looks for a file named F<.versions> at the top of the I<source>
+directory and reads it for version information.  If it is present, each line
+should be of the form:
+
+    <product>  <version>  <date>  <time>  <files>
+
+where <product> is the name of a product with a version number, <version> is
+the version, <date> and <time> specify the time of the last release (in ISO
+YYYY-MM-DD HH:MM:SS format and the local time zone), and <files> is any
+number of paths relative to I<source>, separated by spaces, listing source
+thread files that use \version or \release for <product>.  If there are more
+files than can be listed on one line, additional files can be listed on the
+next and subsequent lines so long as they all begin with whitespace
+(otherwise, they'll be taken to be other products).  This information is not
+only used for the \version and \release commands, but also as dependency
+information.  If the date of a release is newer than the timestamp of the
+output from one of the files listed in <files>, that file will be spun again
+even if it hasn't changed (to pick up the latest version and release
+information).
 
 =head1 OPTIONS
 
@@ -1545,6 +1647,17 @@ files as the thread source.
 =item \link[<url>][<text>]
 
 Create a link to <url> with link text <text>.  Basically <a href=""></a>.
+
+=item \release[<product>]
+
+Replaced with the date portion of the version information for <product>,
+taken from the F<.versions> file at the top of the source tree.  The date
+will be returned in the UTC time zone, not the local time zone.
+
+=item \version[<product>]
+
+Replaced with the version number for <product>, taken from the F<.versions>
+file at the top of the source tree.
 
 =back
 
