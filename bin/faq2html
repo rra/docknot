@@ -480,6 +480,7 @@ while (defined $BUFFER) {
         $space = $1;
         if (s/^Subject:\s+//) {
             $STATE{contents} = /\bcontents\b/i;
+            $_ = escape $_;
             if (/^([\d.]+)[.\)]\s/) {
                 output start, h2 (container ("a name=\"$1\"", $_));
             } else {
