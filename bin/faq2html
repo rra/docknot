@@ -302,7 +302,7 @@ sub comment {
 # The character set for the page; we assume ISO 8859-1 for all pages.
 sub charset {
     qq(<meta http-equiv="content-type" content="text/html;)
-        . qq( charset=ISO-8859-1" />);
+        . qq( charset=iso-8859-1" />);
 }
 
 # A link to a CSS style sheet.
@@ -562,15 +562,15 @@ $heading = urlize $heading;
 output dtd;
 output xmlstyle ($style), "\n" if $style;
 output "\n";
+output html, "\n";
+output head ("  ", title ($title || $output || 'faq2html output'),
+             $style ? ("\n  ", style ($style)) : '', "\n  ",
+             charset, "\n"), "\n";
 output comment ($id), "\n" if $id;
 output comment ("Converted to XHTML by faq2html version $version"), "\n\n";
-output html, "\n";
-output head ("  ", charset, "\n  ",
-             title ($title || $output || 'faq2html output'),
-             $style ? ("\n  ", style ($style)) : '', "\n");
 
 # Open the body of the document, and print out the heading if we found one.
-output "\n<body>\n\n";
+output "<body>\n\n";
 output h1 ($heading), "\n" if $heading;
 
 # If we have additional headers, print them out.  Otherwise, if we have author
