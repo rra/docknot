@@ -3,7 +3,7 @@ $ID = q$Id$;
 #
 # faq2html -- Convert some particular text formats into XHTML.
 #
-# Copyright 1999, 2000, 2001, 2002 by Russ Allbery <rra@stanford.edu>
+# Copyright 1999, 2000, 2001, 2002, 2004 by Russ Allbery <rra@stanford.edu>
 #
 # This program is free software; you may redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -23,7 +23,8 @@ $ID = q$Id$;
 require 5.003;
 
 use strict;
-use vars qw($BUFFER $ID $IN $INDENT @MONTHS $OUT %STATE $USEVALUE $WS);
+use vars qw($BUFFER $ID $IN $INDENT @INDENT @MONTHS $OUT %STATE $USEVALUE
+            $WS);
 
 use Getopt::Long qw(GetOptions);
 
@@ -101,7 +102,7 @@ sub slurp {
     my $ws = shift;
     my $p;
     local $_;
-    $p = $BUFFER;
+    $p = $BUFFER || '';
     $p .= $_ while (defined ($_ = <$IN>) && ($ws ? !/^$/ : /\S/));
     $p .= $_ if defined;
     $p .= $_ while (defined ($_ = <$IN>) && /^\s*$/);
@@ -175,7 +176,7 @@ sub is_allbullet { $_[0] =~ /^(\s*[-*o]\s).*\n(\1.*\n)+\s*$/ }
 sub is_allnumbered { $_[0] =~ /^(\s*\d\d?[.\)]\s.*\n){2,}\s*$/ }
 
 # Expects a paragraph, returns whether it's in all capital letters.
-sub is_allcaps { $_[0] !~ /[^A-Z\s\"\(\),:.!?-]/ }
+sub is_allcaps { $_[0] !~ m%[^A-Z0-9\s\"\(\),:.!/?-]% }
 
 # Expects a paragraph, returns whether it looks like it's broken into a series
 # of short lines or a series of lines without internal space.  The last line
@@ -223,23 +224,27 @@ sub is_header { $_[0] =~ /^[\w-]+:\s/ }
 # heuristics and guesses, and there are a number of other things we could
 # confuse for headings, so we have to be careful.  If it's a single line and
 # outdented from the baseline, it's probably a heading.  If it's at the
-# baseline, check to see if the content looks reasonable for a heading and
-# also allow for a rule underneath it.  If we're inside a contents block, be
-# even more careful and disallow numbered things that look like a heading
-# unless they're outdented.
+# baseline, check to see if it looks like a heading and either it's in all
+# caps or there is a rule underneath it.  If we haven't seen a baseline, be
+# more accepting about headers.  If we're inside a contents block, be even
+# more careful and disallow numbered things that look like a heading unless
+# they're outdented.
 sub is_heading {
     local $_ = shift;
     my $indent = indent $_;
+    my $nobase = !defined $STATE{baseline};
     my $outdented = defined ($STATE{baseline}) && $indent < $STATE{baseline};
     return if (!$outdented && $STATE{contents} && /^[\d.]+[.\)]\s/);
     my $even = !defined ($INDENT) || $indent <= $INDENT;
-    return if ($even && length ($_) < 10 && !/[A-Z]/);
     ($outdented && lines ($_) == 1 && (/\S\s\S/ || length ($_) < 30))
-        || ($even && m%^\s*[ \w\"\(\),.:/-]{0,30}[\w\"\)]\s*\n([-=~]+\s*)?$%);
+        || ($even && m%^\s*[ \w\"\(\),:./-]{0,30}[\w\"\)]\s*\n[-=~]+\s*$%)
+        || ($even && m%^\s*[ A-Z0-9\"\(\),:./-]{0,30}[A-Z0-9\"\)]\s*\n$%)
+        || ($even && $nobase && m%^\s*[ \w\"\(\),:./-]{0,30}[\w\"\)]\s*\n$%);
 }
 
-# Expects a line, returns whether it's an RCS/CVS $\Id$ string.
-sub is_id { $_[0] =~ /^\s*\$Id.*\$\s*$/ }
+# Expects a line, returns whether it's an RCS/CVS Id string that has been
+# correctly expanded.
+sub is_id { $_[0] =~ /^\s*\$Id\: .*\$\s*$/ }
 
 # Expects a paragraph, returns whether it appears to have internal whitespace.
 sub is_literal { $_[0] =~ /^[ \t]*\S.*(?:[^.?!\"\)\]:*_\n]  |   |\t)\S/m }
@@ -263,8 +268,8 @@ sub is_offset {
 }
 
 # Expects a paragraph, returns undef if not quoted or the quote character if
-# it is quoted.
-sub is_quoted { $_[0] =~ /^\s*([^\w\s])\s+.*\n(\s*\1\s+.*\n)*$/ && $1 }
+# it is quoted.  Requires that the paragraph be at least two lines.
+sub is_quoted { $_[0] =~ /^\s*([^\w\s\"\'])\s*.*\n(\s*\1\s*.*\n)+$/ && $1 }
 
 # Expects a paragraph, returns whether it's a rule.
 sub is_rule { $_[0] =~ /^\s*[-=][-=\s]*$/ }
@@ -344,23 +349,22 @@ sub container {
     $data;
 }
 
-# Output a description list title.  This should also end any open <dd>.
-sub dt {
-    my $output = $STATE{dd} ? "</dd>\n" : '';
-    delete $STATE{dd};
-    $output . container ('dt', @_);
-}
-
-# Output a list item.  Takes an optional second argument, which if specified
-# is the number to use for the item (using the value attribute, which for some
-# reason is deprecated under HTML 4.0 without any viable alternative for what
-# I use it for).
+# Output a list item.  Takes the indentation, the item, and an optional third
+# argument, which if specified is the number to use for the item (using the
+# value attribute, which for some reason is deprecated under HTML 4.0 without
+# any viable alternative for what I use it for).
 sub li {
-    my ($data, $value) = @_;
-    my $output = $STATE{li} ? "</li>\n" : '';
-    $STATE{li} = 1;
+    my ($indent, $data, $value) = @_;
+    $indent = 0 unless defined $indent;
+    my $output = '';
+    if (@INDENT && $INDENT[0][0] eq 'li') {
+        $output .= "</li>\n";
+        shift @INDENT;
+    }
+    unshift (@INDENT, [ 'li', $indent ]);
     undef $value unless $USEVALUE;
-    $output . (defined $value ? qq(<li value="$value">\n) : "<li>\n") . $data;
+    my $tag = defined $value ? qq(<li value="$value">\n) : "<li>\n";
+    $output . $tag . $data;
 }
 
 # Wrap a container around data, preserving trailing blank lines outside and
@@ -372,33 +376,38 @@ sub paragraph {
     '<' . $tag . ">\n" . $data . '</' . $tag . ">\n";
 }
 
-# Close any pending open structure elements except the one given and then
-# start the given structure element, followed by the given initial data.  If
-# the parameter is undef, just close them all.  Note that there are some
-# exceptions to the tag closing policy; <li> is allowed in <ol> and <ul> and
-# <dd> is allowed in <dl> and vice versa so that lists will work properly.
+# Multiparagraph structure is maintained based on indentation level.  The
+# global variable @INDENT holds a stack of pairs of block elements and their
+# corresponding indentation levels.  The possible structure elements are dl,
+# dd, ul, ol, li, and blockquote.
+#
+# This function is used to start or end block structure elements.  It closes
+# any pending open structure elements with an indent level greater than the
+# indentation level given, and then closes any open structure elements with an
+# indentation level equal to the one given if a new structure element is given
+# and it is different than the open one.  Then, if a structure element is
+# given, open a new block structure element with that indentation.
+#
 # One can pass attributes in for the opening tag; anything after a space will
 # be stripped out for determining the close tag.
 sub start {
-    my ($tag, $data) = @_;
+    my ($indent, $tag, $data) = @_;
+    $indent = 0 unless defined $indent;
     my $e = $tag || '';
     $e =~ s/ .*//;
     $data = '' unless $data;
     my $output = '';
-    for (qw/blockquote dd dl li ol ul/) {
-        if ((!$e || $e ne $_) && $STATE{$_}) {
-            if ($e) {
-                next if (($e eq 'ol' || $e eq 'ul') && $_ eq 'li');
-                next if ($e eq 'dd' && $_ eq 'dl');
-                next if ($e eq 'dl' && $_ eq 'dd');
-            }
-            $output .= "</$_>\n";
-            delete $STATE{$_};
-        }
+    while (@INDENT) {
+        last if ($INDENT[0][1] < $indent);
+        last if ($tag && $INDENT[0][1] == $indent && $INDENT[0][0] eq $tag);
+        last if ($INDENT[0][1] == $indent && !$tag && $INDENT[0][0] ne 'dl');
+        $output .= "</$INDENT[0][0]>\n";
+        shift @INDENT;
     }
-    if ($e && !$STATE{$e}) {
-        $STATE{$e}++;
+    return $output unless $tag;
+    if (!@INDENT || $indent > $INDENT[0][1]) {
         $output .= "<$tag>\n";
+        unshift (@INDENT, [ $tag, $indent ]);
     }
     $output . $data;
 }
@@ -415,6 +424,7 @@ sub title {
 
 # Various containers.
 sub blockquote { paragraph ('blockquote', @_) }
+sub dt         { container ('dt',         @_) }
 sub h1         { container ('h1',         @_) }
 sub h2         { container ('h2',         @_) }
 sub h3         { container ('h3',         @_) }
@@ -431,6 +441,7 @@ sub pre        { container ('pre',        @_) }
 # the original author if any was given.
 sub handle_faq_headers {
     my ($author, $title);
+    if (defined && /^From /) { $_ = <$IN> }
     while (defined && is_header $_) {
         my ($header, $content) = /^([\w-]+):\s+(.*)/;
 
@@ -477,7 +488,7 @@ sub handle_doc_headers {
         # Save information we care about.
         if    (lc $header eq 'author')   { $author  = $content }
         elsif (lc $header eq 'subject')  { $subject = $content }
-        elsif (lc $header eq 'revision') { $id      = $content }
+        elsif (lc $header eq 'revision') { $id = $content if is_id $content }
     }
 
     # Return the information we found.
@@ -495,9 +506,11 @@ $0 =~ s%.*/%%;
 # Parse command-line options, if any.
 my ($help, $numbered, $style, $realtitle, $version);
 Getopt::Long::config ('bundling');
-GetOptions ('help|h' => \$help, 'style|s=s' => \$style,
-            'title|t=s' => \$realtitle, 'use-value|u' => \$USEVALUE,
-            'version|v' => \$version) or exit 1;
+GetOptions ('h|help'      => \$help,
+            's|style=s'   => \$style,
+            't|title=s'   => \$realtitle,
+            'u|use-value' => \$USEVALUE,
+            'v|version'   => \$version) or exit 1;
 
 # If they asked for help, give them the documentation.
 if ($help) {
@@ -545,8 +558,10 @@ if (is_id $_) {
 # news/mail headers, and if so we read those headers and the subheaders.
 # Otherwise, we see if it looks like one of my documentation files and try to
 # grab information from it if so.
-my ($author, $title, $original) = handle_faq_headers;
-unless (defined $author) {
+my ($author, $title, $original);
+if (is_header ($_) || /^From /) {
+    ($author, $title, $original) = handle_faq_headers;
+} else {
     my $newid;
     ($author, $title, $newid) = handle_doc_headers;
     $id = $newid if defined $newid;
@@ -645,7 +660,8 @@ while (defined $BUFFER) {
     # section titles are always level 2 headers currently.
     if (is_divider $_) {
         $STATE{pre} = 0;
-        output start;
+        output start (-1);
+        undef $INDENT;
         ($WS) = /\n(\s*)$/;
         $_ = slurp;
         s/\n(\s*)$/\n/;
@@ -654,11 +670,10 @@ while (defined $BUFFER) {
             $STATE{contents} = /\bcontents\b/i;
             $_ = escape $_;
             if (/^([\d.]+)[.\)]\s/) {
-                output start, h2 (container (qq(a name="S$1" id="S$1"), $_));
+                output h2 (container (qq(a name="S$1" id="S$1"), $_));
             } else {
-                output start, h2 ($_);
+                output h2 ($_);
             }
-            undef $INDENT;
             next;
         }
     }
@@ -667,7 +682,8 @@ while (defined $BUFFER) {
     if (is_rule $_) {
         $STATE{pre} = 0;
         ($space) = /\n(\s*)$/;
-        output start, "<hr />\n";
+        output start (-1), "<hr />\n";
+        undef $INDENT;
         next
     }
 
@@ -764,7 +780,8 @@ while (defined $BUFFER) {
             next unless /\S/;
             $_ = debullet $_;
             $INDENT = indent $_;
-            output start ('ul', li (embolden $_));
+            output start ($INDENT, 'ul');
+            output li ($INDENT, embolden $_);
         }
         next;
     }
@@ -777,7 +794,8 @@ while (defined $BUFFER) {
             next unless /\S/;
             my ($number) = /^(\d+)/;
             $_ = denumber $_;
-            output start ('ol', li (embolden $_), $number);
+            output start ($INDENT, 'ol');
+            output li ($INDENT, embolden ($_), $number);
         }
         next;
     }
@@ -786,17 +804,18 @@ while (defined $BUFFER) {
     if (is_bullet $_) {
         $_ = debullet $_;
         $INDENT = indent $_;
-        output start ('ul', li (p (embolden $_)));
+        output start ($INDENT, 'ul');
+        output li ($INDENT, p (embolden $_));
         next;
     }
 
     # Check for paragraphs quoted with some character and turn them into
     # blockquotes provided they don't have inconsisted indentation.
     my $quote = is_quoted ($_);
-    if ($quote && lines ($_) > 1 && !$broken) {
+    if ($quote && !$broken) {
         $_ = unquote ($_, $quote);
         $INDENT = indent $_;
-        output start ('blockquote', p (embolden $_));
+        output start ($INDENT, 'blockquote', p (embolden $_));
         next;
     }
 
@@ -807,7 +826,8 @@ while (defined $BUFFER) {
         $_ = denumber $_;
         $INDENT = indent $_;
         s%(\n\s*\S)%<br />$1%g if ($broken || $contents);
-        output start ('ol', li (p (embolden $_), $number));
+        output start ($INDENT, 'ol');
+        output li ($INDENT, p (embolden $_), $number);
         next;
     }
 
@@ -824,14 +844,13 @@ while (defined $BUFFER) {
             ($title, $body) = split ("\n", $body, 2);
             push (@title, $title);
         }
-        my $newdl = ($indent == $INDENT && !$STATE{dl});
-        if ($newdl || indent ($body) == $INDENT) {
+        if ($indent == $INDENT || indent ($body) == $INDENT) {
             @title = map { embolden ($_) } @title;
             my $title = join ("<br />\n", @title) . "\n";
             $INDENT = indent $body;
             s%(\n\s*\S)%<br />$1%g if is_broken $body;
-            output start ('dl', dt ($title));
-            output start ('dd', (p (embolden $body)));
+            output start ($indent, 'dl', dt ($title));
+            output start ($INDENT, 'dd', (p (embolden $body)));
             next;
         }
     }
@@ -853,14 +872,14 @@ while (defined $BUFFER) {
             output pre (strip_indent ($_, $INDENT));
             $STATE{pre} = 1;
         } else {
-            output start ('blockquote', p (embolden $_));
             $INDENT = $indent;
+            output start ($INDENT, 'blockquote', p (embolden $_));
         }
         next;
     }
 
     # Close multiparagraph structure if we've outdented again.
-    if ($INDENT && $indent < $INDENT) { output start }
+    if ($INDENT && $indent < $INDENT) { output start ($indent) }
 
     # Looks like a normal paragraph.  Establish our indentation baseline if we
     # haven't already.
@@ -911,10 +930,11 @@ isn't given, it will read from stdin.
 
 B<faq2html> understands digest separators (lines of exactly thirty hyphens,
 from the minimal digest standard) and will treat a Subject header
-immediately after them as a section header.  Beyond that, it will attempt to
-intuit section headers from document structure, but will be generally more
-successful if you outdent your section headers (in other words, indent all
-of the normal text by a few spaces and start headers in column 0).
+immediately after them as a section header.  Beyond that, headings must
+either be outdented, underlined on the following line, or in all caps to be
+recognized as section headers.  (Outdenting means that the regular text is
+indented by a few spaces, but headers start in column 0, or at least in a
+column farther to the left than the regular text.)
 
 Section headers that begin with numbers (with any number of periods) will be
 given <a id> tags containing that number prepended with C<S>.  As a special
@@ -980,10 +1000,6 @@ which case it complies with XHTML 1.0 Transitional).
 Print out this documentation (which is done simply by feeding the script
 to C<perldoc -t>.
 
-=item B<-v>, B<--version>
-
-Print out the version of B<faq2html> and exit.
-
 =item B<-s> I<style>, B<--style>=I<style>
 
 Insert a reference to I<style> as a style sheet into the generated web
@@ -1004,6 +1020,10 @@ disconnected numbered lists, or if the lists don't count as normal.  Without
 this option, no value tags are given and the numbering is left up to the
 browser, allowing the output to validate as XHTML 1.0 Strict instead of
 XHTML 1.0 Transitional.
+
+=item B<-v>, B<--version>
+
+Print out the version of B<faq2html> and exit.
 
 =back
 
@@ -1067,7 +1087,7 @@ Russ Allbery <rra@stanford.edu>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 1999, 2000, 2001, 2002 by Russ Allbery <rra@stanford.edu>.
+Copyright 1999, 2000, 2001, 2002, 2004 by Russ Allbery <rra@stanford.edu>.
 
 This program is free software; you may redistribute it and/or modify it
 under the same terms as Perl itself.
