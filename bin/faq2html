@@ -158,6 +158,9 @@ sub whitechomp { local $_ = shift; s/^\s+//; s/\s+$//; $_ }
 # Identification functions
 ############################################################################
 
+# Expects a paragraph, returns whether every line is a bulletted item.
+sub is_allbullet { $_[0] =~ /^(\s*[-*o]\s).*\n(\1.*\n)+\s*$/ }
+
 # Expects a paragraph, returns whether it's in all capital letters.
 sub is_allcaps { $_[0] !~ /[^A-Z\s\"\(\),:.!?-]/ }
 
@@ -219,7 +222,7 @@ sub is_heading {
     my $outdented = defined $STATE{baseline} && $indent < $STATE{baseline};
     my $even = !defined ($INDENT) || $indent <= $INDENT;
     ($outdented && lines ($_) == 1 && (/\S\s\S/ || length ($_) < 30))
-        || ($even && /^\s*[ \w\"\(\),.:-]+[\w\"\)]\s*\n(?:[-=~]+\s*)?$/);
+        || ($even && /^\s*[ \w\"\(\),.:-]{0,30}[\w\"\)]\s*\n([-=~]+\s*)?$/);
 }
 
 # Expects a line, returns whether it's an RCS/CVS $\Id$ string.
@@ -232,6 +235,10 @@ sub is_literal { $_[0] =~ /^[ \t]*\S.*(?:[^.?!\"\)\]:*_\n]  |   |\t)\S/m }
 # Expects a paragraph, returns undef if it doesn't look like a numbered
 # paragraph or the number if it does.
 sub is_numbered { ($_[0] =~ /^\s*(\d\d?)[.\)]\s/) ? $1 : undef }
+
+# Expects a paragraph, returns true if the paragraph has inconsistent
+# indentation, allowing for minidents.
+sub is_offset { $_[0] !~ /^(\s*)\S.*\n(\1\s{0,2}\S.*\n)*\s*$/ }
 
 # Expects a paragraph, returns undef if not quoted or the quote character if
 # it is quoted.
@@ -391,7 +398,7 @@ if (is_id $_) {
 
 # Check for mail/news headers.  If we see any, the only ones we care about
 # are Subject and From, which we'll use for title information.
-my ($author, $title);
+my ($author, $title, $inheader);
 while (defined && is_header $_) {
     my ($header, $content) = /^([\w-]+):\s+(.*)/;
 
@@ -438,6 +445,7 @@ if (is_centered ($_)) {
     do { $_ = <$IN> } while (defined && (/^\s*$/ || is_rule $_));
 }
 $heading ||= $title;
+$heading = urlize $heading;
 
 # Generate the heading of the HTML file, using the filename as the title if
 # we haven't been able to find a title.  We claim "transitional" HTML 4.0
@@ -454,7 +462,7 @@ output "<html>\n", head (title ($title || $output || 'faq2html output'));
 output "\n<body>\n";
 output "<h1 align=center>$heading</h1>\n" if $heading;
 
-# If we have additional headers, print them out.  Otherwise, If we have
+# If we have additional headers, print them out.  Otherwise, if we have
 # author information from a From header, print that out under the main
 # heading.  If we have RCS/CVS Id information, add another subheading
 # containing the version number and the last modified date.  Existing
@@ -476,7 +484,7 @@ if ($heading) {
             if ($id && (/\$Revision/ || /\$Date/)) {
                 output '  ', modified ($id);
             } else {
-                $_ = escape (whitechomp ($_));
+                $_ = urlize (escape (whitechomp ($_)));
                 output '  ', $_;
             }
         }
@@ -597,6 +605,19 @@ while (defined $BUFFER) {
     # section headings into links.
     if ($STATE{contents} && is_contents $_) { $_ = contents $_ }
 
+    # Check for paragraphs that are entirely bulletted lines, and turn them
+    # into unordered lists.
+    if (is_allbullet $_) {
+        my @lines = split (/\n/, $_);
+        for (@lines) {
+            next unless /\S/;
+            $_ = debullet $_;
+            $INDENT = indent $_;
+            output start ('ul', li (p (embolden $_)));
+        }
+        next;
+    }
+
     # Check for paragraphs quoted with some character and turn them into
     # blockquotes.
     my $quote = is_quoted ($_);
@@ -642,6 +663,13 @@ while (defined $BUFFER) {
             output start ('dd', (p (minident (embolden $_))));
             next;
         }
+    }
+
+    # If the paragraph has inconsistent indentation, allowing for minidents,
+    # we should output it in <pre>.
+    if (is_offset $_) {
+        output pre ($_);
+        next;
     }
 
     # A sudden indentation change also means the paragraph should be
