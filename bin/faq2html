@@ -176,6 +176,7 @@ sub is_broken {
     my @lines = split ("\n", $_);
     return if (@lines == 1 || (@lines == 2 && /^(\s*)\S.*\n\1\s{1,2}\S/));
     pop @lines;
+    return 1 if grep { length ($_) < 40 } @lines;
     my $short = grep { length ($_) < 60 } @lines;
     ($short >= int (@lines / 2) + 1) || /^(?:\s*\S+[ \t]*\n)+$/;
 }
@@ -199,7 +200,7 @@ sub is_contents { $_[0] =~ /^(?:\s*[\d.]+[.\)][ \t].*\n)+\s*$/ }
 # description.  We go to some extra lengths to avoid thinking a two-line
 # paragraph with a minidented second line is a description list entry.
 sub is_description {
-    $_[0] =~ /^(\s*)\S.*\n(\s+)\S.*\n(?:\2\S.*\n)*\2.*\n\s*$/
+    $_[0] =~ /^(\s*)\S.*\n(\s+)\S.*\n(?:\2\S.*\n)*\s*$/
         && length ($1) < length ($2)
         && (lines ($_[0]) > 2 || length ($2) - length ($1) > 2);
 }
