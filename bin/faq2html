@@ -2,7 +2,8 @@
 $ID = q$Id$;
 #
 # faq2html -- Convert some particular text formats into HTML.
-#             Copyright 1999 by Russ Allbery <rra@stanford.edu>
+#
+# Copyright 1999, 2000, 2001 by Russ Allbery <rra@stanford.edu>
 #
 # This program is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -12,12 +13,12 @@ $ID = q$Id$;
 # It's my opinion that general text to HTML conversions is impossible due to
 # the huge number of differing formats used by different people when writing
 # text; this doesn't try to solve the general problem.  Rather, it's good
-# enough to turn the FAQs I maintain into HTML documents, which is all that
-# I need of it.
+# enough to turn the FAQs I maintain into HTML documents, which is all that I
+# need of it.
 
-############################################################################
+##############################################################################
 # Modules and declarations
-############################################################################
+##############################################################################
 
 require 5.003;
 
@@ -31,9 +32,9 @@ use Getopt::Long qw(GetOptions);
              October November December);
 
 
-############################################################################
+##############################################################################
 # Utility functions
-############################################################################
+##############################################################################
 
 # Turns section numbers at the beginning of lines in a paragraph into links.
 sub contents {
@@ -101,9 +102,9 @@ sub output {
 }
 
 # Read a paragraph in from $IN.  If no argument is given or the argument is
-# false, lines with nothing but whitespace are paragraph dividers;
-# otherwise, only a completely blank line is a divider.  Use $BUFFER to
-# store the unwanted next line.
+# false, lines with nothing but whitespace are paragraph dividers; otherwise,
+# only a completely blank line is a divider.  Use $BUFFER to store the
+# unwanted next line.
 sub slurp {
     my $ws = shift;
     my $p;
@@ -136,8 +137,8 @@ sub untabify {
     $_;
 }
 
-# Given a special-character-escaped URL, wrap <a href></a> to that URL
-# around it.  Remove a leading mailto: in the link text.
+# Given a special-character-escaped URL, wrap <a href></a> to that URL around
+# it.  Remove a leading mailto: in the link text.
 sub url {
     my $link = shift;
     my $text = $link;
@@ -153,9 +154,9 @@ sub urlize { local $_ = shift; s%&lt;URL:(.+?)&gt;%url ($1)%ge; $_ }
 sub whitechomp { local $_ = shift; s/^\s+//; s/\s+$//; $_ }
 
 
-############################################################################
+##############################################################################
 # Identification functions
-############################################################################
+##############################################################################
 
 # Expects a paragraph, returns whether every line is a bulletted item.
 sub is_allbullet { $_[0] =~ /^(\s*[-*o]\s).*\n(\1.*\n)+\s*$/ }
@@ -163,12 +164,11 @@ sub is_allbullet { $_[0] =~ /^(\s*[-*o]\s).*\n(\1.*\n)+\s*$/ }
 # Expects a paragraph, returns whether it's in all capital letters.
 sub is_allcaps { $_[0] !~ /[^A-Z\s\"\(\),:.!?-]/ }
 
-# Expects a paragraph, returns whether it looks like it's broken into a
-# series of short lines or a series of lines without internal space.  The
-# last line of the paragraph doesn't matter for this determination.  We go
-# to some extra lengths to avoid thinking a two-line paragraph with a
-# minidented second line is broken without always thinking two-line
-# paragraphs are unbroken.
+# Expects a paragraph, returns whether it looks like it's broken into a series
+# of short lines or a series of lines without internal space.  The last line
+# of the paragraph doesn't matter for this determination.  We go to some extra
+# lengths to avoid thinking a two-line paragraph with a minidented second line
+# is broken without always thinking two-line paragraphs are unbroken.
 sub is_broken {
     local $_ = shift;
     s/\s+$/\n/;
@@ -183,9 +183,9 @@ sub is_broken {
 # Expects a paragraph, returns whether it's a bulletted item.
 sub is_bullet { $_[0] =~ /^\s*[-*o]\s/ }
 
-# Expects a line, returns whether it's centered (in 74 columns).  Also
-# require at least 10 spaces of whitespace so that we don't catch
-# accidentally centered paragraph lines by mistake.
+# Expects a line, returns whether it's centered (in 74 columns).  Also require
+# at least 10 spaces of whitespace so that we don't catch accidentally
+# centered paragraph lines by mistake.
 sub is_centered {
     $_[0] =~ /^(\s+)(.+)/
         && abs (74 - length ($2) - length ($1) * 2) < 2
@@ -195,9 +195,9 @@ sub is_centered {
 # Expects a paragraph, returns whether it looks like a content listing.
 sub is_contents { $_[0] =~ /^(?:\s*[\d.]+[.\)][ \t].*\n)+\s*$/ }
 
-# Expects a paragraph, returns whether it looks like a title and
-# description.  We go to some extra lengths to avoid thinking a two-line
-# paragraph with a minidented second line is a description list entry.
+# Expects a paragraph, returns whether it looks like a title and description.
+# We go to some extra lengths to avoid thinking a two-line paragraph with a
+# minidented second line is a description list entry.
 sub is_description {
     $_[0] =~ /^(\s*)\S.*\n(\s+)\S.*\n(?:\2\S.*\n)*\s*$/
         && length ($1) < length ($2)
@@ -231,8 +231,7 @@ sub is_heading {
 # Expects a line, returns whether it's an RCS/CVS $\Id$ string.
 sub is_id { $_[0] =~ /^\s*\$Id.*\$\s*$/ }
 
-# Expects a paragraph, returns whether it appears to have internal
-# whitespace.
+# Expects a paragraph, returns whether it appears to have internal whitespace.
 sub is_literal { $_[0] =~ /^[ \t]*\S.*(?:[^.?!\"\)\]:*_\n]  |   |\t)\S/m }
 
 # Expects a paragraph, returns undef if it doesn't look like a numbered
@@ -258,9 +257,9 @@ sub is_sentence { $_[0] =~ /[.?!][\)\]\"]?\s*$/ }
 sub is_signature { $_[0] =~ /^-- \n/ }
 
 
-############################################################################
+##############################################################################
 # HTML constructors
-############################################################################
+##############################################################################
 
 # Wrap a container around data, keeping the tags on the same line.
 sub container {
@@ -279,9 +278,9 @@ sub dt {
 }
 
 # Output a list item.  Takes an optional second argument, which if specified
-# is the number to use for the item (using the value attribute, which for
-# some reason is deprecated under HTML 4.0 without any viable alternative
-# for what I use it for).
+# is the number to use for the item (using the value attribute, which for some
+# reason is deprecated under HTML 4.0 without any viable alternative for what
+# I use it for).
 sub li {
     my ($data, $value) = @_;
     my $output = $STATE{li} ? "</li>\n" : '';
@@ -302,8 +301,8 @@ sub paragraph {
 # the parameter is undef, just close them all.  Note that there are some
 # exceptions to the tag closing policy; <li> is allowed in <ol> and <ul> and
 # <dd> is allowed in <dl> and vice versa so that lists will work properly.
-# One can pass attributes in for the opening tag; anything after a space
-# will be stripped out for determining the close tag.
+# One can pass attributes in for the opening tag; anything after a space will
+# be stripped out for determining the close tag.
 sub start {
     my ($tag, $data) = @_;
     my $e = $tag || '';
@@ -328,8 +327,8 @@ sub start {
     $output . $data;
 }
 
-# Handle titles, which should have newlines turned into spaces and leading
-# and trailing whitespace zapped.
+# Handle titles, which should have newlines turned into spaces and leading and
+# trailing whitespace zapped.
 sub title {
     local $_ = shift;
     s/\s*\n\s*/ /g;
@@ -347,9 +346,9 @@ sub p          { paragraph ('p',          @_) }
 sub pre        { container ('pre',        @_) }
 
 
-############################################################################
+##############################################################################
 # Main routine
-############################################################################
+##############################################################################
 
 # Trim extraneous garbage from the path.
 my $fullpath = $0;
@@ -399,8 +398,8 @@ if (is_id $_) {
     do { $_ = <$IN> } while (defined && /^\s*$/);
 }
 
-# Check for mail/news headers.  If we see any, the only ones we care about
-# are Subject and From, which we'll use for title information.
+# Check for mail/news headers.  If we see any, the only ones we care about are
+# Subject and From, which we'll use for title information.
 my ($author, $title, $inheader);
 while (defined && is_header $_) {
     my ($header, $content) = /^([\w-]+):\s+(.*)/;
@@ -417,8 +416,8 @@ while (defined && is_header $_) {
 # Skip blank lines (either initial ones or ones after headers.
 $_ = <$IN> while (defined && /^\s*$/);
 
-# Parse the FAQ subheaders, if any.  If we see any, we use the HTML-title
-# and the Original-author headers.
+# Parse the FAQ subheaders, if any.  If we see any, we use the HTML-title and
+# the Original-author headers.
 my $original;
 while (defined && is_header $_) {
     my ($header, $content) = /^([\w-]+):\s+(.*)/;
@@ -450,10 +449,10 @@ if (is_centered ($_)) {
 $heading ||= $title;
 $heading = urlize $heading;
 
-# Generate the heading of the HTML file, using the filename as the title if
-# we haven't been able to find a title.  We claim "transitional" HTML 4.0
-# compliance; we can't claim strict solely because we use the value
-# attribute in <li> for the lack of any working alternative.
+# Generate the heading of the HTML file, using the filename as the title if we
+# haven't been able to find a title.  We claim "transitional" HTML 4.0
+# compliance; we can't claim strict solely because we use the value attribute
+# in <li> for the lack of any working alternative.
 ($version) = (split (' ', $ID))[2];
 output '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"';
 output "\n        \"http://www.w3.org/TR/REC-html40/loose.dtd\">\n\n";
@@ -465,15 +464,14 @@ output "<html>\n", head (title ($title || $output || 'faq2html output'));
 output "\n<body>\n";
 output "<h1 align=center>$heading</h1>\n" if $heading;
 
-# If we have additional headers, print them out.  Otherwise, if we have
-# author information from a From header, print that out under the main
-# heading.  If we have RCS/CVS Id information, add another subheading
-# containing the version number and the last modified date.  Existing
-# subheadings that look like they're just Revision or Date strings are
-# replaced by our more nicely formatted string.  We go to some length here
-# to avoid unnecessary <br> tags.  Note that </strong> has to be on the end
-# of the last line rather than the beginning of the next to work around a
-# bug in lynx.
+# If we have additional headers, print them out.  Otherwise, if we have author
+# information from a From header, print that out under the main heading.  If
+# we have RCS/CVS Id information, add another subheading containing the
+# version number and the last modified date.  Existing subheadings that look
+# like they're just Revision or Date strings are replaced by our more nicely
+# formatted string.  We go to some length here to avoid unnecessary <br> tags.
+# Note that </strong> has to be on the end of the last line rather than the
+# beginning of the next to work around a bug in lynx.
 if ($heading) {
     my $subheading;
     while (defined && (/^\s*$/ || is_centered ($_))) {
@@ -543,16 +541,16 @@ while (defined $BUFFER) {
     if (is_rule $_) { ($space) = /\n(\s*)$/; output start, "<hr>\n"; next }
 
     # Everything else needs to have special characters escaped.  We don't do
-    # this earlier because if we want to allow < and > in rules, the
-    # escaping would make our lives miserable.
+    # this earlier because if we want to allow < and > in rules, the escaping
+    # would make our lives miserable.
     $_ = escape $_;
 
     # Do this before untabification and stashing of trailing whitespace, but
-    # after escaping.  Check to see if this paragraph looks like literal
-    # text.  If so, we wrap it in <pre> and output it as is.  As a special
-    # exception to our normal paragraph handling, this paragraph doesn't end
-    # until we find a literal blank line; this hack lets full diffs be
-    # included in a FAQ without confusing the parser.
+    # after escaping.  Check to see if this paragraph looks like literal text.
+    # If so, we wrap it in <pre> and output it as is.  As a special exception
+    # to our normal paragraph handling, this paragraph doesn't end until we
+    # find a literal blank line; this hack lets full diffs be included in a
+    # FAQ without confusing the parser.
     if (is_literal $_) {
         if (/\n[ \t]+$/) { $_ .= slurp (1) }
         output pre ($_);
@@ -566,11 +564,11 @@ while (defined $BUFFER) {
     s/\n(\s*)$/\n/;
     $space = $1;
 
-    # Check for a heading.  We distinguish between level 2 headings and
-    # level 3 headings as follows: The first heading we encounter is assumed
-    # to be a level 2 heading, and any further headers at that same
-    # indentation level are also level 2 headings.  If we detect any other
-    # headings at a greater indent, they're marked as level 3.
+    # Check for a heading.  We distinguish between level 2 headings and level
+    # 3 headings as follows: The first heading we encounter is assumed to be a
+    # level 2 heading, and any further headers at that same indentation level
+    # are also level 2 headings.  If we detect any other headings at a greater
+    # indent, they're marked as level 3.
     my $indent = indent $_;
     if (is_heading ($_)) {
         s/^\s+//;
@@ -599,13 +597,13 @@ while (defined $BUFFER) {
         next;
     }
 
-    # We're dealing with a normal paragraph of some sort, so go ahead and
-    # turn URLs into links.
+    # We're dealing with a normal paragraph of some sort, so go ahead and turn
+    # URLs into links.
     $_ = urlize $_;
 
-    # Check to see if we're in a contents section, and if so if this
-    # paragraph looks like a table of contents.  If so, turn all of the
-    # section headings into links.
+    # Check to see if we're in a contents section, and if so if this paragraph
+    # looks like a table of contents.  If so, turn all of the section headings
+    # into links and assume broken text.
     if ($STATE{contents} && is_contents $_) { $_ = contents $_ }
 
     # Check for paragraphs that are entirely bulletted lines, and turn them
@@ -642,17 +640,18 @@ while (defined $BUFFER) {
     # Check for numbered paragraphs and turn them into lists.
     my $number = is_numbered ($_);
     if (defined $number) {
+        my $broken = is_broken ($_) || is_contents ($_);
         $_ = denumber $_;
         $INDENT = indent $_;
-        s/(\n\s*\S)/<br>$1/g if is_broken $_;
+        s/(\n\s*\S)/<br>$1/g if $broken;
         output start ('ol', li (p (embolden $_), $number));
         next;
     }
 
-    # Check for things that look like description lists and handle them.
-    # Note that we don't allow indented description lists, because they're
-    # usually something we actually want to make <pre>.  This is another
-    # fairly fragile heuristic.
+    # Check for things that look like description lists and handle them.  Note
+    # that we don't allow indented description lists, because they're usually
+    # something we actually want to make <pre>.  This is another fairly
+    # fragile heuristic.
     if (is_description ($_) && defined $INDENT) {
         my ($title, $body);
         ($title, $body) = split ("\n", $_, 2);
@@ -676,9 +675,9 @@ while (defined $BUFFER) {
     }
 
     # A sudden indentation change also means the paragraph should be
-    # blockquoted.  We render broken blockquoted text in <pre>, which may
-    # not be what's wanted for things like quotes of poetry... this is
-    # probably worth looking at in more detail.
+    # blockquoted.  We render broken blockquoted text in <pre>, which may not
+    # be what's wanted for things like quotes of poetry... this is probably
+    # worth looking at in more detail.
     if (defined $INDENT && $indent > $INDENT) {
         if (is_broken ($_) || (lines ($_) == 1 && !is_sentence $_)) {
             output pre ($_);
@@ -692,8 +691,8 @@ while (defined $BUFFER) {
     # Close multiparagraph structure if we've outdented again.
     if ($INDENT && $indent < $INDENT) { output start }
 
-    # Looks like a normal paragraph.  Establish our indentation baseline if
-    # we haven't already.
+    # Looks like a normal paragraph.  Establish our indentation baseline if we
+    # haven't already.
     $INDENT = $indent;
     $STATE{baseline} = $indent unless defined $STATE{baseline};
     s/(\n\s*\S)/<br>$1/g if is_broken $_;
@@ -708,9 +707,9 @@ output start, "</body>\n</html>\n";
 __END__
 
 
-############################################################################
+##############################################################################
 # Documentation
-############################################################################
+##############################################################################
 
 =head1 NAME
 
