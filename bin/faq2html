@@ -87,7 +87,7 @@ sub modified {
 sub output {
     local $_ = shift;
     if ($WS) {
-        s%^((?:\s*</[^>]+>\s*)*)%$1$WS%;
+        s%^(\s*(?:</(?!body)[^>]+>\s*)*)%$1$WS%;
         $WS = '';
     }
     print $OUT $_, @_;
@@ -309,12 +309,6 @@ sub charset {
 sub style {
     my $style = shift;
     qq(<link rel="stylesheet" href="$style" type="text/css" />);
-}
-
-# An XML link to a CSS style sheet.
-sub xmlstyle {
-    my $style = shift;
-    qq(<?xml-stylesheet href="$style" type="text/css"?>);
 }
 
 # The initial <html> tag, which is a bit complicated for XHTML.
@@ -563,7 +557,6 @@ $heading = urlize $heading;
 # in <li> in the absence of widespread implementation of CSS Level 2.
 ($version) = (split (' ', $ID))[2];
 output dtd;
-output xmlstyle ($style), "\n" if $style;
 output "\n";
 output html, "\n";
 output head ("  ", title ($title || $output || 'faq2html output'),
@@ -842,7 +835,7 @@ while (defined $BUFFER) {
 }
 
 # All done.  Print out our closing tags.
-output start, "</body>\n</html>\n";
+output start, "\n</body>\n</html>\n";
 __END__
 
 
