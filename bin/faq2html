@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -w
 $ID = q$Id$;
 #
 # faq2html -- Convert some particular text formats into HTML.
@@ -16,6 +16,16 @@ $ID = q$Id$;
 # I need of it.
 
 ############################################################################
+# Modules and declarations
+############################################################################
+
+require 5.003;
+
+use strict;
+use vars qw($ID %STATE);
+
+
+############################################################################
 # Utility functions
 ############################################################################
 
@@ -25,9 +35,12 @@ sub debullet { local $_ = shift; s/(\s*)[-*o](\s)/$1 $2/; $_ }
 # Removes an initial number on a paragraph, replacing it with spaces.
 sub denumber {
     local $_ = shift;
-    s/^(\s*)(\d\d?[.\)])(\s)/$1 . ' ' x length ($2) . $3/;
+    s/^(\s*)(\d\d?[.\)])(\s)/$1 . ' ' x length ($2) . $3/e;
     $_;
 }
+
+# Remove ASCII underlining from a section heading.
+sub derule { local $_ = shift; s/^[-=~]+\n//m; $_ }
 
 # Escapes &, <, and > characters found in a string.
 sub escape { local $_ = shift; s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g; $_ }
@@ -47,7 +60,7 @@ sub unescape { local $_ = shift; s/&amp;/&/g; s/&lt;/</g; s/&gt;/>/g; $_ }
 # Remove a constant prefix at the beginning of each line of a paragraph.
 sub unquote {
     my ($string, $quote) = @_;
-    $string =~ s/((?:^|\n)\s*)\Q$quote\E\s+/$1/g;
+    $string =~ s/((?:^|\n)\s*)(\Q$quote\E\s+)/$1 . ' ' x length ($2)/ge;
     $string;
 }
 
@@ -64,10 +77,13 @@ sub href { '<a href="' . smash (unescape $_[0]) . '">' . $_[1] . '</a>' }
 
 # Looks for a URL in <URL:...> form and wraps a link around it.
 sub urlize {
-    my $string = shift;
-    $string =~ s%(&lt;URL:([^.&][^&]+)&gt;)%href ($2, $1)%ge;
-    $string;
+    local $_ = shift;
+    s%(&lt;URL:([^.&][^&]+)&gt;)%href ($2, $1)%ge;
+    $_;
 }
+
+# Remove whitespace at the beginning and end of a string.
+sub whitechomp { local $_ = shift; s/^\s+//; s/\s+$//; $_ }
 
 
 ############################################################################
@@ -75,7 +91,7 @@ sub urlize {
 ############################################################################
 
 # Expects a paragraph, returns whether it's in all capital letters.
-sub is_allcaps { $_[0] !~ /[^A-Z\"\(\),:-]/ }
+sub is_allcaps { $_[0] !~ /[^A-Z\s\"\(\),:-]/ }
 
 # Expects a paragraph, returns whether it looks like it's broken into a
 # series of short lines.
@@ -102,7 +118,7 @@ sub is_divider { $_[0] =~ /^-{30}\s*$/ }
 sub is_header { $_[0] =~ /^[\w-]+:\s/ }
 
 # Expects a paragraph, returns whether it fits the content of a heading.
-sub is_heading { $_[0] =~ /^\s*[ \w\"\(\),:-]+\n(?:^[-=~]+\n)?\s*\Z/ }
+sub is_heading { $_[0] =~ /^\s*[ \w\"\(\),:-]+\n(?:[-=~]+\n)?\s*\Z/ }
 
 # Expects a line, returns whether it's an RCS/CVS $\Id$ string.
 sub is_id { $_[0] =~ /^\s*\$Id.*\$\s*$/ }
@@ -120,7 +136,7 @@ sub is_numbered { ($_[0] =~ /^\s*(\d\d?)[.\)]\s/) ? $1 : undef }
 sub is_quoted { $_[0] =~ /^\s*([^\w\s])\s+.*\n(\s*\1\s+.*\n)*$/ && $1 }
 
 # Expects a line, returns whether it's a rule.
-sub is_rule { $_[0] =~ /^[-=]{70,80}$/ }
+sub is_rule { $_[0] =~ /^\s*[-=]+\s*$/ }
 
 # Expects a line, returns whether it's short (<60 columns).
 sub is_short { length $_[0] < 60 }
@@ -134,17 +150,51 @@ sub is_short { length $_[0] < 60 }
 sub container {
     my ($tag, $data) = @_;
     $data = '<' . $tag . '>' . $data;
+    $tag =~ s/ .*//;
     $data =~ s%(\s*)$%</$tag>$1%;
     $data;
+}
+
+# Output a list item.  Takes an optional second argument, which if specified
+# is the number to use for the item (using the value attribute, which for
+# some reason is deprecated under HTML 4.0 without any viable alternative
+# for what I use it for).
+sub li {
+    my ($data, $value) = @_;
+    container (defined $value ? "li value=$value" : 'li', $data);
 }
 
 # Wrap a container around data, preserving trailing blank lines outside and
 # putting the tags on lines of their own.
 sub paragraph {
     my ($tag, $data) = @_;
-    $data =~ s/(\s+)\n$/\n/;
+    my $space;
+    if ($data =~ s/(\s+)\n$/\n/) {
+        $space = $1;
+    } else {
+        $space = '';
+    }
     $data .= "\n" unless ($data =~ /\n$/);
-    '<' . $tag . ">\n" . $data . '</' . $tag . ">\n\n" . $1;
+    '<' . $tag . ">\n" . $data . '</' . $tag . ">\n" . $space;
+}
+
+# Close any pending open structure elements except the one given and then
+# start the given structure element.  If the parameter is undef, just close
+# them all.
+sub start {
+    my $e = shift;
+    my $output = '';
+    for (qw/blockquote dl ol ul/) {
+        if ((!$e || $e ne $_) && $STATE{$_}) {
+            undef $STATE{$_};
+            $output .= "</$_>\n";
+        }
+    }
+    if (defined $e && !$STATE{$e}) {
+        $STATE{$e}++;
+        $output .= "<$e>\n";
+    }
+    $output;
 }
 
 # Handle titles, which should have newlines turned into spaces and leading
@@ -159,6 +209,7 @@ sub title {
 
 # Various containers.
 sub blockquote { paragraph ('blockquote', @_) }
+sub h2         { container ('h2',         @_) }
 sub head       { paragraph ('head',       @_) }
 sub p          { paragraph ('p',          @_) }
 
@@ -208,31 +259,86 @@ $_ = <IN> while (defined && /^\s*$/);
 # Skip over any FAQ subheaders, since currently we're not interested in any
 # of that information.  We don't support continuation lines here yet.
 $_ = <IN> while (defined && is_header $_);
-$_ = <IN> while (defined && /^\s*$/);
+
+# Skip over whitespace after subheaders, and also skip over rules.
+$_ = <IN> while (defined && (/^\s*$/ || is_rule $_));
+
+# See if we have a centered title at the top of the document.  If so, we'll
+# make that the document title unless we also saw a Subject header.  Titles
+# shouldn't be in all caps, though.
+my $heading;
+if (is_centered ($_) && is_heading ($_)) {
+    $heading = whitechomp $_;
+    if (!$title) {
+        $title = $heading;
+        $title =~ s/\b([A-Z]+)\b/\L\u$1/g if (is_allcaps $title);
+    }
+    $_ = <IN>;
+    $_ = <IN> while (defined && (/^\s*$/ || is_rule $_));
+}
 
 # Generate the heading of the HTML file, using the filename as the title if
 # we haven't been able to find a title.
 print OUT "<html>\n", head (title ($title || $output));
 
+# Open the body of the document, and print out the heading if we found one.
+print OUT "<body>\n";
+print OUT "<h1 align=center>$heading</h1>\n\n" if $heading;
+
 # Scan the actual body of the text.  We don't use paragraph mode, since it
 # doesn't work with blank lines that contain whitespace; instead, we cobble
 # together our own paragraph mode that does.  Note that $_ already has a
 # non-blank line of input coming into this loop.
-print OUT "<body>\n";
-while (defined) {
-    my $line;
+my $line = $_;
+while (defined $line) {
+    $_ = $line;
     $_ .= $line while (defined ($line = <IN>) && $line =~ /\S/);
-    $_ .= $line;
+    $_ .= $line if defined $line;
     $_ .= $line while (defined ($line = <IN>) && $line =~ /^\s*$/);
-    $_ = urlize (untabify (escape ($_)));
+
+    # Everything needs to have special characters escaped.
+    $_ = escape $_;
+
+    # We're not dealing with literal text, so untabify it.
+    $_ = untabify $_;
+
+    # Check for a heading.  A paragraph is actually a heading if it matches
+    # is_heading and either we don't know our indentation or its indentation
+    # is the same as or less than the surrounding text.
+    my $outdent = !$STATE{indent} || indent ($_) <= $STATE{indent};
+    if ($outdent && is_heading ($_)) {
+        print OUT start, '<h2>', derule (whitechomp ($_)), "</h2>\n\n";
+        undef $STATE{indent};
+        next;
+    }
+
+    # We're dealing with a normal paragraph of some sort, so go ahead and
+    # turn URLs into links.
+    $_ = urlize $_;
+
+    # Check for paragraphs quoted with some character and turn them into
+    # blockquotes.
     my $quote = is_quoted ($_);
     if ($quote) {
         s/(\s+)\n$/\n/;
         my $space = $1;
         print OUT blockquote (unquote ($_, $quote));
-    } else {
-        print OUT p ($_);
+        next;
     }
-    $_ = $line;
+
+    # Checked for numbered paragraphs and turn them into lists.
+    my $number = is_numbered ($_);
+    if (defined $number) {
+        $_ = denumber $_;
+        $STATE{indent} = indent $_;
+        print OUT start ('ol'), li (p ($_), $number);
+        next;
+    }
+
+    # Looks like a normal paragraph.
+    $STATE{indent} = indent $_;
+    print OUT start, p ($_);
 }
-print OUT "</body>\n</html>\n";
+
+# All done.  Print out our closing tags.
+print OUT start, "</body>\n</html>\n";
