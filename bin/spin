@@ -155,6 +155,10 @@ sub parse {
             $output .= $result;
         }
     }
+    if ($top && $output =~ /\S/) {
+        $output =~ s/^/<p>\n/;
+        $output =~ s%\n(\s*)\z%\n</p>\n$1%;
+    }
     $output;
 }
 
@@ -166,6 +170,7 @@ sub parse {
 sub align { 'align=center' }
 
 sub do_cite  { '<cite>' . $_[1] . '</cite>' }
+sub do_bold  { '<strong>' . $_[1] . '</strong>' }
 sub do_id    { $DOCID = $_[1]; '<!-- ' . $_[1] . ' -->' }
 sub do_link  { '<a href="' . $_[1] . '">' . $_[2] . '</a>' }
 sub do_rule  { border; '<hr>' }
@@ -237,6 +242,7 @@ sub do_signature {
 }
 
 %commands = (cite      => [ 1, \&do_cite      ],
+             bold      => [ 1, \&do_bold      ],
              id        => [ 1, \&do_id        ],
              image     => [ 2, \&do_image     ],
              link      => [ 2, \&do_link      ],
