@@ -33,6 +33,13 @@ use vars qw($ID $INDENT @MONTHS $OUT %STATE $WS);
 # Utility functions
 ############################################################################
 
+# Turns section numbers at the beginning of lines in a paragraph into links.
+sub contents {
+    local $_ = shift;
+    s%^(\s*([\d.]+)[.\)]\s+)(.*?)([ \t]*\n)%$1<a href="#$2">$3</a>$4%gm;
+    $_;
+}
+
 # Removes an initial bullet on a paragraph, replacing it with spaces.
 sub debullet { local $_ = shift; s/(\s*)[-*o](\s)/$1 $2/; $_ }
 
@@ -59,7 +66,7 @@ sub lines { local $_ = shift; s/\s+$/\n/; tr/\n// }
 sub minident {
     local $_ = shift;
     my $space = $INDENT + 2;
-    s/\n\s{$space}/<br>\n&nbsp;&nbsp;/;
+    s/\n(\s{$INDENT})\s{1,2}(\S)/<br>\n$1&nbsp;$2/;
     $_;
 }
 
@@ -135,16 +142,21 @@ sub whitechomp { local $_ = shift; s/^\s+//; s/\s+$//; $_ }
 sub is_allcaps { $_[0] !~ /[^A-Z\s\"\(\),:-]/ }
 
 # Expects a paragraph, returns whether it looks like it's broken into a
-# series of short lines.
+# series of short lines.  The last line of the paragraph doesn't matter for
+# this determination.  We go to some extra lengths to avoid thinking a
+# two-line paragraph with a minidented second line is broken without always
+# thinking two-line paragraphs are unbroken.
 sub is_broken {
-    my $string = shift;
-    $string =~ s/\s+$/\n/;
-    my @lines = split ("\n", $string);
+    local $_ = shift;
+    s/\s+$/\n/;
+    my @lines = split ("\n", $_);
+    return if (@lines == 1 || (@lines == 2 && /^(\s*).*\n\1\s{1,2}\S/));
+    pop @lines;
     my $short = grep { length ($_) < 60 } @lines;
     $short >= int (@lines / 2) + 1;
 }
 
-# Expects a paragraph, returns whether we're dealing with a bulletted item.
+# Expects a paragraph, returns whether it's a bulletted item.
 sub is_bullet { $_[0] =~ /^\s*[-*o]\s/ }
 
 # Expects a line, returns whether it's centered (in 74 columns).
@@ -152,11 +164,16 @@ sub is_centered {
     $_[0] =~ /^(\s+)(.+)/ && abs (74 - (length $2) - (length $1) * 2) < 2;
 }
 
+# Expects a paragraph, returns whether it looks like a content listing.
+sub is_contents { $_[0] =~ /^(?:\s*[\d.]+[.\)][ \t].*\n)+\s*$/ }
+
 # Expects a paragraph, returns whether it looks like a title and
-# description.
+# description.  We go to some extra lengths to avoid thinking a two-line
+# paragraph with a minidented second line is a description list entry.
 sub is_description {
-    $_[0] =~ /^(\s*).*\n(\s+).*\n(?:\2\S.*\n)*/
-        && length ($1) < length ($2);
+    $_[0] =~ /^(\s*).*(\S)\s*\n(\s+).*\n(?:\3\S.*\n)*/
+        && length ($1) < length ($3)
+        && (lines ($_[0]) > 2 || length ($3) - length ($1) > 2);
 }
 
 # Expects a paragraph, returns whether it's a digest divider.
@@ -186,7 +203,7 @@ sub is_numbered { ($_[0] =~ /^\s*(\d\d?)[.\)]\s/) ? $1 : undef }
 sub is_quoted { $_[0] =~ /^\s*([^\w\s])\s+.*\n(\s*\1\s+.*\n)*$/ && $1 }
 
 # Expects a paragraph, returns whether it's a rule.
-sub is_rule { $_[0] =~ /^\s*[-=]+\s*$/ }
+sub is_rule { $_[0] =~ /^\s*[-=][-=\s]*$/ }
 
 # Expects a paragraph, returns whether it ends with a sentence.  Don't allow
 # colons here although we do elsewhere since we use this to decide whether
@@ -408,8 +425,12 @@ while (defined $line) {
     # Subject: line that we want to turn into a section header.
     if (is_divider $_) {
         output start, '<hr>';
+        $WS = $space;
         $_ = slurp (\*IN, \$line);
+        s/\n(\s*)$/\n/;
+        $space = $1;
         if (s/^Subject:\s+//) {
+            $STATE{contents} = /\bcontents\b/i;
             if (/^([\d.]+)[.\)]\s/) {
                 output start, h2 (container ("a name=\"$1\"", $_));
             } else {
@@ -438,6 +459,7 @@ while (defined $line) {
     # is the same as or less than the surrounding text.
     if ((!defined $INDENT || indent ($_) <= $INDENT) && is_heading ($_)) {
         s/^\s+//;
+        $STATE{contents} = /\bcontents\b/i;
         if (/^([\d.]+)[.\)]\s/) {
             output start, h2 (container ("a name=\"$1\"", derule ($_)));
         } else {
@@ -451,6 +473,11 @@ while (defined $line) {
     # turn URLs into links.
     $_ = urlize $_;
 
+    # Check to see if we're in a contents section, and if so if this
+    # paragraph looks like a table of contents.  If so, turn all of the
+    # section headings into links.
+    if ($STATE{contents} && is_contents $_) { $_ = contents $_ }
+
     # Check for paragraphs quoted with some character and turn them into
     # blockquotes.
     my $quote = is_quoted ($_);
@@ -459,11 +486,20 @@ while (defined $line) {
         next;
     }
 
+    # Check for bulletted paragraphs and turn them into lists.
+    if (is_bullet $_) {
+        $_ = debullet $_;
+        $INDENT = indent $_;
+        output start ('ul', li (p ($_)));
+        next;
+    }
+
     # Check for numbered paragraphs and turn them into lists.
     my $number = is_numbered ($_);
     if (defined $number) {
         $_ = denumber $_;
         $INDENT = indent $_;
+        s/(\n\s*\S)/<br>$1/g if is_broken $_;
         output start ('ol', li (p ($_), $number));
         next;
     }
@@ -474,13 +510,15 @@ while (defined $line) {
         ($title, $_) = split ("\n", $_, 2);
         $title .= "\n";
         $INDENT = indent $_;
+        s/(\n\s*\S)/<br>$1/g if is_broken $_;
         output start ('dl', dt ($title) . start ('dd', (p ($_))));
         next;
     }
 
     # A sudden indentation change also means the paragraph should be
-    # blockquoted.  Also check to see if it consists of short lines, and if
-    # so, add <br> tags.
+    # blockquoted.  We render broken blockquoted text in <pre>, which may
+    # not be what's wanted for things like quotes of poetry... this is
+    # probably worth looking at in more detail.
     if (defined $INDENT && indent ($_) > $INDENT) {
         if (is_broken ($_) || (lines ($_) == 1 && !is_sentence $_)) {
             output start, pre ($_);
@@ -495,6 +533,7 @@ while (defined $line) {
 
     # Looks like a normal paragraph.
     $INDENT = indent $_;
+    s/(\n\s*\S)/<br>$1/g if is_broken $_;
     output start, p (minident ($_));
 } continue {
     $WS = $space;
