@@ -721,11 +721,17 @@ sub do_desc {
     return block ('dd', $initial, $format, $text);
 }
 
-# An HTML entity.  Check for and handle numeric entities properly.
+# An HTML entity.  Check for and handle numeric entities properly, including
+# special-casing [ and ] since the user may have needed to use \entity to
+# express text that contains literal brackets.
 sub do_entity {
     my ($format, $char) = @_;
     $char = parse ($char);
-    if ($char =~ /^\d+$/) {
+    if ($char eq '91') {
+        return (0, '[');
+    } elsif ($char eq '93') {
+        return (0, ']');
+    } elsif ($char =~ /^\d+$/) {
         return (0, '&#' . $char . ';');
     } else {
         return (0, '&' . $char . ';');
@@ -1074,6 +1080,7 @@ sub run_converter {
         }
     }
     print OUT $_ if defined;
+    warn "$0: malformed HTML output from $command\n" unless @page;
 
     # Snarf input and write it to output until we see </body>, which is our
     # signal to start adding things.  We just got very confused if </body> was
@@ -1082,7 +1089,7 @@ sub run_converter {
 
     # Add the footer and finish with the output.
     print OUT &$footer ($blurb, $docid, $file);
-    print OUT $_, @page;
+    print OUT $_, @page if defined;
     close OUT;
 }
 
