@@ -245,7 +245,17 @@ sub is_numbered { ($_[0] =~ /^\s*(\d\d?)[.\)]\s/) ? $1 : undef }
 
 # Expects a paragraph, returns true if the paragraph has inconsistent
 # indentation.
-sub is_offset { $_[0] !~ /^(\s*)\S.*\n(\1\S.*\n)*\s*$/ }
+sub is_offset {
+    local $_ = shift;
+
+    # Strip off a leading bullet or number and consider it whitespace in
+    # making this check.
+    s/^(\s*(?:\d\d?)[.\)]\s)/' ' x length ($1)/e;
+    s/^(\s*[-*o]\s)/' ' x length ($1)/e;
+
+    # Now, return true if the indentation isn't consistent.
+    !/^(\s*)\S.*\n(\1\S.*\n)*\s*$/
+}
 
 # Expects a paragraph, returns undef if not quoted or the quote character if
 # it is quoted.
@@ -254,8 +264,14 @@ sub is_quoted { $_[0] =~ /^\s*([^\w\s])\s+.*\n(\s*\1\s+.*\n)*$/ && $1 }
 # Expects a paragraph, returns whether it's a rule.
 sub is_rule { $_[0] =~ /^\s*[-=][-=\s]*$/ }
 
-# Expects a paragraph, returns whether it ends with a sentence.
-sub is_sentence { $_[0] =~ /\S[.?!][\)\]\"]?\s*$/ }
+# Expects a paragraph, returns whether it ends with a sentence.  As a special
+# case, a URL counts as a sentence so that we don't wrap <pre> around URLs.
+sub is_sentence {
+    local $_ = shift;
+    return 1 if /\S[.?!][\)\]\"]?\s*$/;
+    return 1 if m%^\s*&lt;<a href.+>\S+</a>&gt;\s*$%;
+    0;
+}
 
 # Expects a paragraph, returns whether it's the start of a signature block,
 # defined to be a paragraph whose first line is exactly "-- ".
