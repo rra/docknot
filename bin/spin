@@ -15,8 +15,8 @@ require 5.005;
 
 use strict;
 use subs qw(expand parse);
-use vars qw($DOCID $FILE $FULLPATH $ID $OUT $OUTPUT $SOURCE $SPACE $SPINID
-            @STATE $STYLES %commands %strings);
+use vars qw($DOCID $FILE $FULLPATH $ID $OUTPUT $SOURCE $SPACE $SPINID @STATE
+            $STYLES %commands %macros %strings);
 
 use Getopt::Long qw(GetOptions);
 use Image::Size qw(html_imgsize);
@@ -29,18 +29,17 @@ use Text::Balanced qw(extract_bracketed);
 # Output
 ##############################################################################
 
-# Sends something to the output file without deferring spaces and without
-# printing out pending spaces.
-sub literal { print OUT join ('', @_) }
-
-# Sends something to the output file.
+# Sends something to the output file.  Pull out any trailing space and stash
+# it temporarily, and put any trailing space that we'd previously stashed into
+# the output string after any close tags.  This gets spacing working properly
+# around boundaries.
 sub output {
+    my $output = join ('', @_);
     if ($SPACE) {
-        print OUT $SPACE;
+        $output =~ s%^(\s*(?:</(?!body)[^>]+>\s*)*)%$1$SPACE%;
         $SPACE = '';
     }
-    my $output = join ('', @_);
-    if ($output =~ s/\n(\s*)\z/\n/) { $SPACE = $1 }
+    if ($output =~ s/\n(\s+)\z/\n/) { $SPACE = $1 }
     print OUT $output;
 }
 
@@ -51,20 +50,39 @@ sub output {
 # Escapes &, <, and > characters found in a string.
 sub escape { local $_ = shift; s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g; $_ }
 
+# Wrap something in paragraph markers, being careful to get newlines right.
+# Special-case a paragraph consisting entirely of <span> by turning it into a
+# <p> with the same class.
+sub paragraph {
+    my $text = shift;
+    $text =~ s/^\n(\s*\n)*//;
+    $text =~ s/(\S[ \t]*)\z/$1\n/;
+    if ($text =~ m%^(\s*)<span(?!.*<span)([^>]*)>(.*)</span>(\s*)\z%s) {
+        my ($lead, $class, $text, $trail) = ($1, $2, $3, $4);
+        return "$lead<p$class>$text</p>$trail";
+    } else {
+        $text =~ s/^/<p>\n/;
+        $text =~ s%(\n\s*)\z%\n</p>$1%;
+        return $text;
+    }
+}
+
 # Opens or closes a border of a continued structure.  Either takes the name of
 # the state and its start and end tags, or takes no arguments to close all
 # open states.
 sub border {
     my ($border, $start, $end) = @_;
+    my $output = '';
     if ($border) {
         if (!@STATE || $STATE[0][0] ne $border) {
-            output $start;
+            $output .= $start;
             unshift (@STATE, [ $border, $end ]);
         }
     } else {
-        for (@STATE) { literal $$_[1] }
+        for (@STATE) { $output .= $$_[1] }
         undef @STATE;
     }
+    return $output;
 }
 
 # Extract some number of arguments from the front of the given string.  If the
@@ -93,65 +111,88 @@ sub extract {
     (@result, $text);
 }
 
-# Delcare a new command.  Takes the command name, the number of arguments, and
-# the definition as arguments.  Only straight substitution commands are
-# allowed here, of course.  The body of the command isn't parsed at this
-# stage; it's parsed later when the command is actually invoked.
-sub declare {
-    my ($command, $args, $definition) = @_;
-    my $handler = sub {
-        local $_ = $commands{$command}[2];
-        s/\\(\d+)/($1 > $args) ? "\\$1" : $_[$1]/ge;
-        parse ($_);
-    };
-    $commands{$command} = [ $args, $handler, $definition ];
+# Process a macro.  Takes the number of arguments, the definition of the
+# macro, a flag saying whether we're at a block level, and then the values of
+# all the arguments.  Only straight substitution commands are allowed here, of
+# course.
+sub macro {
+    my ($args, $definition, $block) = @_;
+    $definition =~ s/\\(\d+)/($1 > $args) ? "\\$1" : $_[$1 + 2]/ge;
+    parse ($definition, $block);
 }
 
 # Expand a given command into its representation.  This function is mutually
-# recursive with parse.
+# recursive with parse.  Takes a third argument indicating whether this is a
+# top-level element (if it is, and it doesn't generate its own container, it
+# may have to be wrapped in <p>) and a fourth argument saying whether we're at
+# the top level of the document.
 sub expand {
-    my ($command, $text) = @_;
+    my ($command, $text, $block, $top) = @_;
     if ($command eq '==') {
         my ($new, $args, $definition);
         ($new, $args, $definition, $text) = extract ($text, 3);
-        declare ($new, $args, $definition);
+        $macros{$new} = [ $args, $definition ];
         return ('', $text);
     } elsif ($command eq '=') {
         my ($variable, $value);
         ($variable, $value, $text) = extract ($text, 2);
-        $strings{$variable} = parse $value;
+        $strings{$variable} = parse ($value);
         return ('', $text);
     } elsif ($command =~ s/^=//) {
-        return ($strings{$command}, $text);
+        if (exists $strings{$command}) {
+            return ($strings{$command}, $text);
+        } else {
+            warn "$0:$FILE:$.: unknown string $command\n";
+            return ('', $text);
+        }
     } elsif ($command eq '\\') {
         return ('\\', $text);
+    } elsif (ref $macros{$command}) {
+        my ($args, $definition) = @{ $macros{$command} };
+        my @args;
+        if ($args > 0) {
+            @args = extract ($text, $args, 0);
+            $text = pop @args;
+        }
+        my $block = $block && ($text !~ /\S/);
+        return (macro ($args, $definition, $block, @args), $text);
     } else {
         if (!ref $commands{$command}) {
-            die "$0:$FILE:$.: bad command $command\n";
+            warn "$0:$FILE:$.: bad command $command\n";
+            return ('', $text);
         }
-        my ($args, $handler) = @{$commands{$command}};
+        my ($args, $handler) = @{ $commands{$command} };
+        my ($blocktag, $result);
         if ($args == 0) {
-            return (&$handler (), $text);
+            ($blocktag, $result) = &$handler ();
         } else {
             my @args = extract ($text, $args, 1);
             $text = pop @args;
             my $format = shift @args;
-            for (@args) { $_ = parse $_ }
-            return (&$handler ($format, @args), $text);
+            ($blocktag, $result) = &$handler ($format, @args);
+        }
+        if ($block && !$blocktag && $text !~ /\S/) {
+            $result = paragraph ($result . $text);
+            $result = border . $result if $top;
+            return ($result, '');
+        } else {
+            return ($result, $text);
         }
     }
 }
 
 # Given a text string, check it for escape sequences.  If there are any,
 # expand them, returning the final string after all expansions have been done.
-# This function is mutually recursive with expand.
+# This function is mutually recursive with expand.  Takes two flags, one to
+# say whether we're at the block level, and one to say whether we're at the
+# top of the file.
 sub parse {
-    my ($text, $top) = @_;
+    my ($text, $block, $top) = @_;
     if (index ($text, '\\') == -1) {
         if ($top) {
-            border;
-            $text =~ s%\n(\s*)\z%\n</p>\n$1%;
-            return "<p>\n" . $text;
+            return border . paragraph ($text);
+        } elsif ($block) {
+            return paragraph ($text);
         } else {
             return $text;
         }
@@ -159,25 +200,31 @@ sub parse {
 
     # Chop off everything up to the first backslash and save it in output.
     # Then grab the escape and figure out what to do with it.
-    my $output;
+    my $output = '';
+    my $complex = 0;
     while ($text) {
-        $text =~ s/^([^\\]*)(?:\\([\w=]+|.))?//
+        $text =~ s/^([^\\]+|\\([\w=]+|.))?//
             or die "$0:$FILE:$.: unable to parse at '"
                 . substr ($text, 0, 20) . "'";
-        $output .= $1;
-        my $command = $2;
-        if ($command) {
+        my $command;
+        if (index ($1, '\\') == -1) {
+            $output .= $1;
+            $complex = 1;
+        } else {
+            $command = $2;
             my $result;
-            ($result, $text) = expand ($command, $text);
+            my $block = $block && ($output !~ /\S/);
+            ($result, $text) = expand ($command, $text, $block, $top);
             $output .= $result;
         }
+        if ($text =~ s/^\n(\s*)//) {
+            $output .= "\n" if ($text || $complex);
+            $output .= $1;
+        }
     }
-    if ($top && $output =~ /\S/ && $output !~ /^<p(?:re)?[ >]/) {
-        border;
-        $output =~ s/^/<p>\n/;
-        $output =~ s%\n(\s*)\z%\n</p>\n$1%;
-    }
-    $output;
+    $output = paragraph ($output) if $block && $complex;
+    $output = border . $output if $top && $complex;
+    return $output;
 }
 
 ##############################################################################
@@ -185,12 +232,13 @@ sub parse {
 ##############################################################################
 
 # Given the name of the current file being processed, opens a .placement file
-# if available and outputs the navigation links for that file.  If no
-# .placement file is present, nothing is output.
+# if available and returns the navigation links for that file.  If no
+# .placement file is present, nothing is returned.
 sub placement {
     my $file = shift;
 
     # Grab placement information for links if we have it.
+    my $output = '';
     if (open (PLACEMENT, '.placement')) {
         local $_;
         local $/ = "\n";
@@ -221,29 +269,32 @@ sub placement {
 
         my @text = ('Onward to', 'Back to', 'Return to');
         my $br = '';
-        output qq(<p class="navigation">\n);
+        $output .= qq(<p class="navigation">\n);
         for my $i (0..2) {
             next unless defined $placement[$i];
             my $href = '<a href="' . $placement[$i] . '">' .
                 $titles{$placement[$i]} . '</a>';
             $href =~ s/^(<[^>]+>)the /the $1/;
-            output $br, '    ', $text[$i], ' ', $href;
+            $output .= $br . '    ' . $text[$i] . ' ' . $href;
             $br = "<br />\n";
         }
-        output "\n</p>\n\n";
+        $output .= "\n</p>\n\n";
     }
+    return $output;
 }
 
-# Print out the signature file for pages in this directory, if present.
+# Return the signature file for pages in this directory, if present.
 sub sign {
+    my $output = '';
     if (open (SIG, '< .signature')) {
         local $/ = "\n";
         my @signature = <SIG>;
         chomp @signature;
         close SIG;
-        output join ("\n    ", @signature);
-        output " <br />\n    ";
+        $output .= join ("\n    ", @signature);
+        $output .= " <br />\n    ";
     }
+    return $output;
 }
 
 ##############################################################################
@@ -266,93 +317,109 @@ sub format_string {
     }
 }
 
-##############################################################################
-# Commands
-##############################################################################
-
-# Basic commands that only print some simple output.
-sub do_break  { '<br />' }
-sub do_cite   { '<cite>' . $_[1] . '</cite>' }
-sub do_code   { '<code>' . $_[1] . '</code>' }
-sub do_bold   { '<strong>' . $_[1] . '</strong>' }
-sub do_emph   { '<em>' . $_[1] . '</em>' }
-sub do_italic { '<i>' . $_[1] . '</i>' }
-sub do_link   { '<a href="' . $_[1] . '">' . $_[2] . '</a>' }
-sub do_rule   { border; output "<hr />\n\n"; '' }
-
-# A blockquote, used primarily to indent a section of text that's being
-# referred to by the main text.
-sub do_block {
-    my ($format, $text) = @_;
-    $text =~ s/^\n+//;
-    $text =~ s%\n\n+(\s*\S)%\n</p>\n\n<p>\n$1%g;
-    $text =~ s/\s*\n+$//;
-    output "<blockquote>\n<p>\n$text\n</p>\n</blockquote>\n\n";
-    '';
-}
-
-# An item in a bulletted list.  If not already in a bulletted list, one is
-# opened for this element.  The items are surrounded by paragraph markers,
-# which on some browsers will create extra whitespace around the item (often
-# not suitable for lists where each element is a single line).
-sub do_bullet {
-    my ($format, $text) = @_;
-    border ('bullet', "<ul>\n", "</ul>\n");
-    $text =~ s%\n\n\s*(\S)%\n</p>\n\n<p>$1%g;
-    $text =~ s%<p><pre>%<pre>%g;
-    $text =~ s%</pre>\n</p>%</pre>%g;
-    $text =~ s%\s*\n+$%%;
-    output '<li', format_string ($format), qq(><p>$text</p></li>\n\n);
-    '';
-}
-
-# Set a class (for style sheets) for the enclosing text.  This should be used
-# inside text elements (like regular paragraphs).
-sub do_class {
-    my ($format, $text) = @_;
-    if ($format) {
-        qq(<span) . format_string ($format) . qq(>$text</span>);
-    } else {
-        $text;
+# Splits a block of text apart at paired newlines so that it can be reparsed
+# in paragraphs, but combines a paragraph with the next one if it has an
+# unbalanced number of open brackets.  Used by containiners like \block that
+# can contain multiple paragraphs.
+sub split_paragraphs {
+    my $text = shift;
+    my @paragraphs;
+    while ($text && $text =~ s/^(.*?(?:\n\n+|\s*\z))//s) {
+        my $paragraph = $1;
+        my $open = ($paragraph =~ tr/\[//);
+        my $close = ($paragraph =~ tr/\]//);
+        while ($text && $open > $close) {
+            $text =~ s/^(.*?(?:\n\n+|\s*\z))//s;
+            my $extra = $1;
+            $open += ($extra =~ tr/\[//);
+            $close += ($extra =~ tr/\]//);
+            $paragraph .= $extra;
+        }
+        push (@paragraphs, $paragraph);
     }
+    return @paragraphs;
 }
 
-# A description list entry, which takes the heading and the body as arguments.
-# If one is not already open, a description list will be opened automatically
-# for this element.
-sub do_desc {
-    my ($format, $heading, $text) = @_;
-    border ('desc', "<dl>\n", "</dl>\n");
-    $text =~ s%\n\n\s*(\S)%\n</p>\n\n<p>$1%g;
-    $text =~ s%<p><pre>%<pre>%g;
-    $text =~ s%</pre>\n</p>%</pre>%g;
-    $text =~ s/\s*\n\n+$/\n/;
-    output "<dt>$heading</dt>\n<dd><p>$text</p></dd>\n\n";
-    '';
-}
-
-# An HTML entity.  Check for and handle numeric entities properly.
-sub do_entity {
-    my ($format, $char) = @_;
-    if ($char =~ /^\d+$/) {
-        '&#' . $char . ';';
+# A simple block element.  Takes the name of the tag, an initial string to be
+# prepended verbatim, the format, and the text.  Handles splitting the
+# argument on paragraph boundaries and surrounding things properly with the
+# tag.
+sub block {
+    my ($tag, $border, $format, $text) = @_;
+    my $output;
+    if ($format eq 'packed') {
+        $output = parse ($text, 0);
     } else {
-        '&' . $char . ';';
+        $output = join ('', map { parse ($_, 1) } split_paragraphs ($text));
     }
+    $output = $border . "<$tag" . format_string ($format) . '>' . $output;
+    $output =~ s%\s*\z%</$tag>\n%;
+    return (1, $output);
 }
 
-# The handler for all the headings, of any level.  Essentially the same as the
-# HTML tag.
-sub do_h {
+# A heading.  Handles formats of #something specially by adding an <a name>
+# tag inside the heading tag to make it a valid target for internal links even
+# in old browsers.
+sub heading {
     my ($level, $format, $text) = @_;
-    border;
+    my $output = border;
     if ($format && $format =~ /^\#/) {
         my $tag = $format;
         $tag =~ s/^\#//;
         $text = qq(<a name="$tag">$text</a>);
     }
-    output qq(<h$level), format_string ($format), qq(>$text</h$level>\n\n);
-    '';
+    $output .= "<h$level" . format_string ($format) . '>';
+    $output .= parse ($text);
+    $output =~ s/\n\z//;
+    $output .= "</h$level>\n";
+    return (1, $output);
+}
+
+# A simple inline element.  Takes the name of the tag, the format, and the
+# body and returns the appropriate list of block level and HTML.
+sub inline {
+    my ($tag, $format, $text) = @_;
+    my $output = "<$tag" . format_string ($format) . '>';
+    $output .= parse ($text) . "</$tag>";
+    return (0, $output);
+}
+
+##############################################################################
+# Commands
+##############################################################################
+
+# Basic inline commands.
+sub do_break  { (0, '<br />') }
+sub do_cite   { inline ('cite', @_) }
+sub do_class  { inline ('span', @_) }
+sub do_code   { inline ('code', @_) }
+sub do_bold   { inline ('strong', @_) }
+sub do_emph   { inline ('em', @_) }
+sub do_italic { inline ('i', @_) }
+sub do_rule   { return (1, border . "<hr />\n") }
+
+# Basic block commands.
+sub do_block  { block ('blockquote', '', @_) }
+sub do_bullet { block ('li', border ('bullet', "<ul>\n", "</ul>\n"), @_) }
+sub do_number { block ('li', border ('number', "<ol>\n", "</ol>\n"), @_) }
+
+# A description list entry, which takes the heading and the body as arguments.
+sub do_desc {
+    my ($format, $heading, $text) = @_;
+    my $initial = border ('desc', "<dl>\n", "</dl>\n");
+    $initial .= '<dt>' . parse ($heading) . "</dt>\n";
+    return block ('dd', $initial, $format, $text);
+}
+
+# An HTML entity.  Check for and handle numeric entities properly.
+sub do_entity {
+    my ($format, $char) = @_;
+    $char = parse ($char);
+    if ($char =~ /^\d+$/) {
+        return (0, '&#' . $char . ';');
+    } else {
+        return (0, '&' . $char . ';');
+    }
 }
 
 # Generates the page heading at the top of the document.  Takes as arguments
@@ -360,28 +427,25 @@ sub do_h {
 # come from.
 sub do_heading {
     my ($format, $title, $style) = @_;
-    output qq(<?xml version="1.0" encoding="iso-8859-1"?>\n);
-    output qq(<!DOCTYPE html\n);
-    output qq(    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"\n);
-    output qq(    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\n);
+    my $output = qq(<?xml version="1.0" encoding="iso-8859-1"?>\n);
+    $output .= qq(<!DOCTYPE html\n);
+    $output .= qq(    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"\n);
+    $output .= qq(    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\n);
+    $output .= qq(\n<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en");
+    $output .= qq( lang="en">\n);
+    $output .= qq(<head>\n  <title>$title</title>\n);
+    $output .= qq(  <meta http-equiv="Content-Type");
+    $output .= qq( content="text/html; charset=iso-8859-1" />\n);
     if ($style) {
         $style .= '.css';
         $style = $STYLES . $style if $STYLES;
-        output qq(<?xml-stylesheet href="$style" type="text/css"?>\n);
+        $output .= qq(  <link rel="stylesheet" href="$style");
+        $output .= qq( type="text/css" />\n);
     }
-    output qq(\n<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en");
-    output qq( lang="en">\n);
-    output qq(<head>\n  <title>$title</title>\n);
-    output qq(  <meta http-equiv="Content-Type");
-    output qq( content="text/html; charset=iso-8859-1" />\n);
-    if ($style) {
-        output qq(  <link rel="stylesheet" href="$style" type="text/css" />);
-        output "\n";
-    }
-    output "</head>\n\n<!-- $SPINID -->\n";
-    output "<!-- $DOCID -->\n" if $DOCID;
-    output "\n<body>\n\n";
-    '';
+    $output .= "</head>\n\n<!-- $SPINID -->\n";
+    $output .= "<!-- $DOCID -->\n" if $DOCID;
+    $output .= "\n<body>\n";
+    return (1, $output);
 }
 
 # Used to save the RCS Id for the document.  Doesn't actually output anything
@@ -389,67 +453,35 @@ sub do_heading {
 sub do_id {
     my ($format, $id) = @_;
     $DOCID = $id;
-    '';
+    return (1, '');
 }
 
 # Include an image.  The size is added to the HTML tag automatically.  Takes
 # the relative path to the image and the alt text.
 sub do_image {
     my ($format, $image, $text) = @_;
+    $image = parse ($image);
+    $text = parse ($text);
     my $size = lc html_imgsize ($image);
-    qq(<img src="$image" alt="$text" $size) . format_string ($format) . ' />';
+    my $output = qq(<img src="$image" alt="$text" $size);
+    $output .= format_string ($format) . " />\n";
+    return (1, $output);
 }
 
-# An item in a numbered list.  If not already in a numbered list, one is
-# opened for this element.  The items are surrounded by paragraph markers,
-# which on some browsers will create extra whitespace around the item (often
-# not suitable for lists where each element is a single line).
-sub do_number {
-    my ($format, $text) = @_;
-    border ('number', "<ol>\n", "</ol>\n");
-    $text =~ s%\n\n\s*(\S)%\n</p>\n\n<p>$1%g;
-    $text =~ s%<p><pre>%<pre>%g;
-    $text =~ s%</pre>\n</p>%</pre>%g;
-    $text =~ s%\s*\n+$%%;
-    output qq(<li), format_string ($format), qq(><p>$text</p></li>\n\n);
-    '';
-}
-
-# An HTML paragraph tag.  Normally, this isn't needed, but it's the only way
-# to set a class for a whole paragraph (rather than just part of a paragraph)
-# and is therefore currently needed in a few places.  Sort of an ugly wart;
-# maybe I should get rid of it at some point.
-sub do_p {
-    my ($format, $text) = @_;
-    qq(<p) . format_string ($format) . qq(>$text</p>);
-}
-
-# An item in a bulletted list.  If not already in a bulletted list, one is
-# opened for this element.  The items are not surrounded by paragraph markers,
-# which will make the list more compact on some browsers.
-sub do_packbullet {
-    my ($format, $text) = @_;
-    border ('bullet', "<ul>\n", "</ul>\n\n");
-    $text =~ s%\s*\n+$%%;
-    output qq(<li), format_string ($format), qq(>$text</li>\n);
-    '';
-}
-
-# An numbered item in a bulletted list.  If not already in a numbered list,
-# one is opened for this element.  The items are not surrounded by paragraph
-# markers, which will make the list more compact on some browsers.
-sub do_packnumber {
-    my ($format, $text) = @_;
-    border ('bullet', "<ol>\n", "</ol>\n\n");
-    $text =~ s%\s*\n+$%%;
-    output qq(<li), format_string ($format), qq(>$text</li>\n);
-    '';
+# A link to a URL or partial URL.
+sub do_link {
+    my ($format, $url, $text) = @_;
+    my $output = '<a href="' . parse ($url) . '"';
+    $output .= format_string ($format) . '>' . parse ($text) . '</a>';
+    return (0, $output);
 }
 
 # Preformatted text, the same as the HTML tag.
 sub do_pre {
     my ($format, $text) = @_;
-    qq(<pre) . format_string ($format) . qq(>$text</pre>);
+    my $output = '<pre' . format_string ($format) . '>';
+    $output .= parse ($text) . "</pre>\n";
+    return (1, $output);
 }
 
 # Used for the leading quotes that I have on many of my pages.  Takes the
@@ -457,45 +489,47 @@ sub do_pre {
 # format is "broken", adds line breaks at the end of each line.
 sub do_quote {
     my ($format, $quote, $author, $cite) = @_;
-    border;
+    my $output = border . '<blockquote class="quote">';
+    $quote = join ('', map { parse ($_, 1) } split_paragraphs ($quote));
     if ($format && $format eq 'broken') {
-        $quote =~ s%(\S *)(\n\s*\S)%$1<br />$2%g;
+        $quote =~ s%(\S *)(\n\s*(?!</p>)\S)%$1<br />$2%g;
+        $quote =~ s%\n<br />%\n%g;
+        $quote =~ s%<p><br />%<p>%g;
     }
-    my $output;
+    $quote =~ s/\n+$//;
     if ($format) {
-        $output = qq(<blockquote class="quote"><p class="$format">);
-        $quote =~ s%\n\n(\s*\S)%\n</p>\n<p class="$format">\n$1%g;
-    } else {
-        $output = '<blockquote class="quote"><p>';
-        $quote =~ s%\n\n(\s*\S)%\n</p>\n<p>\n$1%g;
+        my $class = format_string ($format);
+        $quote =~ s/<p>/<p$class>/g;
     }
-    output $output . $quote . "</p>";
+    $output .= $quote;
     if ($author) {
-        output qq(<p class="attribution">\n);
+        $author = parse ($author);
+        $output .= qq(<p class="attribution">\n);
         if ($cite) {
-            output "    $author,\n    $cite\n";
+            $cite = parse ($cite);
+            $output .= "    $author,\n    $cite\n";
         } else {
-            output "    $author\n";
+            $output .= "    $author\n";
         }
-        output "</p>";
+        $output .= "</p>";
     } else {
-        output "\n";
+        $output .= "\n";
     }
-    output "</blockquote>\n\n";
-    '';
+    $output .= "</blockquote>\n";
+    return (1, $output);
 }
 
 # Used to end each page, this adds the navigation links and my standard
 # address block.
 sub do_signature {
-    border;
+    my $output = border;
     if ($FILE eq '-') {
-        output "</body>\n</html>\n";
-        return '';
+        $output .= "</body>\n</html>\n";
+        return (1, $output);
     }
     my $file = $FILE;
     $file =~ s/\.th$/.html/;
-    placement $file;
+    $output .= placement $file;
 
     # Figure out the modified dates and print out the rest of the footer.
     my $modified = (split (' ', $DOCID))[3];
@@ -513,13 +547,14 @@ sub do_signature {
     } else {
         $modified = "Last $ref\n    $spun from thread modified $modified";
     }
-    output "<address>\n    ";
-    sign;
-    output "$modified\n</address>\n</body>\n</html>\n";
-    '';
+    $output .= "<address>\n    " . sign;
+    $output .= "$modified\n</address>\n</body>\n</html>\n";
+    return (1, $output);
 }
 
-# The table of available commands.
+# The table of available commands.  First column is the number of arguments,
+# second column is the handler, and the third column is whether this is its
+# own top-level element or whether it needs to be wrapped in <p> tags.
 %commands = (block      => [ 1, \&do_block      ],
              break      => [ 0, \&do_break      ],
              bullet     => [ 1, \&do_bullet     ],
@@ -536,16 +571,13 @@ sub do_signature {
              italic     => [ 1, \&do_italic     ],
              link       => [ 2, \&do_link       ],
              number     => [ 1, \&do_number     ],
-             p          => [ 1, \&do_p          ],
-             packbullet => [ 1, \&do_packbullet ],
-             packnumber => [ 1, \&do_packnumber ],
              pre        => [ 1, \&do_pre        ],
              quote      => [ 3, \&do_quote      ],
              rule       => [ 0, \&do_rule       ],
              signature  => [ 0, \&do_signature  ]);
 
 # Add handlers for all the headings.
-for (1..6) { $commands{"h$_"} = [ 1, eval "sub { do_h ($_, \@_) }" ] }
+for (1..6) { $commands{"h$_"} = [ 1, eval "sub { heading ($_, \@_) }" ] }
 
 ##############################################################################
 # Interface
@@ -558,7 +590,6 @@ sub spin {
     $FILE = $thread;
     open (IN, $thread) or die "$0: can't open $thread: $!\n";
     open (OUT, "> $output") or die "$0: can't create $output: $!\n";
-    $OUT = \*OUT;
     $SPACE = '';
 
     # Set up our initial comment.
@@ -580,10 +611,10 @@ sub spin {
             $close += ($extra =~ tr/\]//);
             $_ .= $extra;
         }
-        my $result = parse (escape ($_), 1);
+        my $result = parse (escape ($_), 1, 1);
         output $result unless ($result =~ /^\s*$/);
     }
-    output '';
+    print OUT $SPACE;
     close IN;
     close OUT;
 }
@@ -600,7 +631,6 @@ sub cl2xhtml {
     my $style = $STYLES . 'changelog.css';
     my @page = `cl2xhtml -n $name -s $style $source`;
     open (OUT, "> $output") or die "$0: can't create $output: $!\n";
-    $OUT = \*OUT;
 
     # Grab the first few lines of input, looking for a blurb.  Give up if we
     # encounter <html> first.
@@ -621,23 +651,22 @@ sub cl2xhtml {
     # Snarf input and write it to output until we see </body>, which is our
     # signal to start adding things.  We just got very confused if </body> was
     # on the same line as <html>, so don't do that.
-    print $OUT $_ while (defined ($_ = shift @page) && !m%</body>%i);
-    print OUT "\n";
+    print OUT $_ while (defined ($_ = shift @page) && !m%</body>%i);
 
     # Print out our separator line and placement information, if any.
     my $file = $output;
     $file =~ s%^.*/%%;
-    placement $file;
+    output placement $file;
 
     # Print out the signature and blurb.
     $blurb =~ s(cl2xhtml)
         (\n<a href="http://www.eyrie.org/~eagle/software/web/">cl2xhtml</a>);
     output "<address>\n    ";
-    sign;
+    output sign;
     output "$blurb\n</address>\n\n";
 
     # Finish with the cl2xhtml output.
-    print $OUT $_, @page;
+    print OUT $SPACE, $_, @page;
 }
 
 # A wrapper around the cvs2xhtml script, used to handle .log pointers in a
@@ -652,7 +681,6 @@ sub cvs2xhtml {
     my $style = $STYLES . 'cvs.css';
     my @page = `(cd $dir && cvs log $source) | cvs2xhtml -n $name -s $style`;
     open (OUT, "> $output") or die "$0: can't create $output: $!\n";
-    $OUT = \*OUT;
 
     # Grab the first few lines of input, looking for a blurb.  Give up if we
     # encounter <html> first.
@@ -673,23 +701,22 @@ sub cvs2xhtml {
     # Snarf input and write it to output until we see </body>, which is our
     # signal to start adding things.  We just got very confused if </body> was
     # on the same line as <html>, so don't do that.
-    print $OUT $_ while (defined ($_ = shift @page) && !m%</body>%i);
-    print OUT "\n";
+    print OUT $_ while (defined ($_ = shift @page) && !m%</body>%i);
 
     # Print out our separator line and placement information, if any.
     my $file = $output;
     $file =~ s%^.*/%%;
-    placement $file;
+    output placement $file;
 
     # Print out the signature and blurb.
     $blurb =~ s(cvs2xhtml)
         (\n<a href="http://www.eyrie.org/~eagle/software/web/">cvs2xhtml</a>);
     output "<address>\n    ";
-    sign;
+    output sign;
     output "$blurb\n</address>\n\n";
 
     # Finish with the cvs2xhtml output.
-    print $OUT $_, @page;
+    print OUT $SPACE, $_, @page;
 }
 
 # A wrapper around the faq2html script, used to handle .faq pointers in a tree
@@ -702,7 +729,6 @@ sub faq2html {
     }
     my @page = `faq2html -s '$style' $source`;
     open (OUT, "> $output") or die "$0: can't create $output: $!\n";
-    $OUT = \*OUT;
 
     # Grab the first few lines of input, looking for a blurb.  Give up if we
     # encounter <html> first.
@@ -718,23 +744,22 @@ sub faq2html {
     # Snarf input and write it to output until we see </body>, which is our
     # signal to start adding things.  We just got very confused if </body> was
     # on the same line as <html>, so don't do that.
-    print $OUT $_ while (defined ($_ = shift @page) && !m%</body>%i);
-    print OUT "\n";
+    print OUT $_ while (defined ($_ = shift @page) && !m%</body>%i);
 
     # Print out our separator line and placement information, if any.
     my $file = $output;
     $file =~ s%^.*/%%;
-    placement $file;
+    output placement $file;
 
     # Print out the signature and blurb.
     $blurb =~ s(faq2html)
         (\n<a href="http://www.eyrie.org/~eagle/software/web/">faq2html</a>);
     output "<address>\n    ";
-    sign;
+    output sign;
     output "$blurb\n</address>\n\n";
 
     # Finish with the faq2html output.
-    print $OUT $_, @page;
+    print OUT $SPACE, $_, @page;
 }
 
 # A wrapper around pod2thread and spin -f, used to handle .pod pointers in a
@@ -745,7 +770,6 @@ sub pod2html {
     my $style = ($STYLES ? " -s $STYLES" : '');
     my @page = `pod2thread -s pod $options $source | $FULLPATH -f$style`;
     open (OUT, "> $output") or die "$0: can't create $output: $!\n";
-    $OUT = \*OUT;
 
     # Grab the first few lines of input, looking for a blurb.  Give up if we
     # encounter <html> first.
@@ -763,17 +787,16 @@ sub pod2html {
     # Snarf input and write it to output until we see </body>, which is our
     # signal to start adding things.  We just got very confused if </body> was
     # on the same line as <html>, so don't do that.
-    print $OUT $_ while (defined ($_ = shift @page) && !m%</body>%i);
-    print OUT "\n";
+    print OUT $_ while (defined ($_ = shift @page) && !m%</body>%i);
 
     # Print out our separator line and placement information, if any.
     my $file = $output;
     $file =~ s%^.*/%%;
-    placement $file;
+    output placement $file;
 
     # Print out the signature and blurb.
     output "<address>\n    ";
-    sign;
+    output sign;
     my $modified = (split (' ', $docid))[3];
     if ($modified) {
         $modified =~ s{^(\d+)/(\d+)/(\d+)}{
@@ -793,7 +816,7 @@ sub pod2html {
     output "$blurb\n</address>\n\n";
 
     # Finish with the faq2html output.
-    print $OUT $_, @page if defined;
+    print OUT $SPACE, $_, @page;
 }
 
 # This routine is called for every file in the source tree, and references the
