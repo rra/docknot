@@ -23,7 +23,7 @@ $ID = q$Id$;
 require 5.003;
 
 use strict;
-use vars qw($BUFFER $ID $IN $INDENT @MONTHS $OUT %STATE $WS);
+use vars qw($BUFFER $ID $IN $INDENT @MONTHS $OUT %STATE $USEVALUE $WS);
 
 use Getopt::Long qw(GetOptions);
 
@@ -285,11 +285,19 @@ sub is_signature { $_[0] =~ /^-- \n/ }
 # can't claim strict solely because we use the value attribute in <li> in the
 # absence of widespread implementation of CSS Level 2.
 sub dtd {
-    qq(<?xml version="1.0" encoding="iso-8859-1"?>\n)
-        . qq(<!DOCTYPE html\n)
-        . qq(    PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"\n)
-        . qq(    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">)
-        . "\n";
+    if ($USEVALUE) {
+        qq(<?xml version="1.0" encoding="iso-8859-1"?>\n)
+            . qq(<!DOCTYPE html\n    )
+            . qq(PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"\n    )
+            . qq("http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">)
+            . "\n";
+    } else {
+        qq(<?xml version="1.0" encoding="iso-8859-1"?>\n)
+            . qq(<!DOCTYPE html\n    )
+            . qq(PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"\n    )
+            . qq("http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">)
+            . "\n";
+    }
 }
 
 # An XML comment.
@@ -341,6 +349,7 @@ sub li {
     my ($data, $value) = @_;
     my $output = $STATE{li} ? "</li>\n" : '';
     $STATE{li} = 1;
+    undef $value unless $USEVALUE;
     $output . (defined $value ? qq(<li value="$value">\n) : "<li>\n") . $data;
 }
 
@@ -474,10 +483,11 @@ my $fullpath = $0;
 $0 =~ s%.*/%%;
 
 # Parse command-line options, if any.
-my ($help, $style, $realtitle, $version);
+my ($help, $numbered, $style, $realtitle, $version);
 Getopt::Long::config ('bundling');
 GetOptions ('help|h' => \$help, 'style|s=s' => \$style,
-            'title|t=s' => \$realtitle, 'version|v' => \$version);
+            'title|t=s' => \$realtitle, 'use-value|u' => \$USEVALUE,
+            'version|v' => \$version) or exit 1;
 
 # If they asked for help, give them the documentation.
 if ($help) {
@@ -581,10 +591,10 @@ if ($heading) {
     my $subheading;
     while (defined && (/^\s*$/ || is_centered ($_))) {
         if (/^\s*$/) {
-            output "</strong>\n</p>\n" if $subheading;
+            output "\n</p>\n" if $subheading;
             $subheading = 0;
         } else {
-            output qq(<p class="subheading"><strong>\n) unless $subheading;
+            output qq(<p class="subheading">\n) unless $subheading;
             output "<br />\n" if $subheading;
             $subheading++;
             if ($id && (/\$Revision/ || /\$Date/)) {
@@ -598,13 +608,13 @@ if ($heading) {
     }
     if (!defined $subheading && $author) {
         $subheading++;
-        output qq(<p class="subheading"><strong>\n);
+        output qq(<p class="subheading">\n);
         output '  ', escape ($author);
         output "<br />\n  (originally by ", escape ($original), ')'
             if $original;
         output "<br />\n  ", modified ($id) if $id;
     }
-    output "</strong>\n</p>\n" if $subheading;
+    output "\n</p>\n" if $subheading;
 }
 
 # Scan the actual body of the text.  We don't use paragraph mode, since it
@@ -849,7 +859,7 @@ faq2html - Convert some particular text formats into XHTML
 
 =head1 SYNOPSIS
 
-B<faq2html> [B<-hv>] [B<-s> I<style>] [B<-t> I<title>] [I<infile>
+B<faq2html> [B<-huv>] [B<-s> I<style>] [B<-t> I<title>] [I<infile>
 [I<outfile>]]
 
 =head1 DESCRIPTION
@@ -927,8 +937,8 @@ by <strong> tags, if the asterixes appear to be marking bold text rather
 than serving as wildcards or some other function.
 
 B<faq2html> produces output (at least in the absence of any lurking bugs)
-which complies with the XHTML 1.0 Transitional standard.  (Transitional
-solely because it uses the value attribute of <li>.)
+which complies with the XHTML 1.0 Strict standard (unless B<-n> is given, in
+which case it complies with XHTML 1.0 Transitional).
 
 =head1 OPTIONS
 
@@ -953,6 +963,16 @@ in the generated web page.
 
 Use I<title> as the page title rather than whatever may be determined from
 looking at the input file.
+
+=item B<-u>, B<--use-value>
+
+If this option is given, faq2html includes value attributes in all <li> tags
+so that the item numbers will match the numbers specified in the source.
+This is only necessary if the item numbers must continue to increase through
+disconnected numbered lists, or if the lists don't count as normal.  Without
+this option, no value tags are given and the numbering is left up to the
+browser, allowing the output to validate as XHTML 1.0 Strict instead of
+XHTML 1.0 Transitional.
 
 =back
 
