@@ -797,7 +797,7 @@ while (defined $BUFFER) {
             $_ = $body;
             $title = embolden ($title . "\n");
             $INDENT = indent $_;
-            s%(\n\s*\S)%<br />$1%g if $broken;
+            s%(\n\s*\S)%<br />$1%g if is_broken $_;
             output start ('dl', dt ($title));
             output start ('dd', (p (embolden $_)));
             next;
