@@ -822,6 +822,7 @@ sub process_file {
         open (POINTER, $input) or die "$0: can't open $input: $!\n";
         my $master = <POINTER>;
         my $style = <POINTER>;
+        chomp $style if $style;
         close POINTER;
         if ($style && $style !~ /\./) {
             $style .= '.css';
@@ -832,7 +833,7 @@ sub process_file {
         chomp $master;
         return if (-e $output && -M $master >= -M $output);
         print "Formatting $shortout\n";
-        faq2html ($master, $output);
+        faq2html ($master, $output, $style);
     } elsif (/\.log$/) {
         $output =~ s/\.log$/.html/;
         $shortout =~ s/\.log$/.html/;
