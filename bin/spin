@@ -990,6 +990,10 @@ Print out the version of B<cvslog> and exit.
 
 =head1 BUGS
 
+Currently, the style sheets for B<cl2xhtml>, B<cvs2xhtml>, B<faq2html>, and
+B<pod2thread> are hard-coded into this program to fit my web pages.  This
+makes this program rather unsuitable for use by anyone other than me.
+
 This documentation is woefully incomplete; there should really be a
 description of all of the pre-defined macros.
 
