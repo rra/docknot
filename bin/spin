@@ -171,17 +171,17 @@ sub align { 'align=center' }
 
 sub do_cite  { '<cite>' . $_[1] . '</cite>' }
 sub do_bold  { '<strong>' . $_[1] . '</strong>' }
-sub do_id    { $DOCID = $_[1]; '<!-- ' . $_[1] . ' -->' }
+sub do_id    { $DOCID = $_[1]; output "<!-- $_[1] -->\n\n"; '' }
 sub do_link  { '<a href="' . $_[1] . '">' . $_[2] . '</a>' }
-sub do_rule  { border; '<hr>' }
-sub do_title { "<html>\n<head>\n  <title>$_[1]</title>\n</head>\n\n<body>" }
+sub do_rule  { border; output "<hr>\n\n"; '' }
 
 sub do_desc {
     my ($format, $heading, $text) = @_;
     border ('desc', "<dl>\n", "</dl>\n");
     $text =~ s%\n\n\s*\S%\n</p>\n\n<p>%g;
     $text =~ s/\s*\n\n+$/\n/;
-    "<dt>$heading</dt>\n<dd><p>$text</p></dd>\n\n";
+    output "<dt>$heading</dt>\n<dd><p>$text</p></dd>\n\n";
+    '';
 }
 
 sub do_h {
@@ -189,10 +189,12 @@ sub do_h {
     border;
     if ($format && $format =~ s/b//) { $text =~ s/(\n\s*\S)/<br>$1/g }
     if ($format) {
-        "<h$level " . align ($format) . '>' . $text . "</h$level>";
+        output "<h$level " . align ($format) . '>' . $text
+            . "</h$level>\n\n";
     } else {
-        "<h$level>" . $text . "</h$level>";
+        output "<h$level>" . $text . "</h$level>\n\n";
     }
+    '';
 }
 
 sub do_image {
@@ -217,8 +219,10 @@ sub do_quote {
     } else {
         $output .= '<p>';
     }
-    $output . $quote . "</p><p align=center>\n  <strong>$author,\n  $cite"
-        . "</strong>\n</p></blockquote>";
+    output $output . $quote
+        . "</p><p align=center>\n  <strong>$author,\n  $cite"
+        . "</strong>\n</p></blockquote>\n\n";
+    '';
 }
 
 sub do_signature {
@@ -232,13 +236,22 @@ sub do_signature {
     } else {
         $modified = "Last spun $spun from thread modified $modified";
     }
-    '<hr>
+    output '<hr>
 <address>
   <img align=right src="/images/eagle.gif" alt="">
   Russ Allbery
   &lt;<a href="mailto:rra@stanford.edu">rra@stanford.edu</a>&gt;<br>
   ' . $modified . '
-</address>';
+</address>
+</body>
+</html>
+';
+    '';
+}
+
+sub do_title {
+    output "<html>\n<head>\n  <title>$_[1]</title>\n</head>\n\n<body>\n\n";
+    '';
 }
 
 %commands = (cite      => [ 1, \&do_cite      ],
