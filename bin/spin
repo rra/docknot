@@ -16,7 +16,7 @@ require 5.005;
 use strict;
 use subs qw(expand parse);
 use vars qw($DOCID $FILE $ID $OUT $OUTPUT $SOURCE $SPACE $SPINID @STATE
-            %commands %strings);
+            $STYLES %commands %strings);
 
 use Getopt::Long qw(GetOptions);
 use Image::Size qw(html_imgsize);
@@ -289,21 +289,6 @@ sub do_bullet {
     '';
 }
 
-# An item in a bulletted list.  If not already in a bulletted list, one is
-# opened for this element.  The items are not surrounded by paragraph markers,
-# which will make the list more compact on some browsers.
-sub do_packbullet {
-    my ($format, $text) = @_;
-    border ('bullet', "<ul>\n", "</ul>\n");
-    $text =~ s%\s*\n+$%%;
-    if ($format) {
-        output qq(<li class="$format">$text</li>\n\n);
-    } else {
-        output qq(<li>$text</li>\n\n);
-    }
-    '';
-}
-
 # Set a class (for style sheets) for the enclosing text.  This should be used
 # inside text elements (like regular paragraphs).
 sub do_class {
@@ -325,6 +310,16 @@ sub do_desc {
     $text =~ s/\s*\n\n+$/\n/;
     output "<dt>$heading</dt>\n<dd><p>$text</p></dd>\n\n";
     '';
+}
+
+# An HTML entity.  Check for and handle numeric entities properly.
+sub do_entity {
+    my ($format, $char) = @_;
+    if ($char =~ /^\d+$/) {
+        '&#' . $char . ';';
+    } else {
+        '&' . $char . ';';
+    }
 }
 
 # The handler for all the headings, of any level.  Essentially the same as the
@@ -351,17 +346,20 @@ sub do_heading {
     output qq(    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\n);
     if ($style) {
         $style .= '.css';
+        $style = $STYLES . $style if $STYLES;
         output qq(<?xml-stylesheet href="$style" type="text/css"?>\n);
     }
-    output "\n<!-- $SPINID -->\n<!-- $DOCID -->\n\n";
-    output qq(<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en");
+    output qq(\n<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en");
     output qq( lang="en">\n);
     output qq(<head>\n  <title>$title</title>\n);
+    output qq(  <meta http-equiv="Content-Type");
+    output qq( content="text/html; charset=iso-8859-1">\n);
     if ($style) {
         output qq(  <link rel="stylesheet" href="$style" type="text/css" />);
         output "\n";
     }
-    output "</head>\n\n<body>\n\n";
+    output "</head>\n\n<!-- $SPINID -->\n<!-- $DOCID -->\n\n";
+    output "<body>\n\n";
     '';
 }
 
@@ -415,6 +413,21 @@ sub do_p {
     } else {
         qq(<p>$text</p>);
     }
+}
+
+# An item in a bulletted list.  If not already in a bulletted list, one is
+# opened for this element.  The items are not surrounded by paragraph markers,
+# which will make the list more compact on some browsers.
+sub do_packbullet {
+    my ($format, $text) = @_;
+    border ('bullet', "<ul>\n", "</ul>\n");
+    $text =~ s%\s*\n+$%%;
+    if ($format) {
+        output qq(<li class="$format">$text</li>\n\n);
+    } else {
+        output qq(<li>$text</li>\n\n);
+    }
+    '';
 }
 
 # Preformatted text, the same as the HTML tag.
@@ -480,10 +493,11 @@ sub do_signature {
         $modified = strftime ('%Y-%m-%d', gmtime ((stat $FILE)[9]));
     }
     my $spun = strftime ('%Y-%m-%d', gmtime);
+    my $ref = '<a href="http://www.eyrie.org/~eagle/software/web/">spun</a>';
     if ($modified eq $spun) {
-        $modified = 'Last modified and spun ' . $modified;
+        $modified = "Last modified and $ref $modified";
     } else {
-        $modified = "Last spun $spun from thread modified $modified";
+        $modified = "Last $ref $spun from thread modified $modified";
     }
     output "<address>\n    ";
     sign;
@@ -501,6 +515,7 @@ sub do_signature {
              bold       => [ 1, \&do_bold       ],
              desc       => [ 2, \&do_desc       ],
              emph       => [ 1, \&do_emph       ],
+             entity     => [ 1, \&do_entity     ],
              heading    => [ 2, \&do_heading    ],
              id         => [ 1, \&do_id         ],
              image      => [ 2, \&do_image      ],
@@ -529,8 +544,9 @@ sub spin {
     open (IN, $thread) or die "$0: can't open $thread: $!\n";
     open (OUT, "> $output") or die "$0: can't create $output: $!\n";
     $OUT = \*OUT;
+    $SPACE = '';
 
-    # Add our initial comment.
+    # Set up our initial comment.
     my $version = (split (' ', $ID))[2];
     my $date = strftime ('%Y-%m-%d %T -0000', gmtime);
     $SPINID = "Spun from " . ($thread eq '-' ? 'stdin' : $thread)
@@ -566,7 +582,7 @@ sub spin {
 # cl2xhtml output.
 sub cl2xhtml {
     my ($source, $output, $name) = @_;
-    my $style = '/~eagle/styles/changelog.css';
+    my $style = $STYLES . 'changelog.css';
     my @page = `cl2xhtml -n $name -s $style $source`;
     open (OUT, "> $output") or die "$0: can't create $output: $!\n";
     $OUT = \*OUT;
@@ -599,6 +615,8 @@ sub cl2xhtml {
     placement $file;
 
     # Print out the signature and blurb.
+    $blurb =~ s(cl2xhtml)
+        (\n<a href="http://www.eyrie.org/~eagle/software/web/">cl2xhtml</a>);
     output "<address>\n    ";
     sign;
     output "$blurb\n</address>\n\n";
@@ -616,7 +634,7 @@ sub cvs2xhtml {
     $dir =~ s%/+[^/]+$%%;
     my $name = $source;
     $name =~ s%^.*/%%;
-    my $style = '/~eagle/styles/cvs.css';
+    my $style = $STYLES . 'cvs.css';
     my @page = `(cd $dir && cvs log $source) | cvs2xhtml -n $name -s $style`;
     open (OUT, "> $output") or die "$0: can't create $output: $!\n";
     $OUT = \*OUT;
@@ -649,6 +667,8 @@ sub cvs2xhtml {
     placement $file;
 
     # Print out the signature and blurb.
+    $blurb =~ s(cvs2xhtml)
+        (\n<a href="http://www.eyrie.org/~eagle/software/web/">cvs2xhtml</a>);
     output "<address>\n    ";
     sign;
     output "$blurb\n</address>\n\n";
@@ -662,7 +682,8 @@ sub cvs2xhtml {
 # output.
 sub faq2html {
     my ($source, $output) = @_;
-    my @page = `faq2html -s '/~eagle/styles/faq.css' $source`;
+    my $style = $STYLES . 'faq.css';
+    my @page = `faq2html -s '$style' $source`;
     open (OUT, "> $output") or die "$0: can't create $output: $!\n";
     $OUT = \*OUT;
 
@@ -689,6 +710,8 @@ sub faq2html {
     placement $file;
 
     # Print out the signature and blurb.
+    $blurb =~ s(faq2html)
+        (\n<a href="http://www.eyrie.org/~eagle/software/web/">faq2html</a>);
     output "<address>\n    ";
     sign;
     output "$blurb\n</address>\n\n";
@@ -701,7 +724,8 @@ sub faq2html {
 # tree being spun.  Adds the navigation links and the signature to the output.
 sub pod2html {
     my ($source, $output) = @_;
-    my @page = `pod2thread -s '/~eagle/styles/pod' $source | spin -f`;
+    my $style = ($STYLES ? " -s $STYLES" : '');
+    my @page = `pod2thread -s pod $source | spin -f$style`;
     open (OUT, "> $output") or die "$0: can't create $output: $!\n";
     $OUT = \*OUT;
 
@@ -742,10 +766,11 @@ sub pod2html {
     }
     my $spun = (split (' ', $blurb))[7];
     unless ($spun) { $spun = strftime ('%Y-%m-%d', gmtime) }
+    my $ref = '<a href="http://www.eyrie.org/~eagle/software/web/">spun</a>';
     if ($modified eq $spun) {
-        $blurb = 'Last modified and spun ' . $modified;
+        $blurb = "Last modified and\n$ref $modified";
     } else {
-        $blurb = "Last spun $spun from POD modified $modified";
+        $blurb = "Last\n$ref $spun\nfrom POD modified $modified";
     }
     output "$blurb\n</address>\n\n";
 
@@ -841,10 +866,12 @@ if (-r "$ENV{HOME}/.spinrc") { do "$ENV{HOME}/.spinrc" }
 
 # Parse command-line options.
 my ($help, $version, $filter);
+$STYLES = '';
 Getopt::Long::config ('bundling');
-GetOptions ('filter|f'  => \$filter,
-            'help|h'    => \$help,
-            'version|v' => \$version) or exit 1;
+GetOptions ('filter|f'      => \$filter,
+            'help|h'        => \$help,
+            'style-url|s=s' => \$STYLES,
+            'version|v'     => \$version) or exit 1;
 if ($help) {
     print "Feeding myself to perldoc, please wait....\n";
     exec ('perldoc', '-t', $0);
@@ -854,6 +881,7 @@ if ($help) {
     $version =~ s/(\S+)$/($1)/;
     die $version, "\n";
 }
+$STYLES =~ s%/*$%/% if $STYLES;
 
 # The arguments depend on whether -f is given.  If it is, just filter stdin to
 # stdout; otherwise, take the input tree and the output tree on the command
@@ -981,6 +1009,15 @@ The signature and navigation links are disabled.
 
 Print out this documentation (which is done simply by feeding the script to
 C<perldoc -t>).
+
+=item B<-s> I<url>, B<--style-url>=I<url>
+
+The base URL for style sheets.  All style sheets specified in \heading
+commands will be considered to be relative to this URL and this URL will be
+prepended to them (otherwise, they'll be referred to as if they're in the
+same directory as the generated file).  This will similarly be used as the
+base URL to style sheets for the output of B<cl2xhtml>, B<cvs2xhtml>, and
+B<faq2html>.
 
 =item B<-v>, B<--version>
 
