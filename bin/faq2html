@@ -561,6 +561,7 @@ while (defined $BUFFER) {
     # Subject: line that we want to turn into a section header.  Digest
     # section titles are always level 2 headers currently.
     if (is_divider $_) {
+        $STATE{pre} = 0;
         output start, "<hr>\n";
         ($WS) = /\n(\s*)$/;
         $_ = slurp;
@@ -580,7 +581,12 @@ while (defined $BUFFER) {
     }
 
     # Treat lines of dash-type characters as rules.
-    if (is_rule $_) { ($space) = /\n(\s*)$/; output start, "<hr>\n"; next }
+    if (is_rule $_) {
+        $STATE{pre} = 0;
+        ($space) = /\n(\s*)$/;
+        output start, "<hr>\n";
+        next
+    }
 
     # Everything else needs to have special characters escaped.  We don't do
     # this earlier because if we want to allow < and > in rules, the escaping
@@ -598,6 +604,7 @@ while (defined $BUFFER) {
         output pre ($_);
         s/\n(\n\s*)$/\n/;
         $space = $1;
+        $STATE{pre} = 1;
         next;
     }
 
@@ -605,13 +612,26 @@ while (defined $BUFFER) {
     $_ = untabify $_;
     s/\n(\s*)$/\n/;
     $space = $1;
+    my $indent = indent $_;
+
+    # If the paragraph has inconsistent indentation, allowing for minidents,
+    # or is indented relative to the baseline *and* the last paragraph we
+    # emitted was enclosed in <pre>, assume that this paragraph belongs in
+    # <pre> as well.
+    if ($STATE{pre}) {
+        if (is_offset ($_) || (defined $INDENT && $indent > $INDENT)) {
+            output pre ($_);
+            next;
+        } else {
+            $STATE{pre} = 0;
+        }
+    }
 
     # Check for a heading.  We distinguish between level 2 headings and level
     # 3 headings as follows: The first heading we encounter is assumed to be a
     # level 2 heading, and any further headers at that same indentation level
     # are also level 2 headings.  If we detect any other headings at a greater
     # indent, they're marked as level 3.
-    my $indent = indent $_;
     if (is_heading ($_)) {
         s/^\s+//;
         $STATE{contents} = /\bcontents\b/i;
@@ -636,6 +656,7 @@ while (defined $BUFFER) {
     # indentation baseline is also a sign of literal text.
     if ($INDENT && $indent == 0 && $INDENT > 0 && $STATE{baseline} > 0) {
         output pre ($_);
+        $STATE{pre} = 1;
         next;
     }
 
@@ -649,14 +670,14 @@ while (defined $BUFFER) {
     if ($STATE{contents} && is_contents $_) { $_ = contents $_ }
 
     # Check for paragraphs that are entirely bulletted lines, and turn them
-    # into unordered lists.
+    # into unordered lists without <p> tags.
     if (is_allbullet $_) {
         my @lines = split (/\n/, $_);
         for (@lines) {
             next unless /\S/;
             $_ = debullet $_;
             $INDENT = indent $_;
-            output start ('ul', li (p (embolden $_)));
+            output start ('ul', li (embolden $_));
         }
         next;
     }
@@ -670,9 +691,9 @@ while (defined $BUFFER) {
     }
 
     # Check for paragraphs quoted with some character and turn them into
-    # blockquotes.
+    # blockquotes provided they don't have inconsisted indentation.
     my $quote = is_quoted ($_);
-    if ($quote) {
+    if ($quote && !is_broken ($_)) {
         $_ = unquote ($_, $quote);
         $INDENT = indent $_;
         output start ('blockquote', p (embolden $_));
@@ -713,6 +734,7 @@ while (defined $BUFFER) {
     # we should output it in <pre>.
     if (is_offset $_) {
         output pre ($_);
+        $STATE{pre} = 1;
         next;
     }
 
@@ -723,6 +745,7 @@ while (defined $BUFFER) {
     if (defined $INDENT && $indent > $INDENT) {
         if (is_broken ($_) || (lines ($_) == 1 && !is_sentence $_)) {
             output pre ($_);
+            $STATE{pre} = 1;
         } else {
             output start ('blockquote', p (embolden $_));
             $INDENT = $indent;
