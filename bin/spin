@@ -384,6 +384,9 @@ sub time_to_seconds {
     push (@datetime, reverse split ('-', $date));
     $datetime[4]--;
     $datetime[5] -= 1900;
+    $datetime[6] = 0;
+    $datetime[7] = 0;
+    $datetime[8] = -1;
     return mktime (@datetime);
 }
 
