@@ -15,8 +15,9 @@ require 5.003;
 
 use strict;
 use subs qw(expand parse);
-use vars qw($DOCID $FILE $ID $OUT %STATE %commands %strings);
+use vars qw($DOCID $FILE $ID $OUT $SPACE %STATE %commands %strings);
 
+use Image::Size qw(html_imgsize);
 use POSIX qw(strftime);
 use Text::Balanced qw(extract_bracketed);
 
@@ -26,7 +27,12 @@ use Text::Balanced qw(extract_bracketed);
 ############################################################################
 
 # Sends something to the output file.
-sub output { print OUT @_ }
+sub output {
+    print OUT $SPACE if $SPACE;
+    my $output = join ('', @_);
+    if ($output =~ s/(\s*)\n$/\n/) { $SPACE = $1 }
+    print OUT $output;
+}
 
 
 ############################################################################
@@ -186,10 +192,11 @@ sub do_h {
 
 sub do_image {
     my ($format, $image, $text) = @_;
+    my $size = lc html_imgsize ($image);
     if ($format) {
-        "<img src=\"$image\" alt=\"$text\" " . align ($format) . '>';
+        "<img src=\"$image\" alt=\"$text\" $size " . align ($format) . '>';
     } else {
-        "<img src=\"$image\" alt=\"$text\">";
+        "<img src=\"$image\" alt=\"$text\" $size>";
     }
 }
 
@@ -247,23 +254,28 @@ for (1..7) { $commands{"h$_"} = [ 1, eval "sub { do_h ($_, \@_) }" ] }
 ############################################################################
 
 $| = 1;
+$0 =~ s%.*/%%;
 
 # Load overrides from the user's home directory, if applicable.
 if (-r "$ENV{HOME}/.spinrc") { do "$ENV{HOME}/.spinrc" }
 
+# Take the thread file and the HTML file on the command line.
+if (@ARGV != 2) { die "Usage: $0 thread.th output.html\n" }
+my ($thread, $output) = @ARGV;
+
 # We take the thread file on the command line and generate HTML in the same
 # directory.  Load an override from that directory if it exists.
-my $thread = shift or die "$0: no thread file specified\n";
 my $directory = $thread;
-$directory =~ s%/+[^/]*$%%;
+$directory =~ s%/+[^/]+$%%;
 if (-r "$directory/.spinrc") { do "$directory/.spinrc" }
 $thread =~ s/(?:\.th)?$/.th/;
 $FILE = $thread;
 $FILE =~ s%.*/%%;
-my $html = $thread;
-$html =~ s/\.th$/.htm/;
 open (IN, $thread) or die "$0: can't open $thread: $!\n";
-open (OUT, "> $html") or die "$0: can't create $html: $!\n";
+open (OUT, "> $output") or die "$0: can't create $output: $!\n";
+if (($directory = $output) =~ s%/+[^/]*$%%) { 
+    chdir $directory or die "$0: can't cd to $directory: $!\n";
+}
 $OUT = \*OUT;
 
 # Add our initial comment.
@@ -286,3 +298,4 @@ while (<IN>) {
     my $result = parse (escape ($_), 1);
     output $result unless ($result =~ /^\s*$/);
 }
+output '';
