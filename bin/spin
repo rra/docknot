@@ -636,13 +636,13 @@ sub split_paragraphs {
 sub block {
     my ($tag, $border, $format, $text) = @_;
     my $output;
+    border_start;
     if ($format eq 'packed') {
         $output = parse ($text, 0);
     } else {
-        border_start;
         $output = join ('', map { parse ($_, 1) } split_paragraphs ($text));
-        $output .= border_clear;
     }
+    $output .= border_clear;
     $output = $border . "<$tag" . format_string ($format) . '>' . $output;
     $output =~ s%\s*\z%</$tag>%;
     $output .= "\n" unless $format eq 'packed';
@@ -698,13 +698,14 @@ sub enclose {
 
 # Basic inline commands.
 sub do_break  { (0, '<br />') }
+sub do_bold   { inline ('b', @_) }
 sub do_cite   { inline ('cite', @_) }
 sub do_class  { inline ('span', @_) }
 sub do_code   { inline ('code', @_) }
-sub do_bold   { inline ('strong', @_) }
 sub do_emph   { inline ('em', @_) }
 sub do_italic { inline ('i', @_) }
 sub do_rule   { return (1, border . "<hr />\n") }
+sub do_strong { inline ('strong', @_) }
 
 # Basic block commands.
 sub do_div    { block ('div', '', @_) }
@@ -1002,6 +1003,10 @@ sub spin {
     while (@FILES) {
         ($fh, $FILE) = @{ $FILES[0] };
         while (<$fh>) {
+            if ("\n" !~ /\015/ && /\015/) {
+                warn "$0:$FILE:$.: found CR characters; are your line endings"
+                    . " correct?\n";
+            }
             my $open = tr/\[//;
             my $close = tr/\]//;
             while (!eof && $open > $close) {
@@ -1699,11 +1704,12 @@ other text.  Most of them are simple analogs to their HTML counterparts.
 All of the following take a single argument (the enclosed text) and map to
 simple HTML tags:
 
+    \bold       <b></b>
     \cite       <cite></cite>
     \code       <code></code>
-    \bold       <strong></strong>
     \emph       <em></em>
     \italic     <i></i>                 (usually use \emph)
+    \strong     <strong></strong>
 
 Here are the other inline commands:
 
