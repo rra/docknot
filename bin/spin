@@ -412,17 +412,17 @@ sub sitelinks {
             next unless defined $links[$i];
             my $link = qq(  <link rel="$types[$i]" href="$links[$i]");
             if ($descs[$i] ne '') {
-                if (length ($link) + length ($descs[$i]) + 9 > 78) {
+                if (length ($link) + length ($descs[$i]) + 12 > 79) {
                     $link .= "\n       ";
                 }
-                $link .= qq( title="$descs[$i]">\n);
+                $link .= qq( title="$descs[$i]" />\n);
             } else {
-                $link .= ">\n";
+                $link .= " />\n";
             }
             $output .= $link;
         }
         my $href = relative ($file, '/');
-        $output .= qq(  <link rel="top" href="$href">\n);
+        $output .= qq(  <link rel="top" href="$href" />\n);
     }
     return $output;
 }
