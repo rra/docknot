@@ -2,7 +2,7 @@
 $ID = q$Id$;
 #
 # spin -- Translate thread (an HTML macro language) into HTML.
-#         Copyright 1999, 2000 by Russ Allbery <rra@stanford.edu>
+#         Copyright 1999, 2000, 2001 by Russ Allbery <rra@stanford.edu>
 #
 # This program is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -252,6 +252,7 @@ sub align { 'align=center' }
 
 sub do_break  { '<br>' }
 sub do_cite   { '<cite>' . $_[1] . '</cite>' }
+sub do_code   { '<code>' . $_[1] . '</code>' }
 sub do_bold   { '<strong>' . $_[1] . '</strong>' }
 sub do_emph   { '<em>' . $_[1] . '</em>' }
 sub do_id     { $DOCID = $_[1]; output "<!-- $_[1] -->\n\n"; '' }
@@ -269,6 +270,15 @@ sub do_align {
     } else {
         output '<p>' . $text . "</p>\n\n";
     }
+    '';
+}
+
+sub do_bullet {
+    my ($format, $text) = @_;
+    border ('bullet', "<ul>\n", "</ul>\n");
+    $text =~ s%\n\n\s*(\S)%\n</p>\n\n<p>$1%g;
+    $text =~ s/\s*\n\n+$/\n/;
+    output "<li><p>$text</p>\n\n";
     '';
 }
 
@@ -367,7 +377,9 @@ sub do_title {
 
 %commands = (align     => [ 1, \&do_align     ],
              break     => [ 0, \&do_break     ],
+             bullet    => [ 1, \&do_bullet    ],
              cite      => [ 1, \&do_cite      ],
+             code      => [ 1, \&do_code      ],
              bold      => [ 1, \&do_bold      ],
              desc      => [ 2, \&do_desc      ],
              emph      => [ 1, \&do_emph      ],
