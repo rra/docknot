@@ -227,6 +227,51 @@ sub do_quote {
 
 sub do_signature {
     border;
+    output "<hr>\n";
+
+    # Grab placement information for links if we have it.
+    if (open (PLACEMENT, '.placement')) {
+        local $_;
+        local $/ = "\n";
+        my (%titles, @placement);
+        while (<PLACEMENT>) {
+            next if /^\s*$/;
+            last if /---/;
+            my ($page, $title) = split (' ', $_, 2);
+            chomp $title;
+            $titles{$page} = $title;
+        }
+        my $file = $FILE;
+        $file =~ s/\.th$/.html/;
+        while (<PLACEMENT>) {
+            if (/^$file\s/) {
+                chomp;
+                @placement = split;
+                shift @placement;
+                last;
+            }
+        }
+        close PLACEMENT;
+        unless (@placement) {
+            die "$0: can't find placement for $file\n";
+        }
+        @placement = map { $_ eq '!' ? undef : $_ } @placement;
+
+        my @text = ('Onward to', 'Back to', 'Return to');
+        my $br = '';
+        output "<p align=right>\n";
+        for my $i (0..2) {
+            next unless defined $placement[$i];
+            my $href = '<a href="' . $placement[$i] . '">' .
+                $titles{$placement[$i]} . '</a>';
+            $href =~ s/^(<[^>]+>)the /the $1/;
+            output $br, '  ', $text[$i], ' ', $href;
+            $br = " <br>\n";
+        }
+        output "\n</p>\n\n<hr>\n\n";
+    }
+
+    # Figure out the modified dates and print out the rest of the footer.
     my @months = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
     my $modified = (split (' ', $DOCID))[3];
     $modified =~ s%^(\d+)/(\d+)/(\d+)%$3-$months[$2 - 1]-$1%;
@@ -236,16 +281,16 @@ sub do_signature {
     } else {
         $modified = "Last spun $spun from thread modified $modified";
     }
-    output '<hr>
+    output <<"EOO";
 <address>
   <img align=right src="/images/eagle.gif" alt="">
   Russ Allbery
-  &lt;<a href="mailto:rra@stanford.edu">rra@stanford.edu</a>&gt;<br>
-  ' . $modified . '
+  &lt;<a href="mailto:rra\@stanford.edu">rra\@stanford.edu</a>&gt;<br>
+  $modified
 </address>
 </body>
 </html>
-';
+EOO
     '';
 }
 
