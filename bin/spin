@@ -172,7 +172,7 @@ sub parse {
             $output .= $result;
         }
     }
-    if ($top && $output =~ /\S/) {
+    if ($top && $output =~ /\S/ && $output !~ /^<p(?:re)?[ >]/) {
         border;
         $output =~ s/^/<p>\n/;
         $output =~ s%\n(\s*)\z%\n</p>\n$1%;
@@ -278,6 +278,8 @@ sub do_bullet {
     my ($format, $text) = @_;
     border ('bullet', "<ul>\n", "</ul>\n");
     $text =~ s%\n\n\s*(\S)%\n</p>\n\n<p>$1%g;
+    $text =~ s%<p><pre>%<pre>%g;
+    $text =~ s%</pre>\n</p>%</pre>%g;
     $text =~ s%\s*\n+$%%;
     if ($format) {
         output qq(<li class="$format"><p>$text</p></li>\n\n);
@@ -383,6 +385,25 @@ sub do_image {
     }
 }
 
+# An item in a numbered list.  If not already in a numbered list, one is
+# opened for this element.  The items are surrounded by paragraph markers,
+# which on some browsers will create extra whitespace around the item (often
+# not suitable for lists where each element is a single line).
+sub do_number {
+    my ($format, $text) = @_;
+    border ('number', "<ol>\n", "</ol>\n");
+    $text =~ s%\n\n\s*(\S)%\n</p>\n\n<p>$1%g;
+    $text =~ s%<p><pre>%<pre>%g;
+    $text =~ s%</pre>\n</p>%</pre>%g;
+    $text =~ s%\s*\n+$%%;
+    if ($format) {
+        output qq(<li class="$format"><p>$text</p></li>\n\n);
+    } else {
+        output qq(<li><p>$text</p></li>\n\n);
+    }
+    '';
+}
+
 # An HTML paragraph tag.  Normally, this isn't needed, but it's the only way
 # to set a class for a whole paragraph (rather than just part of a paragraph)
 # and is therefore currently needed in a few places.  Sort of an ugly wart;
@@ -390,22 +411,20 @@ sub do_image {
 sub do_p {
     my ($format, $text) = @_;
     if ($format) {
-        output qq(<p class="$format">$text</p>\n\n);
+        qq(<p class="$format">$text</p>);
     } else {
-        output qq(<p>$text</p>\n\n);
+        qq(<p>$text</p>);
     }
-    '';
 }
 
 # Preformatted text, the same as the HTML tag.
 sub do_pre {
     my ($format, $text) = @_;
     if ($format) {
-        output qq(<pre class="$format">$text</pre>\n\n);
+        qq(<pre class="$format">$text</pre>);
     } else {
-        output qq(<pre>$text</pre>\n\n);
+        qq(<pre>$text</pre>);
     }
-    '';
 }
 
 # Used for the leading quotes that I have on many of my pages.  Takes the
@@ -487,6 +506,7 @@ sub do_signature {
              image      => [ 2, \&do_image      ],
              italic     => [ 1, \&do_italic     ],
              link       => [ 2, \&do_link       ],
+             number     => [ 1, \&do_number     ],
              p          => [ 1, \&do_p          ],
              packbullet => [ 1, \&do_packbullet ],
              pre        => [ 1, \&do_pre        ],
@@ -630,6 +650,62 @@ sub faq2html {
     print $OUT $_, @page;
 }
 
+# A wrapper around pod2thread and spin -f, used to handle .pod pointers in a
+# tree being spun.  Adds the navigation links and the signature to the output.
+sub pod2html {
+    my ($source, $output) = @_;
+    my @page = `pod2thread -s '/~eagle/styles/pod' $source | spin -f`;
+    open (OUT, "> $output") or die "$0: can't create $output: $!\n";
+    $OUT = \*OUT;
+
+    # Grab the first few lines of input, looking for a blurb.  Give up if we
+    # encounter <html> first.
+    my $blurb = '';
+    my $docid = '';
+    local $_;
+    while (defined ($_ = shift @page)) {
+        last if /<html/i;
+        if (/<!--\s*(Spun from stdin.*?)\s*-->/) { $blurb = $1 }
+        if (/<!--\s*(\$Id.*?)\s*-->/) { $docid = $1 }
+        print OUT $_;
+    }
+    print OUT $_ if defined;
+
+    # Snarf input and write it to output until we see </body>, which is our
+    # signal to start adding things.  We just got very confused if </body> was
+    # on the same line as <html>, so don't do that.
+    print $OUT $_ while (defined ($_ = shift @page) && !m%</body>%i);
+    print OUT "\n";
+
+    # Print out our separator line and placement information, if any.
+    my $file = $output;
+    $file =~ s%^.*/%%;
+    placement $file;
+
+    # Print out the signature and blurb.
+    output "<address>\n    ";
+    sign;
+    my $modified = (split (' ', $docid))[3];
+    if ($modified) {
+        $modified =~ s{^(\d+)/(\d+)/(\d+)}{
+            sprintf ("%d-%02d-%02d", $1, $2, $3)
+        }e;
+    } else {
+        $modified = strftime ('%Y-%m-%d', gmtime ((stat $source)[9]));
+    }
+    my $spun = (split (' ', $blurb))[7];
+    unless ($spun) { $spun = strftime ('%Y-%m-%d', gmtime) }
+    if ($modified eq $spun) {
+        $blurb = 'Last modified and spun ' . $modified;
+    } else {
+        $blurb = "Last spun $spun from POD modified $modified";
+    }
+    output "$blurb\n</address>\n\n";
+
+    # Finish with the faq2html output.
+    print $OUT $_, @page if defined;
+}
+
 # This routine is called for every file in the source tree, and references the
 # variables $SOURCE and $OUTPUT to find the roots of the source and output
 # tree.  It decides what to do with each file, whether spinning it or copying
@@ -671,6 +747,16 @@ sub process_file {
         return if (-e $output && -M $file >= -M $output);
         print "Generating log for $shortout\n";
         cvs2xhtml ($file, $output);
+    } elsif (/\.rpod$/) {
+        $output =~ s/\.rpod$/.html/;
+        $shortout =~ s/\.rpod$/.html/;
+        open (POINTER, $input) or die "$0: can't open $input: $!\n";
+        my $file = <POINTER>;
+        close POINTER;
+        chomp $file;
+        return if (-e $output && -M $file >= -M $output);
+        print "Formatting $shortout\n";
+        pod2html ($file, $output);
     } elsif (/\.th$/) {
         $output =~ s/\.th$/.html/;
         $shortout =~ s/\.th$/.html/;
@@ -765,7 +851,9 @@ are assumed to contain a path to a text FAQ, which is run through
 B<faq2html> and the output is saved into I<output>.  Files that end in
 C<.log> are assumed to contain a path to a file on which CVS log should be
 run, the results of which are run through B<cvs2xhtml> and saved to
-I<output>.  All other files not beginning with a period are copied as-is.
+I<output>.  Files that end in C<.rpod> are assumed to contain a path to a
+file on which B<pod2thread> and C<spin -f> are run to generate the output.
+All other files not beginning with a period are copied as-is.
 
 The exact details of the macro language are as yet not documented.  The
 basic format, however, is that macro invocations start with C<\>, take an
@@ -853,6 +941,10 @@ in the current architecture.
 The proper <link> tags representing the page hierarchy should really be
 added to the header for the benefit of clients that can use them for
 navigation information.
+
+=head1 SEE ALSO
+
+cvs2xhtml(1), faq2html(1), pod2thread(1)
 
 =head1 AUTHOR
 
