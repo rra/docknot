@@ -403,10 +403,12 @@ sub read_versions {
     while (<VERSIONS>) {
         next if /^\s*$/;
         next if /^\s*\#/;
+        my @files;
         if (/^\s/) {
-            $DEPEND{$_} = $last for split;
+            @files = split;
         } else {
-            my ($product, $version, $date, $time, @files) = split;
+            my ($product, $version, $date, $time);
+            ($product, $version, $date, $time, @files) = split;
             my $timestamp;
             if ($date) {
                 $time ||= '00:00:00';
@@ -416,8 +418,10 @@ sub read_versions {
             }
             $date = strftime ('%Y-%m-%d', gmtime $timestamp);
             $VERSIONS{$product} = [ $version, $date ];
-            $DEPEND{$_} = $timestamp for @files;
             $last = $timestamp;
+        }
+        for (@files) {
+            $DEPEND{$_} = $last if (!$DEPEND{$_} || $DEPEND{$_} < $last);
         }
     }
     close VERSIONS;
