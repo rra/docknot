@@ -6,9 +6,6 @@ $ID = q$Id$;
 #
 # This program is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
-#
-# TODO:
-# - Generate <link> tags for the page hierarchy.
 
 ##############################################################################
 # Modules and declarations
@@ -247,6 +244,7 @@ sub sign {
 # Basic commands
 ##############################################################################
 
+# Basic commands that only print some simple output.
 sub do_break  { '<br />' }
 sub do_cite   { '<cite>' . $_[1] . '</cite>' }
 sub do_code   { '<code>' . $_[1] . '</code>' }
@@ -256,6 +254,8 @@ sub do_italic { '<i>' . $_[1] . '</i>' }
 sub do_link   { '<a href="' . $_[1] . '">' . $_[2] . '</a>' }
 sub do_rule   { border; output "<hr />\n\n"; '' }
 
+# Set a class (for style sheets) for the enclosing text.  This should be used
+# inside text elements (like regular paragraphs).
 sub do_class {
     my ($format, $text) = @_;
     if ($format) {
@@ -265,6 +265,10 @@ sub do_class {
     }
 }
 
+# An item in a bulletted list.  If not already in a bulletted list, one is
+# opened for this element.  The items are surrounded by paragraph markers,
+# which on some browsers will create extra whitespace around the item (often
+# not suitable for lists where each element is a single line).
 sub do_bullet {
     my ($format, $text) = @_;
     border ('bullet', "<ul>\n", "</ul>\n");
@@ -278,6 +282,9 @@ sub do_bullet {
     '';
 }
 
+# An item in a bulletted list.  If not already in a bulletted list, one is
+# opened for this element.  The items are not surrounded by paragraph markers,
+# which will make the list more compact on some browsers.
 sub do_packbullet {
     my ($format, $text) = @_;
     border ('bullet', "<ul>\n", "</ul>\n");
@@ -290,6 +297,9 @@ sub do_packbullet {
     '';
 }
 
+# A description list entry, which takes the heading and the body as arguments.
+# If one is not already open, a description list will be opened automatically
+# for this element.
 sub do_desc {
     my ($format, $heading, $text) = @_;
     border ('desc', "<dl>\n", "</dl>\n");
@@ -299,6 +309,8 @@ sub do_desc {
     '';
 }
 
+# The handler for all the headings, of any level.  Essentially the same as the
+# HTML tag.
 sub do_h {
     my ($level, $format, $text) = @_;
     border;
@@ -310,6 +322,9 @@ sub do_h {
     '';
 }
 
+# Generates the page heading at the top of the document.  Takes as arguments
+# the page title and the page style.  This is where the XHTML declarations
+# come from.
 sub do_heading {
     my ($format, $title, $style) = @_;
     output qq(<?xml version="1.0" encoding="iso-8859-1"?>\n);
@@ -331,12 +346,16 @@ sub do_heading {
     '';
 }
 
+# Used to save the RCS Id for the document.  Doesn't actually output anything
+# (the identifier is later used in do_heading).
 sub do_id {
     my ($format, $id) = @_;
     $DOCID = $id;
     '';
 }
 
+# Include an image.  The size is added to the HTML tag automatically.  Takes
+# the relative path to the image and the alt text.
 sub do_image {
     my ($format, $image, $text) = @_;
     my $size = lc html_imgsize ($image);
@@ -347,6 +366,10 @@ sub do_image {
     }
 }
 
+# An HTML paragraph tag.  Normally, this isn't needed, but it's the only way
+# to set a class for a whole paragraph (rather than just part of a paragraph)
+# and is therefore currently needed in a few places.  Sort of an ugly wart;
+# maybe I should get rid of it at some point.
 sub do_p {
     my ($format, $text) = @_;
     if ($format) {
@@ -357,6 +380,7 @@ sub do_p {
     '';
 }
 
+# Preformatted text, the same as the HTML tag.
 sub do_pre {
     my ($format, $text) = @_;
     if ($format) {
@@ -367,6 +391,9 @@ sub do_pre {
     '';
 }
 
+# Used for the leading quotes that I have on many of my pages.  Takes the
+# quote, the author, and the citation; the citation may be empty.  If the
+# format is "broken", adds line breaks at the end of each line.
 sub do_quote {
     my ($format, $quote, $author, $cite) = @_;
     border;
@@ -395,6 +422,8 @@ sub do_quote {
     '';
 }
 
+# Used to end each page, this adds the navigation links and my standard
+# address block.
 sub do_signature {
     border;
     my $file = $FILE;
@@ -422,6 +451,7 @@ sub do_signature {
     '';
 }
 
+# The table of available commands.
 %commands = (break      => [ 0, \&do_break      ],
              bullet     => [ 1, \&do_bullet     ],
              class      => [ 1, \&do_class      ],
@@ -588,3 +618,111 @@ if (@ARGV != 2) { die "Usage: $0 <source> <output>\n" }
 # Traverse the input directory and generate output into the output directory.
 $File::Find::dont_use_nlink = 1;
 find (\&process_file, $SOURCE);
+
+##############################################################################
+# Documentation
+##############################################################################
+
+=head1 NAME
+
+spin -- Translate thread (an HTML macro language) into XHTML
+
+=head1 SYNOPSIS
+
+spin I<source> I<output>
+
+=head1 DESCRIPTION
+
+B<spin> implements a fairly simple macro language that expands out into
+XHTML, as well as serving as a tool to maintain a set of web pages, updating
+a staging area with the latest versions, converting pages written in the
+macro language (named "thread"), and running B<faq2html> where directed.
+
+For each file in the directory I<source>, recursively through the directory
+structure, it is either copied verbatim into the same relative path under
+I<output> or converted to HTML with the HTML output put under I<output> with
+the same file name but with the extension changed to C<.html>.  Missing
+directories are created.  Files that end in C<.th> are assumed to be in
+thread and are turned into HTML.  Files that end in C<.faq> are assumed to
+contain a path to a text FAQ, which is run through B<faq2html> and the
+output is saved into I<output>.  All other files not beginning with a period
+are copied as-is.
+
+The exact details of the macro language are as yet not documented.  The
+basic format, however, is that macro invocations start with C<\>, take an
+optional initial argument specifying the class (in the style sheet sense,
+resulting in a class attribute in the XHTML to which a style sheet can
+refer) enclosed in parentheses, and then some number of arguments enclosed
+in square brackets.  Any amount of space can separate the macro name from
+the class argument or regular arguments, or the arguments from each other,
+and that whitesepace is ignored.
+
+In addition, a new macro can be defined using syntax like:
+
+    \==[name] [arguments] [definition]
+
+where name is the name of the macro, arguments is the number of arguments
+that it takes, and definition is the definition of the macro, in which \1 is
+replaced by the first argument, \2 by the second argument, and so forth.
+
+Similarly, strings can be defined with:
+
+    \=[name] [value]
+
+and then later referred to in the page with \=name.  This is useful for
+things like URLs for links, so that they're all collected at the top of the
+page for easy updating.
+
+Paragraphs can be left without markup and will automatically be wrapped in
+HTML <p> tags.  The content of macros can span paragraphs.  Macros can be
+nested arbitrarily.
+
+Each page should begin with an \id macro containing an RCS Id string, and
+then a \header macro specifying the page title and style sheet; this will
+set up the proper XHTML headers.  Each page should also end with \signature,
+which will append the navigation links and an address block.
+
+B<spin> looks for a file named F<.placement> in the same directory as a
+thread file and reads it for navigation information to generate the
+navigation links at the bottom of the page.  The format of this file is a
+list of partial URLs, whitespace, and their page titles, one per line,
+followed by a line consisting of three dashes, and then names of HTML files
+in that directory followed by three space-separated partial URLs.  These
+partial URLs specify the next page, the previous page, and the "up" page in
+that order.  If any of these should not be given, use C<!> as the value of
+that field.
+
+B<spin> also looks for a file named F<.signature> in the same directory as a
+thread file and uses its contents as the basis of the <address> block at the
+end of the XHTML page.  The contents will be surrounded by an <address> tag
+and added to the end will be information about when the page was last
+modified and generated.
+
+=head1 BUGS
+
+This documentation is woefully incomplete; there should really be a
+description of all of the pre-defined macros.
+
+The \p macro is rather ugly and doesn't fit well with the rest of spin; what
+should instead happen is that a \class that spans a complete paragraph
+should be lifted into the surrounding paragraph.  This is a bit tricky to do
+in the current architecture.
+
+=head1 NOTES
+
+The proper <link> tags representing the page hierarchy should really be
+added to the header for the benefit of clients that can use them for
+navigation information.
+
+=head1 AUTHOR
+
+Russ Allbery <rra@stanford.edu>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright 1999, 2000, 2001, 2002 by Russ Allbery <rra@stanford.edu>.
+
+This program is free software; you may redistribute it and/or modify it
+under the same terms as Perl itself.
+
+=cut
