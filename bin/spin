@@ -247,7 +247,7 @@ sub sign {
 }
 
 ##############################################################################
-# Basic commands
+# Commands
 ##############################################################################
 
 # Basic commands that only print some simple output.
@@ -514,6 +514,7 @@ sub do_signature {
              rule       => [ 0, \&do_rule       ],
              signature  => [ 0, \&do_signature  ]);
 
+# Add handlers for all the headings.
 for (1..6) { $commands{"h$_"} = [ 1, eval "sub { do_h ($_, \@_) }" ] }
 
 ##############################################################################
@@ -559,6 +560,54 @@ sub spin {
 ##############################################################################
 # Per-file operations
 ##############################################################################
+
+# A wrapper around the cl2xhtml script, used to handle .changelog pointers in
+# a tree being spun.  Adds the navigation links and the signature to the
+# cl2xhtml output.
+sub cl2xhtml {
+    my ($source, $output) = @_;
+    my $name = $source;
+    $name =~ s%^.*/%%;
+    my $style = '/~eagle/styles/changelog.css';
+    my @page = `cl2xhtml -n $name -s $style $source`;
+    open (OUT, "> $output") or die "$0: can't create $output: $!\n";
+    $OUT = \*OUT;
+
+    # Grab the first few lines of input, looking for a blurb.  Give up if we
+    # encounter <html> first.
+    my $blurb;
+    local $_;
+    while (defined ($_ = shift @page)) {
+        last if /<html>/i;
+        if (/<!--\s*(Generated.*?)\s*-->/) {
+            $blurb = $1;
+            $blurb =~ s/ \d\d:\d\d:\d\d -0000//;
+            $blurb =~ s/ \(\d{4}-\d\d-\d\d\)//;
+            last;
+        }
+        print OUT $_;
+    }
+    print OUT $_;
+
+    # Snarf input and write it to output until we see </body>, which is our
+    # signal to start adding things.  We just got very confused if </body> was
+    # on the same line as <html>, so don't do that.
+    print $OUT $_ while (defined ($_ = shift @page) && !m%</body>%i);
+    print OUT "\n";
+
+    # Print out our separator line and placement information, if any.
+    my $file = $output;
+    $file =~ s%^.*/%%;
+    placement $file;
+
+    # Print out the signature and blurb.
+    output "<address>\n    ";
+    sign;
+    output "$blurb\n</address>\n\n";
+
+    # Finish with the cl2xhtml output.
+    print $OUT $_, @page;
+}
 
 # A wrapper around the cvs2xhtml script, used to handle .log pointers in a
 # tree being spun.  Adds the navigation links and the signature to the
@@ -727,6 +776,16 @@ sub process_file {
         } else {
             mkdir ($output, 0755) or die "$0: mkdir $output failed: $!\n";
         }
+    } elsif (/.changelog$/) {
+        $output =~ s/\.changelog$/.html/;
+        $shortout =~ s/\.changelog$/.html/;
+        open (POINTER, $input) or die "$0: can't open $input: $!\n";
+        my $file = <POINTER>;
+        close POINTER;
+        chomp $file;
+        return if (-e $output && -M $file >= -M $output);
+        print "Formatting log for $shortout\n";
+        cl2xhtml ($file, $output);
     } elsif (/.faq$/) {
         $output =~ s/\.faq$/.html/;
         $shortout =~ s/\.faq$/.html/;
@@ -826,8 +885,8 @@ spin B<-f>
 =head1 REQUIREMENTS
 
 Perl 5.005 or later and the Image::Size and Text::Balanced modules.  Also
-expects to find B<faq2html> and B<cvs2xhtml> to convert certain types of
-files.
+expects to find B<faq2html>, B<cvs2xhtml>, and B<cl2xhtml> to convert
+certain types of files.
 
 =head1 DESCRIPTION
 
@@ -853,7 +912,9 @@ C<.log> are assumed to contain a path to a file on which CVS log should be
 run, the results of which are run through B<cvs2xhtml> and saved to
 I<output>.  Files that end in C<.rpod> are assumed to contain a path to a
 file on which B<pod2thread> and C<spin -f> are run to generate the output.
-All other files not beginning with a period are copied as-is.
+Files that end in C<.changelog> are assumed to contain a path to a GNU-style
+ChangeLog file on which B<cl2xhtml> is run to generate the output.  All
+other files not beginning with a period are copied as-is.
 
 The exact details of the macro language are as yet not documented.  The
 basic format, however, is that macro invocations start with C<\>, take an
@@ -936,6 +997,9 @@ should instead happen is that a \class that spans a complete paragraph
 should be lifted into the surrounding paragraph.  This is a bit tricky to do
 in the current architecture.
 
+There is a lot of duplicate code in B<spin> right now for dealing with the
+different processors that needs to be rethought and abstracted out.
+
 =head1 NOTES
 
 The proper <link> tags representing the page hierarchy should really be
@@ -944,7 +1008,13 @@ navigation information.
 
 =head1 SEE ALSO
 
-cvs2xhtml(1), faq2html(1), pod2thread(1)
+cl2xhtml(1), cvs2xhtml(1), faq2html(1), pod2thread(1)
+
+The XHTML 1.0 standard at L<http://www.w3.org/TR/xhtml1/>.
+
+Current versions of this program are available from my web tools page at
+L<http://www.eyrie.org/~eagle/software/web/>, as are copies of all of the
+above-mentioned programs.
 
 =head1 AUTHOR
 
