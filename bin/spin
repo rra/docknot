@@ -228,11 +228,19 @@ sub parse_context {
     # Chop off everything up to the first backslash and save it in output.
     # Then grab the escape and figure out what to do with it.
     #
-    # $complex is a flag indicating whether the paragraph that we're parsing
-    # is made up of intermixed commands and text.  If it is, the result needs
-    # to be wrapped in paragraph tags if we're at block level.
+    # If we are at block level, we have to distinguish between plain text and
+    # inline commands, which have to be wrapped in paragraph tags, and
+    # block-level commands, which shouldn't be.  We accumulate any output that
+    # has to be wrapped in a paragraph in $paragraph (and put the border
+    # before it in $border).  Whenever we see a block-level command, we wrap
+    # anything currently in $paragraph in a paragraph, tack it on to the
+    # output, and then add on the results of the block command.
+    #
+    # $nonblock is a flag indicating that we saw some construct that wasn't
+    # suitable for block level.
     my $output = '';
-    my $complex = 0;
+    my ($border, $paragraph) = ('', '');
+    my $nonblock = 0;
     while ($text) {
         $text =~ s/^([^\\]+|\\([\w=]+|.))?//
             or die "$0:$FILE:$.: unable to parse at '"
@@ -240,30 +248,47 @@ sub parse_context {
         my $command;
         if (index ($1, '\\') == -1) {
             my $string = $1;
-            $output .= $string;
-            $complex = 1 if ($string =~ /\S/);
+            if ($block && ($string =~ /\S/ || length ($paragraph) > 0)) {
+                $border = border unless length ($paragraph) > 0;
+                $paragraph .= $string;
+            } else {
+                $output .= $string;
+                $nonblock = 1;
+            }
         } else {
             $command = $2;
-            my $block = $block && ($output !~ /\S/);
             my ($result, $blocktag);
             ($result, $blocktag, $text) = expand ($command, $text, $block);
-            $complex = 1 if !$blocktag;
-            $output .= $result;
+            if ($blocktag) {
+                if ($block && length ($paragraph) > 0) {
+                    $output .= $border . paragraph ($paragraph);
+                    $border = '';
+                    $paragraph = '';
+                }
+                $output .= $result;
+            } else {
+                $border = border unless length ($paragraph) > 0;
+                $paragraph .= $result;
+                $nonblock = 1;
+            }
         }
         if ($text =~ s/^\n(\s*)//) {
-            $output .= "\n" if $text || $complex;
-            $output .= $1;
+            if (length ($paragraph) > 0) {
+                $paragraph .= "\n";
+                $paragraph .= $1;
+            } else {
+                $output .= "\n" if $text;
+                $output .= $1;
+            }
         }
     }
 
-    # If we're at block level, we have to decide whether or not to wrap the
-    # output in paragraph tags.  We do this iff $complex is true and we're at
-    # block level.  If we were at block level, our result is always suitable
-    # for block level.  If what we parsed was not complex, meaning that it
-    # consisted solely of commands suitable for block level, the result is
-    # also suitable for block level.
-    $output = border . paragraph ($output) if ($block && $complex);
-    return ($output, $block || !$complex);
+    # Wrap any remaining output in paragraph tags and then return the output.
+    # If we were at block level, our output is always suitable for block
+    # level.  Otherwise, it's suitable for block level only if all of our
+    # output was from block commands.
+    $output .= $border . paragraph ($paragraph) if length ($paragraph) > 0;
+    return ($output, $block || !$nonblock);
 }
 
 # A wrapper around parse_context for callers who don't care about the block
