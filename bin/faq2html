@@ -24,6 +24,8 @@ require 5.003;
 use strict;
 use vars qw($BUFFER $ID $IN $INDENT @MONTHS $OUT %STATE $WS);
 
+use Getopt::Long qw(GetOptions);
+
 # Replace with the month names you want to use, if you don't want English.
 @MONTHS = qw(January February March April May June July August September
              October November December);
@@ -343,6 +345,24 @@ sub pre        { container ('pre',        @_) }
 my $fullpath = $0;
 $0 =~ s%.*/%%;
 
+# Parse command-line options, if any.
+my ($help, $version);
+Getopt::Long::config ('bundling');
+GetOptions ('help|h' => \$help, 'version|v' => \$version);
+
+# If they asked for help, give them the documentation.
+if ($help) {
+    print "Feeding myself to perldoc, please wait....\n";
+    exec ('perldoc', '-t', $fullpath) or die "$0: can't fork: $!\n";
+}
+
+# If they asked for the version number, print it and exit.
+if ($version) {
+    my ($program, $version) = (split (' ', $ID))[1,2];
+    $program =~ s/,v$//;
+    die "$program $version\n";
+}
+
 # Figure out what file we're going to be processing.  We can function as a
 # filter if so desired.
 my ($input, $output) = @ARGV;
@@ -423,7 +443,7 @@ $heading ||= $title;
 # we haven't been able to find a title.  We claim "transitional" HTML 4.0
 # compliance; we can't claim strict solely because we use the value
 # attribute in <li> for the lack of any working alternative.
-my ($version) = (split (' ', $ID))[2];
+($version) = (split (' ', $ID))[2];
 output '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"';
 output "\n        \"http://www.w3.org/TR/REC-html40/loose.dtd\">\n\n";
 output "<!-- $id -->\n" if $id;
@@ -654,3 +674,154 @@ while (defined $BUFFER) {
 
 # All done.  Print out our closing tags.
 output start, "</body>\n</html>\n";
+__END__
+
+
+############################################################################
+# Documentation
+############################################################################
+
+=head1 NAME
+
+faq2html - Convert some particular text formats into HTML
+
+=head1 SYNOPSIS
+
+B<faq2html> [B<-hv>] [I<infile> [I<outfile>]]
+
+=head1 DESCRIPTION
+
+Yes, this is another of those odd breed of partially functional beasts, a
+text to HTML converter.  It is my belief that writing a general text to HTML
+converter is completely impossible, on the grounds that people do too many
+varied things with their text to intuit document structure from it.  This is
+therefore a converter that will translate documents written the way I write.
+
+It may or may not work for you.  The chances that it will work for you are
+directly proportional to how much your writing looks like mine.
+
+Usage is simple; just give it an input file and an output file.  If the
+output file isn't given, it will write to stdout.  If the input file also
+isn't given, it will read from stdin.
+
+B<faq2html> understands digest separators (lines of exactly thirty hyphens,
+from the minimal digest standard) and will treat a Subject header
+immediately after them as a section header.  Beyond that, it will attempt to
+intuit section headers from document structure, but will be generally more
+successful if you outdent your section headers (in other words, indent all
+of the normal text by a few spaces and start headers in column 0).
+
+Section headers that begin with numbers (with any number of periods) will be
+given E<lt>a nameE<gt> tags.  As a special case of the parsing, any section
+with a header containing "contents" will have lines beginning with numbers
+turned into links to the appropriate E<lt>a nameE<gt> tags in the same
+document.  You can use this to turn the table of contents of your minimal
+digest format FAQ into a real table of contents with links in the HTML
+version.
+
+Text with embedded whitespace more than a single space or a couple of spaces
+at a sentence boundary or after a colon (and any text with literal tabs)
+will be wrapped in E<lt>preE<gt> tags.  So will any indented text that
+doesn't look like English paragraphs.  URLs surrounded by <URL:...> will be
+turned into links.  URLs not surrounded by <URL:...> will not be turned into
+links, nor is any effort made to turn random body text into links because it
+happens to look like a link.  I dislike link syndrome.  If you want to
+include a URL in unstructured text, see RFC 1738 and use <URL:...>.
+
+Bulletted lists and numbered lists will be turned into the appropriate HTML
+structures.  Some attempt is also made to recognize description lists, but
+B<faq2html> was written by someone who writes a lot of technical
+documentation and therefore tends to prefer E<lt>preE<gt>; description lists
+are therefore only going to work if the description titles aren't indented
+relative to the surrounding text.
+
+Regular indented paragraphs or paragraphs quoted with a consistent
+non-alphanumeric quote character are recognized and turned into HTML block
+quotes.
+
+It's worthwhile paying attention to the headers at the top of your document
+so that B<faq2html> can get a few things right.  If you use RCS or CVS, put
+the RCS Id keyword as the first line of your document; it will be stripped
+out of the resulting output and B<faq2html> will use it to determine the
+document revision.  This should be followed by regular message headers and
+news.answers subheaders if the document is an actual FAQ, and B<faq2html>
+will use the From and Subject headers to figure out a title and headings to
+use.
+
+As a special case, an HTML-title header in the subheaders will override any
+other title that B<faq2html> thinks it should use for the document.
+
+B<faq2html> expects your document to have a centered title, and will add one
+from the Subject header if it doesn't find one.  It will also add centered
+subheaders giving the author (from the From header) and the last modified
+time and revision (from the RCS Id string) if there are no subheadings
+already.  If there's a subheading that contains RCS identifiers, it will be
+replaced by a nicely formatted heading generated from the RCS Id
+information in the HTML output.
+
+Text marked as *bold* using the standard asterix notation will be surrounded
+by E<lt>strongE<gt> tags, if the asterixes appear to be marking bold text
+rather than serving as wildcards or some other function.
+
+B<faq2html> produces output (at least in the absence of any lurking bugs)
+which complies with the HTML 4.0 Transitional standard.  (Transitional
+solely because it uses the value attribute of E<lt>liE<gt>.)
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-h>, B<--help>
+
+Print out this documentation (which is done simply by feeding the script
+to C<perldoc -t>.
+
+=item B<-v>, B<--version>
+
+Print out the version of B<faq2html> and exit.
+
+=back
+
+=head1 NOTES
+
+I wrote this program because every other text to HTML converter that I've
+seen made specific assumptions about the document format and wanted you to
+write like it wanted you to write rather than like the way you wanted to
+write.  This program instead wants you to write like I write.  Which from my
+perspective is an improvement.
+
+I don't claim that this is the be-all and end-all of text to HTML
+converters, as I don't believe such a beast exists.  I do believe it's
+pretty close to being the be-all and end-all of text to HTML converters for
+text that I personally have written, since I've written into it a lot of
+knowledge of the sorts of text formatting conventions that I use.  If you
+happen to use the same ones, you may be delighted with this program.  If you
+don't, you'll probably be very frustrated with it.
+
+In any case, I took to this project the perspective that whenever there was
+something this program couldn't handle, I wanted to make it smarter rather
+than change the input.  I've mostly been successful at that, so far.
+
+=head1 CAVEATS
+
+This program attempts to do the impossible, namely intuit structure from an
+unstructured markup format.  To do that, it relies on a whole bunch of fussy
+heuristics, poorly-understood assumptions, and sheer blind luck.  To fully
+document the boundary cases of this program would take more time and
+patience than I care to invest; see the source code if you're curious.  This
+is not a predictable or easily documentable program.  Instead, it attempts
+to do what I mean without bugging me about it.
+
+There is therefore, at least currently, no way to control or adjust
+parameters in this program without editing it.  I may someday add that, but
+I'm leery of it, since the code complexity would start increasing
+exponentially if I tried to let people tweak everything.  I've completely
+given up on more than one text to HTML converter because it had more options
+than ls and expected you to try to figure out which ones should be used for
+a document yourself.  That's not the way I want this program to work.
+
+=head1 AUTHOR
+
+Russ Allbery E<lt>rra@stanford.eduE<gt>
+
+=cut
