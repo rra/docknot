@@ -505,7 +505,7 @@ sub placement {
         $output = qq(<table class="navbar"><tr>\n);
         $output .= qq(  <td class="navleft">);
         if (defined $links[0]) {
-            $output .= qq(&lt; <a href="$links[0]">$descs[0]</a>);
+            $output .= qq(&lt;&nbsp;<a href="$links[0]">$descs[0]</a>);
         }
         $output .= qq(</td>\n);
         if (defined $links[2]) {
@@ -525,7 +525,7 @@ sub placement {
         }
         $output .= qq(  <td class="navright">);
         if (defined $links[1]) {
-            $output .= qq(<a href="$links[1]">$descs[1]</a> &gt;);
+            $output .= qq(<a href="$links[1]">$descs[1]</a>&nbsp;&gt;);
         }
         $output .= qq(</td>\n);
         $output .= qq(</tr></table>\n\n);
