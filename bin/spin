@@ -684,8 +684,10 @@ sub cvs2xhtml {
 # being spun.  Adds the navigation links and the signature to the faq2html
 # output.
 sub faq2html {
-    my ($source, $output) = @_;
-    my $style = $STYLES . 'faq.css';
+    my ($source, $output, $style) = @_;
+    if (!$style) {
+        $style = $STYLES . 'faq.css';
+    }
     my @page = `faq2html -s '$style' $source`;
     open (OUT, "> $output") or die "$0: can't create $output: $!\n";
     $OUT = \*OUT;
@@ -819,7 +821,14 @@ sub process_file {
         $shortout =~ s/\.faq$/.html/;
         open (POINTER, $input) or die "$0: can't open $input: $!\n";
         my $master = <POINTER>;
+        my $style = <POINTER>;
         close POINTER;
+        if ($style && $style !~ /\./) {
+            $style .= '.css';
+        }
+        if ($style && $style !~ m%/%) {
+            $style = $STYLES . $style;
+        }
         chomp $master;
         return if (-e $output && -M $master >= -M $output);
         print "Formatting $shortout\n";
@@ -938,17 +947,25 @@ directory structure, it is either copied verbatim into the same relative
 path under I<output> or converted to HTML with the HTML output put under
 I<output> with the same file name but with the extension changed to
 C<.html>.  Missing directories are created.  Files that end in C<.th> are
-assumed to be in thread and are turned into HTML.  Files that end in C<.faq>
-are assumed to contain a path to a text FAQ, which is run through
-B<faq2html> and the output is saved into I<output>.  Files that end in
-C<.log> are assumed to contain a path to a file on which CVS log should be
-run, the results of which are run through B<cvs2xhtml> and saved to
-I<output>.  Files that end in C<.rpod> are assumed to contain a path to a
-file on which B<pod2thread> and C<spin -f> are run to generate the output.
+assumed to be in thread and are turned into HTML.
+
+Files that end in C<.faq> are assumed to contain a path to a text FAQ, which
+is run through B<faq2html> and the output is saved into I<output>.  If there
+is a second line in the C<.faq> file, it is taken to be the style sheet that
+should be used for the output; otherwise, C<faq.css> is used.
+
+Files that end in C<.log> are assumed to contain a path to a file on which
+CVS log should be run, the results of which are run through B<cvs2xhtml> and
+saved to I<output>.
+
+Files that end in C<.rpod> are assumed to contain a path to a file on which
+B<pod2thread> and C<spin -f> are run to generate the output.
+
 Files that end in C<.changelog> are assumed to contain a path to a GNU-style
 ChangeLog file on which B<cl2xhtml> is run to generate the output and the
-package to which that ChangeLog applies on the second line.  All other files
-not beginning with a period are copied as-is.
+package to which that ChangeLog applies on the second line.
+
+All other files not beginning with a period are copied as-is.
 
 The exact details of the macro language are as yet not documented.  The
 basic format, however, is that macro invocations start with C<\>, take an
