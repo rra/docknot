@@ -177,6 +177,70 @@ sub parse {
 
 
 ############################################################################
+# Page placement
+############################################################################
+
+# Given the name of the current file being processed, opens a .placement
+# file if available and outputs the navigation links for that file.  If no
+# .placement file is present, nothing is output.
+sub placement {
+    my $file = shift;
+
+    # Grab placement information for links if we have it.
+    if (open (PLACEMENT, '.placement')) {
+        local $_;
+        local $/ = "\n";
+        my (%titles, @placement);
+        while (<PLACEMENT>) {
+            next if /^\s*$/;
+            last if /---/;
+            my ($page, $title) = split (' ', $_, 2);
+            chomp $title;
+            $titles{$page} = $title;
+        }
+        while (<PLACEMENT>) {
+            if (/^$file\s/) {
+                chomp;
+                @placement = split;
+                shift @placement;
+                last;
+            }
+        }
+        close PLACEMENT;
+        unless (@placement) {
+            die "$0: can't find placement for $file\n";
+        }
+        @placement = map { $_ eq '!' ? undef : $_ } @placement;
+
+        my @text = ('Onward to', 'Back to', 'Return to');
+        my $br = '';
+        output "<p align=right>\n";
+        for my $i (0..2) {
+            next unless defined $placement[$i];
+            my $href = '<a href="' . $placement[$i] . '">' .
+                $titles{$placement[$i]} . '</a>';
+            $href =~ s/^(<[^>]+>)the /the $1/;
+            output $br, '    ', $text[$i], ' ', $href;
+            $br = " <br>\n";
+        }
+        output "\n</p>\n\n<hr>\n\n";
+    }
+}
+
+# Print out the signature file for pages in this directory, if present.
+sub sign {
+    if (open (SIG, '< .signature')) {
+        local $/ = "\n";
+        my @signature = <SIG>;
+        chomp @signature;
+        close SIG;
+        output join ("\n    ", @signature);
+        output " <br>\n    ";
+    }
+}
+
+
+############################################################################
 # Basic commands
 ############################################################################
 
@@ -247,48 +311,9 @@ sub do_quote {
 sub do_signature {
     border;
     output "<hr>\n\n";
-
-    # Grab placement information for links if we have it.
-    if (open (PLACEMENT, '.placement')) {
-        local $_;
-        local $/ = "\n";
-        my (%titles, @placement);
-        while (<PLACEMENT>) {
-            next if /^\s*$/;
-            last if /---/;
-            my ($page, $title) = split (' ', $_, 2);
-            chomp $title;
-            $titles{$page} = $title;
-        }
-        my $file = $FILE;
-        $file =~ s/\.th$/.html/;
-        while (<PLACEMENT>) {
-            if (/^$file\s/) {
-                chomp;
-                @placement = split;
-                shift @placement;
-                last;
-            }
-        }
-        close PLACEMENT;
-        unless (@placement) {
-            die "$0: can't find placement for $file\n";
-        }
-        @placement = map { $_ eq '!' ? undef : $_ } @placement;
-
-        my @text = ('Onward to', 'Back to', 'Return to');
-        my $br = '';
-        output "<p align=right>\n";
-        for my $i (0..2) {
-            next unless defined $placement[$i];
-            my $href = '<a href="' . $placement[$i] . '">' .
-                $titles{$placement[$i]} . '</a>';
-            $href =~ s/^(<[^>]+>)the /the $1/;
-            output $br, '    ', $text[$i], ' ', $href;
-            $br = " <br>\n";
-        }
-        output "\n</p>\n\n<hr>\n\n";
-    }
+    my $file = $FILE;
+    $file =~ s/\.th$/.html/;
+    placement $file;
 
     # Figure out the modified dates and print out the rest of the footer.
     my $modified = (split (' ', $DOCID))[3];
@@ -306,16 +331,7 @@ sub do_signature {
         $modified = "Last spun $spun from thread modified $modified";
     }
     output "<address>\n    ";
-
-    # Load the signature file if we have one.
-    if (open (SIG, '< .signature')) {
-        local $/ = "\n";
-        my @signature = <SIG>;
-        chomp @signature;
-        close SIG;
-        output join ("\n    ", @signature);
-        output " <br>\n    ";
-    }
+    sign;
     output "$modified\n</address>\n</body>\n</html>\n";
     '';
 }
@@ -385,6 +401,46 @@ sub spin {
 # Per-file operations
 ############################################################################
 
+# A wrapper around the faq2html script, used to handle .faq pointers in a
+# tree being spun.  Adds the navigation links and the signature to the
+# faq2html output.
+sub faq2html {
+    my ($source, $output) = @_;
+    my @page = `faq2html $source`;
+    open (OUT, "> $output") or die "$0: can't create $output: $!\n";
+    $OUT = \*OUT;
+
+    # Grab the first few lines of input, looking for a blurb.  Give up if we
+    # encounter <html> first.
+    my $blurb;
+    local $_;
+    while (defined ($_ = shift @page)) {
+        last if /<html>/i;
+        if (/<!--\s*(Converted.*)\s*-->/) { $blurb = $1; last }
+        print OUT $_;
+    }
+    print OUT $_;
+
+    # Snarf input and write it to output until we see </body>, which is our
+    # signal to start adding things.  We just got very confused if </body>
+    # was on the same line as <html>, so don't do that.
+    print $OUT $_ while (defined ($_ = shift @page) && !m%</body>%i);
+
+    # Print out our separator line and placement information, if any.
+    print $OUT "\n<hr>\n\n";
+    my $file = $output;
+    $file =~ s%^.*/%%;
+    placement $file;
+
+    # Print out the signature and blurb.
+    output "<address>\n    ";
+    sign;
+    output "$blurb\n</address>\n\n";
+
+    # Finish with the faq2html output.
+    print $OUT @page;
+}
+
 # This routine is called for every file in the source tree, and references
 # the variables $SOURCE and $OUTPUT to find the roots of the source and
 # output tree.  It decides what to do with each file, whether spinning it or
@@ -406,9 +462,19 @@ sub process_file {
         } else {
             mkdir ($output, 0755) or die "$0: mkdir $output failed: $!\n";
         }
+    } elsif (/.faq$/) {
+        $output =~ s/\.faq$/.html/;
+        $shortout =~ s/\.faq$/.html/;
+        open (POINTER, $input) or die "$0: can't open $input: $!\n";
+        my $master = <POINTER>;
+        close POINTER;
+        chomp $master;
+        return if (-e $output && -M $master >= -M $output);
+        print "Formatting $shortout\n";
+        faq2html ($master, $output);
     } elsif (/\.th$/) {
         $output =~ s/\.th$/.html/;
-        $shortout =~ s/\.th$/\.html/;
+        $shortout =~ s/\.th$/.html/;
         return if (-e $output && -M $_ >= -M $output);
         print "Spinning $shortout\n";
         spin ($_, $output);
