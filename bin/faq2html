@@ -219,7 +219,7 @@ sub is_heading {
     my $outdented = defined $STATE{baseline} && $indent < $STATE{baseline};
     my $even = !defined ($INDENT) || $indent <= $INDENT;
     ($outdented && lines ($_) == 1 && (/\S\s\S/ || length ($_) < 30))
-        || ($even && /^\s*[ \w\"\(\),:-]+[\w\"\)]\s*\n(?:[-=~]+\s*)?$/);
+        || ($even && /^\s*[ \w\"\(\),.:-]+[\w\"\)]\s*\n(?:[-=~]+\s*)?$/);
 }
 
 # Expects a line, returns whether it's an RCS/CVS $\Id$ string.
