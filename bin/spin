@@ -74,14 +74,31 @@ sub border {
     my ($border, $start, $end) = @_;
     my $output = '';
     if ($border) {
-        if (!@STATE || $STATE[0][0] ne $border) {
+        if ($STATE[-1] eq 'BLOCK' || $STATE[-1][0] ne $border) {
             $output .= $start;
-            unshift (@STATE, [ $border, $end ]);
+            push (@STATE, [ $border, $end ]);
         }
     } else {
-        for (@STATE) { $output .= $$_[1] }
-        undef @STATE;
+        my $state;
+        while (defined ($state = pop @STATE)) {
+            last if $state eq 'BLOCK';
+            $output .= $$state[1];
+        }
+        push (@STATE, 'BLOCK');
     }
+    return $output;
+}
+
+# Marks the beginning of major block structure.  Within this structure,
+# borders will only clear to the level of this structure.
+sub border_start {
+    push (@STATE, 'BLOCK');
+}
+
+# Clears a major block structure.
+sub border_clear {
+    my $output = border;
+    pop @STATE;
     return $output;
 }
 
@@ -127,7 +144,7 @@ sub macro {
 # may have to be wrapped in <p>) and a fourth argument saying whether we're at
 # the top level of the document.
 sub expand {
-    my ($command, $text, $block, $top) = @_;
+    my ($command, $text, $block) = @_;
     if ($command eq '==') {
         my ($new, $args, $definition);
         ($new, $args, $definition, $text) = extract ($text, 3);
@@ -172,9 +189,7 @@ sub expand {
             ($blocktag, $result) = &$handler ($format, @args);
         }
         if ($block && !$blocktag && $text !~ /\S/) {
-            $result = paragraph ($result . $text);
-            $result = border . $result if $top;
-            return ($result, '');
+            return (border . paragraph ($result . $text), '');
         } else {
             return ($result, $text);
         }
@@ -187,15 +202,9 @@ sub expand {
 # say whether we're at the block level, and one to say whether we're at the
 # top of the file.
 sub parse {
-    my ($text, $block, $top) = @_;
+    my ($text, $block) = @_;
     if (index ($text, '\\') == -1) {
-        if ($top) {
-            return border . paragraph ($text);
-        } elsif ($block) {
-            return paragraph ($text);
-        } else {
-            return $text;
-        }
+        return $block ? (border . paragraph ($text)) : $text;
     }
 
     # Chop off everything up to the first backslash and save it in output.
@@ -214,7 +223,7 @@ sub parse {
             $command = $2;
             my $result;
             my $block = $block && ($output !~ /\S/);
-            ($result, $text) = expand ($command, $text, $block, $top);
+            ($result, $text) = expand ($command, $text, $block);
             $output .= $result;
         }
         if ($text =~ s/^\n(\s*)//) {
@@ -222,9 +231,7 @@ sub parse {
             $output .= $1;
         }
     }
-    $output = paragraph ($output) if $block && $complex;
-    $output = border . $output if $top && $complex;
-    return $output;
+    return ($block && $complex) ? (border . paragraph ($output)) : $output;
 }
 
 ##############################################################################
@@ -350,7 +357,9 @@ sub block {
     if ($format eq 'packed') {
         $output = parse ($text, 0);
     } else {
+        border_start;
         $output = join ('', map { parse ($_, 1) } split_paragraphs ($text));
+        $output .= border_clear;
     }
     $output = $border . "<$tag" . format_string ($format) . '>' . $output;
     $output =~ s%\s*\z%</$tag>\n%;
@@ -479,8 +488,9 @@ sub do_link {
 # Preformatted text, the same as the HTML tag.
 sub do_pre {
     my ($format, $text) = @_;
-    my $output = '<pre' . format_string ($format) . '>';
-    $output .= parse ($text) . "</pre>\n";
+    my $output = border;
+    $output .= '<pre' . format_string ($format) . '>' . parse ($text);
+    $output .= "</pre>\n";
     return (1, $output);
 }
 
@@ -490,7 +500,9 @@ sub do_pre {
 sub do_quote {
     my ($format, $quote, $author, $cite) = @_;
     my $output = border . '<blockquote class="quote">';
+    border_start;
     $quote = join ('', map { parse ($_, 1) } split_paragraphs ($quote));
+    $quote .= border_clear;
     if ($format && $format eq 'broken') {
         $quote =~ s%(\S *)(\n\s*(?!</p>)\S)%$1<br />$2%g;
         $quote =~ s%\n<br />%\n%g;
@@ -602,6 +614,7 @@ sub spin {
     # that are continued across paragraphs.
     local $/ = '';
     local $_;
+    border_start;
     while (<IN>) {
         my $open = tr/\[//;
         my $close = tr/\]//;
@@ -614,7 +627,7 @@ sub spin {
         my $result = parse (escape ($_), 1, 1);
         output $result unless ($result =~ /^\s*$/);
     }
-    print OUT $SPACE;
+    print OUT border_clear, $SPACE;
     close IN;
     close OUT;
 }
