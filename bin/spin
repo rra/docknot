@@ -260,7 +260,7 @@ sub read_sitemap {
     my @indents = (0);
     my @parents = ('/');
     my @prev;
-    open (MAP, $map) or die "$0: cannot open $map: $!\n";
+    open (MAP, $map) or return;
     local $_;
     while (<MAP>) {
         next if /^\s*\#/;
