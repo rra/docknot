@@ -968,7 +968,7 @@ sub process_file {
             $output =~ s/\.\Q$extension\E$/.html/;
             $shortout =~ s/\.\Q$extension\E$/.html/;
             my ($file, $options, $style) = read_pointer ($input);
-            return if (-e $output && -M $file >= -M $output);
+            return if (-e $output && -e $file && -M $file >= -M $output);
             print "Running $name for $shortout\n";
             &$sub ($file, $output, $options, $style);
         } elsif (!-e $output || -M $_ < -M $output) {
