@@ -930,6 +930,7 @@ sub read_pointer {
 # it.  It's called from within File::Find and therefore uses the standard
 # File::Find variables.
 sub process_file {
+    return if ($_ eq '.' || $_ eq '..');
     $File::Find::prune = 1, return if (/^\./ && $_ ne '.htaccess');
     $File::Find::prune = 1, return if ($_ eq 'CVS' || $_ eq 'Makefile');
     my $input = $File::Find::name;
