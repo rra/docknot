@@ -179,22 +179,34 @@ sub paragraph {
 }
 
 # Close any pending open structure elements except the one given and then
-# start the given structure element.  If the parameter is undef, just close
-# them all.
+# start the given structure element, followed by the given initial data.  If
+# the parameter is undef, just close them all.  I, for purely cosmetic
+# reasons in the generated HTML, want the whitespace trailing the last
+# paragraph within a structure element to follow the closing tag, so I stash
+# that whitespace away in %STATE.
 sub start {
-    my $e = shift;
+    my ($e, $data) = @_;
+    $data = '' unless $data;
     my $output = '';
     for (qw/blockquote dl ol ul/) {
-        if ((!$e || $e ne $_) && $STATE{$_}) {
-            undef $STATE{$_};
-            $output .= "</$_>\n";
+        if ((!$e || $e ne $_) && defined $STATE{$_}) {
+            $output .= "</$_>$STATE{$_}\n";
+            delete $STATE{$_};
         }
     }
-    if (defined $e && !$STATE{$e}) {
-        $STATE{$e}++;
-        $output .= "<$e>\n";
+    if (defined $e) {
+        $output .= $STATE{$e} if defined $STATE{$e};
+        if (!$STATE{$e}) {
+            $STATE{$e}++;
+            $output .= "<$e>\n";
+        }
+        if ($data =~ s/(\s+)\n$/\n/) {
+            $STATE{$e} = $1;
+        } else {
+            $STATE{$e} = "\n";
+        }
     }
-    $output;
+    $output . $data;
 }
 
 # Handle titles, which should have newlines turned into spaces and leading
@@ -282,7 +294,7 @@ if (is_centered ($_) && is_heading ($_)) {
 print OUT "<html>\n", head (title ($title || $output));
 
 # Open the body of the document, and print out the heading if we found one.
-print OUT "<body>\n";
+print OUT "\n<body>\n";
 print OUT "<h1 align=center>$heading</h1>\n\n" if $heading;
 
 # Scan the actual body of the text.  We don't use paragraph mode, since it
@@ -320,9 +332,7 @@ while (defined $line) {
     # blockquotes.
     my $quote = is_quoted ($_);
     if ($quote) {
-        s/(\s+)\n$/\n/;
-        my $space = $1;
-        print OUT blockquote (unquote ($_, $quote));
+        print OUT start ('blockquote', unquote ($_, $quote));
         next;
     }
 
@@ -331,7 +341,7 @@ while (defined $line) {
     if (defined $number) {
         $_ = denumber $_;
         $STATE{indent} = indent $_;
-        print OUT start ('ol'), li (p ($_), $number);
+        print OUT start ('ol', li (p ($_), $number));
         next;
     }
 
