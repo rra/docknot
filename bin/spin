@@ -698,7 +698,7 @@ sub run_converter {
     my $file = $output;
     $file =~ s%^.*/%%;
     print OUT &$footer ($blurb, $docid, $file);
-    print OUT $SPACE, $_, @page;
+    print OUT $_, @page;
     close OUT;
 }
 
