@@ -218,8 +218,7 @@ sub do_quote {
 
 sub do_signature {
     border;
-    my @months = qw(January February March April May June July August
-                    September October November December);
+    my @months = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
     my $modified = (split (' ', $DOCID))[3];
     $modified =~ s%^(\d+)/(\d+)/(\d+)%$3-$months[$2 - 1]-$1%;
     my $spun = strftime ('%d-%b-%Y', gmtime);
