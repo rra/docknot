@@ -19,28 +19,30 @@ $ID = q$Id$;
 # Utility functions
 ############################################################################
 
-# Escapes &, <, and > characters found in a string.
-sub escape {
-    my $string = shift;
-    for ($string) { s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g }
-    $string;
+# Removes an initial bullet on a paragraph, replacing it with spaces.
+sub debullet { local $_ = shift; s/(\s*)[-*o](\s)/$1 $2/; $_ }
+
+# Removes an initial number on a paragraph, replacing it with spaces.
+sub denumber {
+    local $_ = shift;
+    s/^(\s*)(\d\d?[.\)])(\s)/$1 . ' ' x length ($2) . $3/;
+    $_;
 }
+
+# Escapes &, <, and > characters found in a string.
+sub escape { local $_ = shift; s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g; $_ }
 
 # Returns the length of the indentation of a line or paragraph.
 sub indent { $_[0] =~ /^(\s*)/; length $1 }
 
 # Returns the number of lines in a paragraph, not counting trailing blanks.
-sub lines { my $string = shift; $string =~ s/\s+$/\n/; $string =~ tr/\n// }
+sub lines { local $_ = shift; s/\s+$/\n/; tr/\n// }
 
 # Remove all whitespace in a string.
-sub smash { my $string = shift; $string =~ s/\s//g; $string }
+sub smash { local $_ = shift; s/\s//g; $_ }
 
 # Undoes HTML character escapes.
-sub unescape {
-    my $string = shift;
-    for ($string) { s/&amp;/&/g; s/&lt;/</g; s/&gt;/>/g }
-    $string;
-}
+sub unescape { local $_ = shift; s/&amp;/&/g; s/&lt;/</g; s/&gt;/>/g; $_ }
 
 # Remove a constant prefix at the beginning of each line of a paragraph.
 sub unquote {
@@ -96,11 +98,18 @@ sub is_centered {
 # Expects a line, returns whether it's a digest divider.
 sub is_divider { $_[0] =~ /^-{30}\s*$/ }
 
-# Expects a line, returns whether it fits the content of a header.
-sub is_header { $_[0] !~ /[^\w\"\(\),:-]/ }
+# Expects a line, returns whether it's a mail/news header.
+sub is_header { $_[0] =~ /^[\w-]+:\s/ }
 
-# Expects a line, returns whether it appears to have internal whitespace.
-sub is_literal { $_[0] =~ /^\s*\S.*(?:[^.?!\"\)\]]  |   )\S/ }
+# Expects a paragraph, returns whether it fits the content of a heading.
+sub is_heading { $_[0] =~ /^\s*[ \w\"\(\),:-]+\n(?:^[-=~]+\n)?\s*\Z/ }
+
+# Expects a line, returns whether it's an RCS/CVS $\Id$ string.
+sub is_id { $_[0] =~ /^\s*\$Id.*\$\s*$/ }
+
+# Expects a paragraph, returns whether it appears to have internal
+# whitespace.
+sub is_literal { $_[0] =~ /^[ \t]*\S.*(?:[^.?!\"\)\]\n]  |   |\t)\S/m }
 
 # Expects a paragraph, returns undef if it doesn't look like a numbered
 # paragraph or the number if it does.
@@ -121,16 +130,37 @@ sub is_short { length $_[0] < 60 }
 # HTML constructors
 ############################################################################
 
-# Paragraph, <blockquote></blockquote>
-sub blockquote {
-    local $_ = shift;
-    s/(\s+)\n$/\n/;
-    my $space = $1;
-    "<blockquote>\n" . $_ . "</blockquote>\n" . $space;
+# Wrap a container around data, keeping the tags on the same line.
+sub container {
+    my ($tag, $data) = @_;
+    $data = '<' . $tag . '>' . $data;
+    $data =~ s%(\s*)$%</$tag>$1%;
+    $data;
 }
 
-# Paragraph, <p>
-sub p { "<p>\n" . $_[0] }
+# Wrap a container around data, preserving trailing blank lines outside and
+# putting the tags on lines of their own.
+sub paragraph {
+    my ($tag, $data) = @_;
+    $data =~ s/(\s+)\n$/\n/;
+    $data .= "\n" unless ($data =~ /\n$/);
+    '<' . $tag . ">\n" . $data . '</' . $tag . ">\n\n" . $1;
+}
+
+# Handle titles, which should have newlines turned into spaces and leading
+# and trailing whitespace zapped.
+sub title {
+    local $_ = shift;
+    s/\s*\n\s*/ /g;
+    s/^\s+//;
+    s/\s+$//;
+    '<title>' . $_ . '</title>' . "\n";
+}
+
+# Various containers.
+sub blockquote { paragraph ('blockquote', @_) }
+sub head       { paragraph ('head',       @_) }
+sub p          { paragraph ('p',          @_) }
 
 
 ############################################################################
@@ -146,9 +176,54 @@ my ($input, $output) = @ARGV or die "Usage: faq2html infile outfile\n";
 open (IN, $input) or die "$0: can't open $input: $!\n";
 open (OUT, "> $output") or die "$0: can't write to $output: $!\n";
 
-# Simple scan.
-$/ = '';
-while (<IN>) {
+# Check for a leading RCS/CVS version identifier.  For FAQs that I'm posting
+# to Usenet using postfaq, this will always be the first line of the file
+# stored on disk.
+my $id;
+$_ = <IN>;
+if (is_id $_) {
+    $id = $_;
+    $_ = <IN>;
+    $_ = <IN> while (defined && /^\s*$/);
+}
+
+# Check for mail/news headers.  If we see any, the only ones we care about
+# are Subject and From, which we'll use for title information.
+my ($author, $title);
+while (defined && is_header $_) {
+    my ($header, $content) = /^([\w-]+):\s+(.*)/;
+
+    # Deal with continuation lines.
+    $_ = <IN>;
+    while (defined && /^\s+\S/) { $content .= $_; $_ = <IN> }
+
+    # Save information we care about.
+    if    (lc $header eq 'from')    { $author = $content }
+    elsif (lc $header eq 'subject') { $title  = $content }
+}
+
+# Skip blank lines (either initial ones or ones after headers.
+$_ = <IN> while (defined && /^\s*$/);
+
+# Skip over any FAQ subheaders, since currently we're not interested in any
+# of that information.  We don't support continuation lines here yet.
+$_ = <IN> while (defined && is_header $_);
+$_ = <IN> while (defined && /^\s*$/);
+
+# Generate the heading of the HTML file, using the filename as the title if
+# we haven't been able to find a title.
+print OUT "<html>\n", head (title ($title || $output));
+
+# Scan the actual body of the text.  We don't use paragraph mode, since it
+# doesn't work with blank lines that contain whitespace; instead, we cobble
+# together our own paragraph mode that does.  Note that $_ already has a
+# non-blank line of input coming into this loop.
+print OUT "<body>\n";
+while (defined) {
+    my $line;
+    $_ .= $line while (defined ($line = <IN>) && $line =~ /\S/);
+    $_ .= $line;
+    $_ .= $line while (defined ($line = <IN>) && $line =~ /^\s*$/);
     $_ = urlize (untabify (escape ($_)));
     my $quote = is_quoted ($_);
     if ($quote) {
@@ -158,4 +233,6 @@ while (<IN>) {
     } else {
         print OUT p ($_);
     }
+    $_ = $line;
 }
+print OUT "</body>\n</html>\n";
