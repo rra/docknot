@@ -453,8 +453,10 @@ sub do_quote {
     my $output;
     if ($format) {
         $output = qq(<blockquote class="quote"><p class="$format">);
+        $quote =~ s%\n\n(\s*\S)%\n</p>\n<p class="$format">\n$1%g;
     } else {
         $output = '<blockquote class="quote"><p>';
+        $quote =~ s%\n\n(\s*\S)%\n</p>\n<p>\n$1%g;
     }
     output $output . $quote . "</p>";
     if ($author) {
