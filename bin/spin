@@ -234,23 +234,30 @@ sub parse_context {
     # has to be wrapped in a paragraph in $paragraph (and put the border
     # before it in $border).  Whenever we see a block-level command, we wrap
     # anything currently in $paragraph in a paragraph, tack it on to the
-    # output, and then add on the results of the block command.
+    # output, and then add on the results of the block command.  $space holds
+    # leading space, which we want to add to the paragraph if we end up
+    # creating a paragraph.
     #
     # $nonblock is a flag indicating that we saw some construct that wasn't
     # suitable for block level.
     my $output = '';
-    my ($border, $paragraph) = ('', '');
+    my ($border, $paragraph, $space) = ('', '', '');
     my $nonblock = 0;
-    while ($text) {
-        $text =~ s/^([^\\]+|\\([\w=]+|.))?//
-            or die "$0:$FILE:$.: unable to parse at '"
-                . substr ($text, 0, 20) . "'";
+    while ($text ne '') {
+        unless ($text =~ s/^([^\\]+|\\([\w=]+|.))//) {
+            my $error = substr ($text, 0, 20);
+            $error =~ s/\n.*//s;
+            die "$0:$FILE:$.: unable to parse at '$error'\n";
+        }
         my $command;
         if (index ($1, '\\') == -1) {
             my $string = $1;
-            if ($block && ($string =~ /\S/ || length ($paragraph) > 0)) {
-                $border = border unless length ($paragraph) > 0;
-                $paragraph .= $string;
+            if ($block && $string =~ /^\s+$/ && $paragraph eq '') {
+                $space .= $string;
+            } elsif ($block && ($string =~ /\S/ || $paragraph ne '')) {
+                $border = border if $paragraph eq '';
+                $paragraph .= $space . $string;
+                $space = '';
             } else {
                 $output .= $string;
                 $nonblock = 1;
@@ -258,26 +265,32 @@ sub parse_context {
         } else {
             $command = $2;
             my ($result, $blocktag);
-            ($result, $blocktag, $text) = expand ($command, $text, $block);
+            my $force = $block && $paragraph eq '';
+            ($result, $blocktag, $text) = expand ($command, $text, $force);
             if ($blocktag) {
-                if ($block && length ($paragraph) > 0) {
-                    $output .= $border . paragraph ($paragraph);
+                if ($block && $paragraph ne '') {
+                    $output .= $border . paragraph ($space . $paragraph);
                     $border = '';
                     $paragraph = '';
+                } else {
+                    $output .= $space;
                 }
                 $output .= $result;
+            } elsif ($block) {
+                $border = border if $paragraph eq '';
+                $paragraph .= $space . $result;
+                $nonblock = 1;
             } else {
-                $border = border unless length ($paragraph) > 0;
-                $paragraph .= $result;
+                $output .= $result;
                 $nonblock = 1;
             }
+            $space = '';
         }
         if ($text =~ s/^\n(\s*)//) {
-            if (length ($paragraph) > 0) {
-                $paragraph .= "\n";
-                $paragraph .= $1;
+            if ($paragraph ne '') {
+                $paragraph .= "\n$1";
             } else {
-                $output .= "\n" if $text;
+                $output .= "\n" if $text || $nonblock;
                 $output .= $1;
             }
         }
@@ -287,7 +300,8 @@ sub parse_context {
     # If we were at block level, our output is always suitable for block
     # level.  Otherwise, it's suitable for block level only if all of our
     # output was from block commands.
-    $output .= $border . paragraph ($paragraph) if length ($paragraph) > 0;
+    $output .= $border . paragraph ($space . $paragraph)
+        unless $paragraph eq '';
     return ($output, $block || !$nonblock);
 }
 
@@ -373,6 +387,40 @@ sub relative {
     }
 }
 
+# Given the name of the current file being processed, return the <link> tags
+# for that file suitable for the <head> section.  Uses the global %SITEDESCS
+# and %SITELINKS variables.  If the partial URL isn't found in those
+# variables, nothing is returned.
+sub sitelinks {
+    my $file = shift;
+    $file = $File::Find::dir . '/' . $file;
+    $file =~ s%^\Q$SOURCE%%;
+    $file =~ s%/index\.html$%/%;
+
+    my $output = '';
+    if ($SITELINKS{$file}) {
+        my @links = @{ $SITELINKS{$file} };
+        my @descs = map { defined ($_) ? $SITEDESCS{$_} : '' } @links;
+        @descs = map { s/\"/&quot;/g; $_ } map { escape $_ } @descs;
+        @links = map { defined ($_) ? relative ($file, $_) : undef } @links;
+
+        # Make the HTML for the footer.
+        my @types = ('previous', 'next', 'up');
+        for my $i (0..2) {
+            next unless defined $links[$i];
+            my $link = qq(  <link rel="$types[$i]" href="$links[$i]");
+            if (length ($link) + length ($descs[$i]) + 9 > 78) {
+                $link .= "\n       ";
+            }
+            $link .= qq( title="$descs[$i]">\n);
+            $output .= $link;
+        }
+        my $href = relative ($file, '/');
+        $output .= qq(  <link rel="top" href="$href">\n);
+    }
+    return $output;
+}
+
 # Given the name of the current file being processed, return the navigation
 # links for that file.  Uses the global %SITEDESCS and %SITELINKS variables.
 # If the partial URL isn't found in those variables, nothing is returned.
@@ -386,6 +434,7 @@ sub placement {
     if ($SITELINKS{$file}) {
         my @links = @{ $SITELINKS{$file} };
         my @descs = map { defined ($_) ? $SITEDESCS{$_} : '' } @links;
+        @descs = map { escape $_ } @descs;
         @links = map { defined ($_) ? relative ($file, $_) : undef } @links;
 
         # Swap the order to make next before previous.
@@ -411,7 +460,7 @@ sub placement {
 # Return the signature file for pages in this directory, if present.
 sub sign {
     my $output = '';
-    if (open (SIG, '< .signature')) {
+    if (open (SIG, '< .signature') || open (SIG, "< $SOURCE/.signature")) {
         local $/ = "\n";
         my @signature = <SIG>;
         chomp @signature;
@@ -623,6 +672,11 @@ sub do_heading {
         $style = $STYLES . $style if $STYLES;
         $output .= qq(  <link rel="stylesheet" href="$style");
         $output .= qq( type="text/css" />\n);
+    }
+    if ($FILE ne '-') {
+        my $file = $FILE;
+        $file =~ s/\.th$/.html/;
+        $output .= sitelinks $file;
     }
     $output .= "</head>\n\n";
     my $version = (split (' ', $ID))[2];
@@ -849,9 +903,12 @@ sub run_converter {
         die "$0: command failed with exit status ", ($? >> 8), "\n";
     }
     open (OUT, "> $output") or die "$0: can't create $output: $!\n";
+    my $file = $output;
+    $file =~ s%.*/%%;
 
     # Grab the first few lines of input, looking for a blurb and Id string.
-    # Give up if we encounter <html> first.
+    # Give up if we encounter <body> first.  Also look for a </head> tag and
+    # add the navigation link tags before it, if applicable.
     my ($blurb, $docid);
     local $_;
     while (defined ($_ = shift @page)) {
@@ -864,6 +921,9 @@ sub run_converter {
             $blurb =~ s/ \d\d:\d\d:\d\d -0000//;
             $blurb =~ s/ \(\d{4}-\d\d-\d\d\)//;
         }
+        if (m%^</head>%) {
+            print OUT sitelinks $file;
+        }
         print OUT $_;
     }
     print OUT $_ if defined;
@@ -874,8 +934,6 @@ sub run_converter {
     print OUT $_ while (defined ($_ = shift @page) && !m%</body>%i);
 
     # Add the footer and finish with the output.
-    my $file = $output;
-    $file =~ s%^.*/%%;
     print OUT &$footer ($blurb, $docid, $file);
     print OUT $_, @page;
     close OUT;
@@ -1016,7 +1074,9 @@ sub process_file {
             $output =~ s/\.\Q$extension\E$/.html/;
             $shortout =~ s/\.\Q$extension\E$/.html/;
             my ($file, $options, $style) = read_pointer ($input);
-            return if (-e $output && -e $file && -M $file >= -M $output);
+            if (-e $output && -e $file) {
+                return if (-M $file >= -M $output && -M $_ >= -M $output);
+            }
             print "Running $name for $shortout\n";
             &$sub ($file, $output, $options, $style);
         } elsif (!-e $output || -M $_ < -M $output) {
@@ -1158,12 +1218,17 @@ This defines two sub-pages of the top page, /personal/ and /links/.
 therefore shouldn't have links to each other).  /links/ has three pages
 under it which are part of a set and should be linked between each other.
 
+If F<.sitemap> is present, this navigation information will also be put into
+the <head> section of the resulting HTML file as <link> tags.  Some browsers
+will display this information as a navigation toolbar.
+
 B<spin> also looks for a file named F<.signature> in the same directory as a
-thread file and copies its contents verbatim into an <address> block at the
-end of the XHTML page (so the contents should be valid XHTML).  The contents
-will be surrounded by an <address> tag, and added to the end of the supplied
-F<.signature> contents will be information about when the page was last
-modified and generated.
+thread file (and then at the top of the source tree if none is found in the
+current directory) and copies its contents verbatim into an <address> block
+at the end of the XHTML page (so the contents should be valid XHTML).  The
+contents will be surrounded by an <address> tag, and added to the end of the
+supplied F<.signature> contents will be information about when the page was
+last modified and generated.
 
 =head1 OPTIONS
 
@@ -1528,12 +1593,6 @@ It is occasionally necessary to escape [ and ] if there would otherwise be
 unbalanced square brackets in a paragraph.  This can sort of be done with
 HTML entities, but it would be better if the HTML output actually contained
 the correct characters.
-
-=head1 NOTES
-
-The proper <link> tags representing the page hierarchy should really be
-added to the header for the benefit of clients that can use them for
-navigation information.
 
 =head1 SEE ALSO
 
