@@ -3,7 +3,8 @@ $ID = q$Id$;
 #
 # spin -- Translate thread (an HTML macro language) into HTML.
 #
-# Copyright 1999, 2000, 2001, 2002, 2003 by Russ Allbery <rra@stanford.edu>
+# Copyright 1999, 2000, 2001, 2002, 2003, 2004
+#     by Russ Allbery <rra@stanford.edu>
 #
 # This program is free software; you may redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -402,7 +403,7 @@ sub sitelinks {
         my @links = @{ $SITELINKS{$file} };
         my @descs = map { defined ($_) ? $SITEDESCS{$_} : '' } @links;
         @descs = map { s/\"/&quot;/g; $_ } map { escape $_ } @descs;
-        @descs = map { $_ eq 'the main page' ? () : $_ } @descs;
+        @descs = map { $_ eq 'the main page' ? '' : $_ } @descs;
         @links = map { defined ($_) ? relative ($file, $_) : undef } @links;
 
         # Make the HTML for the footer.
@@ -410,10 +411,14 @@ sub sitelinks {
         for my $i (0..2) {
             next unless defined $links[$i];
             my $link = qq(  <link rel="$types[$i]" href="$links[$i]");
-            if (length ($link) + length ($descs[$i]) + 9 > 78) {
-                $link .= "\n       ";
+            if ($descs[$i] ne '') {
+                if (length ($link) + length ($descs[$i]) + 9 > 78) {
+                    $link .= "\n       ";
+                }
+                $link .= qq( title="$descs[$i]">\n);
+            } else {
+                $link .= ">\n";
             }
-            $link .= qq( title="$descs[$i]">\n);
             $output .= $link;
         }
         my $href = relative ($file, '/');
@@ -1611,7 +1616,8 @@ Russ Allbery <rra@stanford.edu>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 1999, 2000, 2001, 2002, 2003 by Russ Allbery <rra@stanford.edu>.
+Copyright 1999, 2000, 2001, 2002, 2003, 2004
+by Russ Allbery <rra@stanford.edu>.
 
 This program is free software; you may redistribute it and/or modify it
 under the same terms as Perl itself.
