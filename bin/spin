@@ -1060,7 +1060,7 @@ B<faq2html>.
 
 =item B<-v>, B<--version>
 
-Print out the version of B<cvslog> and exit.
+Print out the version of B<spin> and exit.
 
 =back
 
