@@ -72,13 +72,6 @@ sub indent { $_[0] =~ /^(\s*)/; length $1 }
 # Returns the number of lines in a paragraph, not counting trailing blanks.
 sub lines { local $_ = shift; s/\s+$/\n/; tr/\n// }
 
-# Deal with miniature indents in regular paragraphs.
-sub minident {
-    local $_ = shift;
-    s%\n(\s{$INDENT})\s{1,2}(\S)%<br />\n$1&nbsp;$2%;
-    $_;
-}
-
 # Returns a nicely formatted "Last modified" string from an RCS/CVS Id.
 sub modified {
     my $id = shift;
@@ -146,8 +139,13 @@ sub url {
     '<a href="' . $link . '">' . $text . '</a>';
 }
 
-# Looks for a URL in <URL:...> form and wraps a link around it.
-sub urlize { local $_ = shift; s%&lt;URL:(.+?)&gt;%url ($1)%ge; $_ }
+# Looks for a URL in <URL:...> form, with or without the URL: part, and wraps
+# a link around it.
+sub urlize {
+    my $text = shift;
+    $text =~ s%&lt;(?:URL:)?([a-z]{2,}:.+?)&gt;%url ($1)%ge;
+    $text;
+}
 
 # Remove whitespace at the beginning and end of a string.
 sub whitechomp { local $_ = shift; s/^\s+//; s/\s+$//; $_ }
@@ -164,14 +162,12 @@ sub is_allcaps { $_[0] !~ /[^A-Z\s\"\(\),:.!?-]/ }
 
 # Expects a paragraph, returns whether it looks like it's broken into a series
 # of short lines or a series of lines without internal space.  The last line
-# of the paragraph doesn't matter for this determination.  We go to some extra
-# lengths to avoid thinking a two-line paragraph with a minidented second line
-# is broken without always thinking two-line paragraphs are unbroken.
+# of the paragraph doesn't matter for this determination.
 sub is_broken {
     local $_ = shift;
     s/\s+$/\n/;
     my @lines = split ("\n", $_);
-    return if (@lines == 1 || (@lines == 2 && /^(\s*)\S.*\n\1\s{1,2}\S/));
+    return if @lines == 1;
     pop @lines;
     return 1 if grep { length ($_) < 40 } @lines;
     my $short = grep { length ($_) < 60 } @lines;
@@ -194,12 +190,9 @@ sub is_centered {
 sub is_contents { $_[0] =~ /^(?:\s*[\d.]+[.\)][ \t].*\n)+\s*$/ }
 
 # Expects a paragraph, returns whether it looks like a title and description.
-# We go to some extra lengths to avoid thinking a two-line paragraph with a
-# minidented second line is a description list entry.
 sub is_description {
     $_[0] =~ /^(\s*)\S.*\n(\s+)\S.*\n(?:\2\S.*\n)*\s*$/
-        && length ($1) < length ($2)
-        && (lines ($_[0]) > 2 || length ($2) - length ($1) > 2);
+        && length ($1) < length ($2);
 }
 
 # Expects a paragraph, returns whether it's a digest divider.
@@ -238,8 +231,8 @@ sub is_literal { $_[0] =~ /^[ \t]*\S.*(?:[^.?!\"\)\]:*_\n]  |   |\t)\S/m }
 sub is_numbered { ($_[0] =~ /^\s*(\d\d?)[.\)]\s/) ? $1 : undef }
 
 # Expects a paragraph, returns true if the paragraph has inconsistent
-# indentation, allowing for minidents.
-sub is_offset { $_[0] !~ /^(\s*)\S.*\n(\1\s{0,2}\S.*\n)*\s*$/ }
+# indentation.
+sub is_offset { $_[0] !~ /^(\s*)\S.*\n(\1\S.*\n)*\s*$/ }
 
 # Expects a paragraph, returns undef if not quoted or the quote character if
 # it is quoted.
@@ -270,9 +263,17 @@ sub dtd {
         . "\n";
 }
 
-# The initial <html> tag, which is a bit complicated for XHTML.
-sub html {
-    qq(<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">);
+# An XML comment.
+sub comment {
+    my @data = @_;
+    my $data = join ('', @data);
+    '<!-- ' . $data . ' -->';
+}
+
+# The character set for the page; we assume ISO 8859-1 for all pages.
+sub charset {
+    qq(<meta http-equiv="content-type" content="text/html;)
+        . qq( charset=ISO-8859-1" />);
 }
 
 # A link to a CSS style sheet.
@@ -281,11 +282,9 @@ sub style {
     qq(<link rel="stylesheet" href="$style" type="text/css" />);
 }
 
-# An XML comment.
-sub comment {
-    my @data = @_;
-    my $data = join ('', @data);
-    '<!-- ' . $data . '-->';
+# The initial <html> tag, which is a bit complicated for XHTML.
+sub html {
+    qq(<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">);
 }
 
 # Wrap a container around data, keeping the tags on the same line.
@@ -446,9 +445,10 @@ my $fullpath = $0;
 $0 =~ s%.*/%%;
 
 # Parse command-line options, if any.
-my ($help, $version);
+my ($help, $style, $version);
 Getopt::Long::config ('bundling');
-GetOptions ('help|h' => \$help, 'version|v' => \$version);
+GetOptions ('help|h' => \$help, 'style|s=s' => \$style,
+            'version|v' => \$version);
 
 # If they asked for help, give them the documentation.
 if ($help) {
@@ -528,8 +528,8 @@ output dtd, "\n";
 output comment ($id), "\n" if $id;
 output comment ("Converted to XHTML by faq2html version $version"), "\n\n";
 output html, "\n";
-output head (title ($title || $output || 'faq2html output'), "\n",
-             style ('/~eagle/styles/faq.css'), "\n");
+output head (charset, "\n", title ($title || $output || 'faq2html output'),
+             $style ? ("\n", style ($style)) : '', "\n");
 
 # Open the body of the document, and print out the heading if we found one.
 output "\n<body>\n\n";
@@ -643,10 +643,9 @@ while (defined $BUFFER) {
     $space = $1;
     my $indent = indent $_;
 
-    # If the paragraph has inconsistent indentation, allowing for minidents,
-    # or is indented relative to the baseline *and* the last paragraph we
-    # emitted was enclosed in <pre>, assume that this paragraph belongs in
-    # <pre> as well.
+    # If the paragraph has inconsistent indentation, or is indented relative
+    # to the baseline *and* the last paragraph we emitted was enclosed in
+    # <pre>, assume that this paragraph belongs in <pre> as well.
     if ($STATE{pre}) {
         if (is_offset ($_) || (defined $INDENT && $indent > $INDENT)) {
             output pre ($_);
@@ -755,13 +754,13 @@ while (defined $BUFFER) {
             $INDENT = indent $_;
             s%(\n\s*\S)%<br />$1%g if is_broken $_;
             output start ('dl', dt ($title));
-            output start ('dd', (p (minident (embolden $_))));
+            output start ('dd', (p (embolden $_)));
             next;
         }
     }
 
-    # If the paragraph has inconsistent indentation, allowing for minidents,
-    # we should output it in <pre>.
+    # If the paragraph has inconsistent indentation, we should output it in
+    # <pre>.
     if (is_offset $_) {
         output pre ($_);
         $STATE{pre} = 1;
@@ -791,7 +790,7 @@ while (defined $BUFFER) {
     $INDENT = $indent;
     $STATE{baseline} = $indent unless defined $STATE{baseline};
     s%(\n\s*\S)%<br />$1%g if is_broken $_;
-    output p (minident (embolden $_));
+    output p (embolden $_);
 
 } continue {
     $WS = $space;
@@ -812,7 +811,7 @@ faq2html - Convert some particular text formats into XHTML
 
 =head1 SYNOPSIS
 
-B<faq2html> [B<-hv>] [I<infile> [I<outfile>]]
+B<faq2html> [B<-hv>] [B<-s> I<style>] [I<infile> [I<outfile>]]
 
 =head1 DESCRIPTION
 
@@ -905,6 +904,12 @@ to C<perldoc -t>.
 =item B<-v>, B<--version>
 
 Print out the version of B<faq2html> and exit.
+
+=item B<-s> I<style>, B<--style>=I<style>
+
+Insert a reference to I<style> as a style sheet into the generated web
+page.  Unless this argument is given, no style sheet will be referred to
+in the generated web page.
 
 =back
 
