@@ -282,6 +282,12 @@ sub style {
     qq(<link rel="stylesheet" href="$style" type="text/css" />);
 }
 
+# An XML link to a CSS style sheet.
+sub xmlstyle {
+    my $style = shift;
+    qq(<?xml-stylesheet href="$style" type="text/css"?>);
+}
+
 # The initial <html> tag, which is a bit complicated for XHTML.
 sub html {
     qq(<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">);
@@ -524,12 +530,15 @@ $heading = urlize $heading;
 # compliance; we can't claim strict solely because we use the value attribute
 # in <li> in the absence of widespread implementation of CSS Level 2.
 ($version) = (split (' ', $ID))[2];
-output dtd, "\n";
+output dtd;
+output xmlstyle ($style), "\n" if $style;
+output "\n";
 output comment ($id), "\n" if $id;
 output comment ("Converted to XHTML by faq2html version $version"), "\n\n";
 output html, "\n";
-output head (charset, "\n", title ($title || $output || 'faq2html output'),
-             $style ? ("\n", style ($style)) : '', "\n");
+output head ("  ", charset, "\n  ",
+             title ($title || $output || 'faq2html output'),
+             $style ? ("\n  ", style ($style)) : '', "\n");
 
 # Open the body of the document, and print out the heading if we found one.
 output "\n<body>\n\n";
