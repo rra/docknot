@@ -18,6 +18,7 @@ use subs qw(expand parse);
 use vars qw($DOCID $FILE $ID $OUT $OUTPUT $SOURCE $SPACE $SPINID @STATE
             %commands %strings);
 
+use Getopt::Long qw(GetOptions);
 use Image::Size qw(html_imgsize);
 use File::Copy qw(copy);
 use File::Find qw(find);
@@ -122,6 +123,8 @@ sub expand {
         return ('', $text);
     } elsif ($command =~ s/^=//) {
         return ($strings{$command}, $text);
+    } elsif ($command eq '\\') {
+        return ('\\', $text);
     } else {
         if (!ref $commands{$command}) {
             die "$0:$FILE:$.: bad command $command\n";
@@ -354,8 +357,9 @@ sub do_heading {
     output qq(<head>\n  <title>$title</title>\n);
     if ($style) {
         output qq(  <link rel="stylesheet" href="$style" type="text/css" />);
+        output "\n";
     }
-    output "\n</head>\n\n<body>\n\n";
+    output "</head>\n\n<body>\n\n";
     '';
 }
 
@@ -439,6 +443,10 @@ sub do_quote {
 # address block.
 sub do_signature {
     border;
+    if ($FILE eq '-') {
+        output "</body>\n</html>\n";
+        return '';
+    }
     my $file = $FILE;
     $file =~ s/\.th$/.html/;
     placement $file;
@@ -504,7 +512,8 @@ sub spin {
     # Add our initial comment.
     my $version = (split (' ', $ID))[2];
     my $date = strftime ('%Y-%m-%d %T -0000', gmtime);
-    $SPINID = "Spun from $thread by spin $version on $date";
+    $SPINID = "Spun from " . ($thread eq '-' ? 'stdin' : $thread)
+        . " by spin $version on $date";
 
     # Parse the thread file a paragraph at a time (but pick up macro contents
     # that are continued across paragraphs.
@@ -685,13 +694,34 @@ $0 =~ s%.*/%%;
 # Load overrides from the user's home directory, if applicable.
 if (-r "$ENV{HOME}/.spinrc") { do "$ENV{HOME}/.spinrc" }
 
-# Take the source tree and the output tree on the command line.
-if (@ARGV != 2) { die "Usage: $0 <source> <output>\n" }
-($SOURCE, $OUTPUT) = @ARGV;
+# Parse command-line options.
+my ($help, $version, $filter);
+Getopt::Long::config ('bundling');
+GetOptions ('filter|f'  => \$filter,
+            'help|h'    => \$help,
+            'version|v' => \$version) or exit 1;
+if ($help) {
+    print "Feeding myself to perldoc, please wait....\n";
+    exec ('perldoc', '-t', $0);
+} elsif ($version) {
+    my $version = join (' ', (split (' ', $ID))[1..3]);
+    $version =~ s/,v\b//;
+    $version =~ s/(\S+)$/($1)/;
+    die $version, "\n";
+}
 
-# Traverse the input directory and generate output into the output directory.
-$File::Find::dont_use_nlink = 1;
-find (\&process_file, $SOURCE);
+# The arguments depend on whether -f is given.  If it is, just filter stdin to
+# stdout; otherwise, take the input tree and the output tree on the command
+# line and process the input into the output.
+if ($filter) {
+    if (@ARGV) { die "Usage: $0 -f\n" }
+    spin ('-', '-');
+} else {
+    if (@ARGV != 2) { die "Usage: $0 <source> <output>\n" }
+    ($SOURCE, $OUTPUT) = @ARGV;
+    $File::Find::dont_use_nlink = 1;
+    find (\&process_file, $SOURCE);
+}
 
 ##############################################################################
 # Documentation
@@ -699,11 +729,19 @@ find (\&process_file, $SOURCE);
 
 =head1 NAME
 
-spin -- Translate thread (an HTML macro language) into XHTML
+spin - Translate thread, an HTML macro language, into XHTML
 
 =head1 SYNOPSIS
 
-spin I<source> I<output>
+spin [B<-hv>] I<source> I<output>
+
+spin B<-f>
+
+=head1 REQUIREMENTS
+
+Perl 5.005 or later and the Image::Size and Text::Balanced modules.  Also
+expects to find B<faq2html> and B<cvs2xhtml> to convert certain types of
+files.
 
 =head1 DESCRIPTION
 
@@ -712,17 +750,22 @@ XHTML, as well as serving as a tool to maintain a set of web pages, updating
 a staging area with the latest versions, converting pages written in the
 macro language (named "thread"), and running B<faq2html> where directed.
 
-For each file in the directory I<source>, recursively through the directory
-structure, it is either copied verbatim into the same relative path under
-I<output> or converted to HTML with the HTML output put under I<output> with
-the same file name but with the extension changed to C<.html>.  Missing
-directories are created.  Files that end in C<.th> are assumed to be in
-thread and are turned into HTML.  Files that end in C<.faq> are assumed to
-contain a path to a text FAQ, which is run through B<faq2html> and the
-output is saved into I<output>.  Files that end in C<.log> are assumed to
-contain a path to a file on which CVS log should be run, the results of
-which are run through B<cvs2xhtml> and saved to I<output>.  All other files
-not beginning with a period are copied as-is.
+When invoked with the B<-f> option, B<spin> works in filter mode, reading
+thread from stdin and writing the converted output to stdout.  Some
+features, such as appending a signature or navigation links, are disabled in
+this mode.
+
+Otherwise, for each file in the directory I<source>, recursively through the
+directory structure, it is either copied verbatim into the same relative
+path under I<output> or converted to HTML with the HTML output put under
+I<output> with the same file name but with the extension changed to
+C<.html>.  Missing directories are created.  Files that end in C<.th> are
+assumed to be in thread and are turned into HTML.  Files that end in C<.faq>
+are assumed to contain a path to a text FAQ, which is run through
+B<faq2html> and the output is saved into I<output>.  Files that end in
+C<.log> are assumed to contain a path to a file on which CVS log should be
+run, the results of which are run through B<cvs2xhtml> and saved to
+I<output>.  All other files not beginning with a period are copied as-is.
 
 The exact details of the macro language are as yet not documented.  The
 basic format, however, is that macro invocations start with C<\>, take an
@@ -773,6 +816,27 @@ thread file and uses its contents as the basis of the <address> block at the
 end of the XHTML page.  The contents will be surrounded by an <address> tag
 and added to the end will be information about when the page was last
 modified and generated.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-f>, B<--filter>
+
+Run B<spin> in filter mode rather than converting a whole tree of files.
+Thread source is read from stdin and the XHTML output is written to stdout.
+The signature and navigation links are disabled.
+
+=item B<-h>, B<--help>
+
+Print out this documentation (which is done simply by feeding the script to
+C<perldoc -t>).
+
+=item B<-v>, B<--version>
+
+Print out the version of B<cvslog> and exit.
+
+=back
 
 =head1 BUGS
 
