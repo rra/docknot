@@ -22,7 +22,11 @@ $ID = q$Id$;
 require 5.003;
 
 use strict;
-use vars qw($ID %STATE);
+use vars qw($ID @MONTHS %STATE);
+
+# Replace with the month names you want to use, if you don't want English.
+@MONTHS = qw(January February March April May June July August September
+             October November December);
 
 
 ############################################################################
@@ -50,6 +54,13 @@ sub indent { $_[0] =~ /^(\s*)/; length $1 }
 
 # Returns the number of lines in a paragraph, not counting trailing blanks.
 sub lines { local $_ = shift; s/\s+$/\n/; tr/\n// }
+
+# Returns a nicely formatted date from a YYYY/MM/DD string.
+sub nicedate {
+    my ($year, $month, $day) = split ('/', shift);
+    $day =~ s/^0//;
+    $MONTHS[$month - 1] . ' ' . $day . ', ' . $year;
+}
 
 # Remove all whitespace in a string.
 sub smash { local $_ = shift; s/\s//g; $_ }
@@ -118,7 +129,9 @@ sub is_divider { $_[0] =~ /^-{30}\s*$/ }
 sub is_header { $_[0] =~ /^[\w-]+:\s/ }
 
 # Expects a paragraph, returns whether it fits the content of a heading.
-sub is_heading { $_[0] =~ /^\s*[ \w\"\(\),:-]+\n(?:[-=~]+\n)?\s*\Z/ }
+sub is_heading {
+    $_[0] =~ /^\s*[ \w\"\(\),:-]+[\w\"\)]\s*\n(?:[-=~]+\s*)?$/;
+}
 
 # Expects a line, returns whether it's an RCS/CVS $\Id$ string.
 sub is_id { $_[0] =~ /^\s*\$Id.*\$\s*$/ }
@@ -294,13 +307,33 @@ if (is_centered ($_) && is_heading ($_)) {
 print OUT "<html>\n", head (title ($title || $output));
 
 # Open the body of the document, and print out the heading if we found one.
+# Otherwise, print out the page title (probably from the Subject header) as
+# the main heading if we have a page title.
 print OUT "\n<body>\n";
-print OUT "<h1 align=center>$heading</h1>\n\n" if $heading;
+$heading ||= $title;
+print OUT "<h1 align=center>$heading</h1>\n" if $heading;
+
+# If we have author information from a From header, print that out under the
+# main heading.  If we have RCS/CVS Id information, add another subheading
+# containing the version number and the last modified date.
+if ($heading && $author) {
+    print OUT '<p align=center><strong>';
+    if ($id) {
+        my ($version, $date) = (split (' ', $id))[2,3];
+        print OUT "\n  ", escape ($author), "<br>\n";
+        print OUT "  Last modified ", nicedate ($date);
+        print OUT " (revision $version)\n";
+    } else {
+        print OUT escape ($author);
+    }
+    print OUT "</strong></p>\n";
+}
 
 # Scan the actual body of the text.  We don't use paragraph mode, since it
 # doesn't work with blank lines that contain whitespace; instead, we cobble
 # together our own paragraph mode that does.  Note that $_ already has a
 # non-blank line of input coming into this loop.
+print OUT "\n" if $heading;
 my $line = $_;
 while (defined $line) {
     $_ = $line;
