@@ -373,9 +373,20 @@ while (defined && is_header $_) {
 # Skip blank lines (either initial ones or ones after headers.
 $_ = <$IN> while (defined && /^\s*$/);
 
-# Skip over any FAQ subheaders, since currently we're not interested in any
-# of that information.  We don't support continuation lines here yet.
-$_ = <$IN> while (defined && is_header $_);
+# Parse the FAQ subheaders, if any.  If we see any, we use the HTML-title
+# and the Original-author headers.
+my $original;
+while (defined && is_header $_) {
+    my ($header, $content) = /^([\w-]+):\s+(.*)/;
+
+    # Deal with continuation lines.
+    $_ = <$IN>;
+    while (defined && /^\s+\S/) { $content .= $_; $_ = <$IN> }
+
+    # Save information we care about.
+    if    (lc $header eq 'html-title')      { $title    = $content }
+    elsif (lc $header eq 'original-author') { $original = $content }
+}
 
 # Skip over whitespace after subheaders, and also skip over rules.
 $_ = <$IN> while (defined && (/^\s*$/ || is_rule $_));
@@ -386,11 +397,13 @@ $_ = <$IN> while (defined && (/^\s*$/ || is_rule $_));
 my $heading;
 if (is_centered ($_) && is_heading ($_)) {
     $heading = whitechomp $_;
-    if (!$title) { $title = $heading }
+    if (!$title) {
+        $title = $heading;
+        $title =~ s/\b([A-Z]+)\b/\L\u$1/g if (is_allcaps $title);
+    }
     do { $_ = <$IN> } while (defined && (/^\s*$/ || is_rule $_));
 }
 $heading ||= $title;
-$title =~ s/\b([A-Z]+)\b/\L\u$1/g if (is_allcaps $title);
 
 # Generate the heading of the HTML file, using the filename as the title if
 # we haven't been able to find a title.  We claim "transitional" HTML 4.0
@@ -439,6 +452,8 @@ if ($heading) {
         $subheading++;
         output "<p align=center><strong>\n";
         output '  ', escape ($author);
+        output "<br>\n  (originally by ", escape ($original), ')'
+            if $original;
         output "<br>\n  ", modified ($id) if $id;
     }
     output "</strong>\n</p>\n" if $subheading;
