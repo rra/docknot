@@ -324,6 +324,8 @@ sub do_desc {
     my ($format, $heading, $text) = @_;
     border ('desc', "<dl>\n", "</dl>\n");
     $text =~ s%\n\n\s*(\S)%\n</p>\n\n<p>$1%g;
+    $text =~ s%<p><pre>%<pre>%g;
+    $text =~ s%</pre>\n</p>%</pre>%g;
     $text =~ s/\s*\n\n+$/\n/;
     output "<dt>$heading</dt>\n<dd><p>$text</p></dd>\n\n";
     '';
