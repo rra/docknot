@@ -1223,7 +1223,15 @@ $STYLES =~ s%/*$%/% if $STYLES;
 push (@EXCLUDES, map { qr/$_/ } @excludes);
 
 # Load overrides from the specified file, if desired.
-do "$overrides" if $overrides;
+if ($overrides) {
+    unless (do "$overrides") {
+        if ($@) {
+            die "$0: cannot load $overrides: $@\n";
+        } else {
+            die "$0: cannot load $overrides: $!\n";
+        }
+    }
+}
 
 # The arguments depend on whether -f is given.  If it is, just filter stdin to
 # stdout; otherwise, take the input tree and the output tree on the command
