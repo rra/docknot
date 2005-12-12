@@ -81,7 +81,7 @@ sub lines { local $_ = shift; s/\s+$/\n/; tr/\n// }
 sub modified {
     my $id = shift;
     my ($version, $date) = (split (' ', $id))[2,3];
-    my ($year, $month, $day) = split ('/', $date);
+    my ($year, $month, $day) = split (m%[/-]%, $date);
     $day =~ s/^0//;
     'Last modified '. $MONTHS[$month - 1] . ' ' . $day . ', ' . $year
         . " (revision $version)";
