@@ -563,7 +563,7 @@ sub footer {
 
     # Figure out the modified dates.
     my $modified = (split (' ', $id || ''))[3];
-    if ($modified && $modified =~ m%^(\d+)/(\d+)/(\d+)%) {
+    if ($modified && $modified =~ m%^(\d+)[-/](\d+)[-/](\d+)%) {
         $modified = sprintf ("%d-%02d-%02d", $1, $2, $3);
     } else {
         $modified = strftime ('%Y-%m-%d', gmtime ((stat $source)[9]));
