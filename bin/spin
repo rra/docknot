@@ -850,12 +850,18 @@ sub do_quote {
     $output .= $quote;
     if ($author) {
         $author = parse ($author);
-        $output .= qq(<p class="attribution">\n);
+        my $prefix = '';
+        if ($format && ($format eq 'broken' || $format eq 'short')) {
+            $output .= qq(<p class="attribution">\n);
+        } else {
+            $output .= qq(<p class="long-attrib">\n);
+            $prefix = '&mdash; ';
+        }
         if ($cite) {
             $cite = parse ($cite);
-            $output .= "    $author,\n    $cite\n";
+            $output .= "    $prefix$author,\n    $cite\n";
         } else {
-            $output .= "    $author\n";
+            $output .= "    $prefix$author\n";
         }
         $output .= "</p>";
     } else {
