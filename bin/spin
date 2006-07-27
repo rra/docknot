@@ -718,7 +718,8 @@ sub do_number { block ('li', border ('number', "<ol>\n", "</ol>\n\n"), @_) }
 sub do_desc {
     my ($format, $heading, $text) = @_;
     my $initial = border ('desc', "<dl>\n", "</dl>\n\n");
-    $initial .= '<dt>' . parse ($heading) . "</dt>\n";
+    $initial .= '<dt' . format_string ($format) . '>' . parse ($heading)
+        . "</dt>\n";
     return block ('dd', $initial, $format, $text);
 }
 
