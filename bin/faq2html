@@ -618,7 +618,7 @@ output h1 ($heading), "\n" if $heading;
 # beginning of the next to work around a bug in lynx.
 if ($heading) {
     my $subheading;
-    while (defined && (/^\s*$/ || is_centered ($_))) {
+    while (defined && (/^\s*$/ || is_centered ($_) || $subheading)) {
         if (/^\s*$/) {
             output "\n</p>\n" if $subheading;
             $subheading = 0;
