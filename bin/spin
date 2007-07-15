@@ -3,7 +3,7 @@ $ID = q$Id$;
 #
 # spin -- Translate thread (an HTML macro language) into HTML.
 #
-# Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005
+# Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
 #     by Russ Allbery <rra@stanford.edu>
 #
 # This program is free software; you may redistribute it and/or modify it
@@ -749,7 +749,7 @@ sub do_heading {
     $style = parse ($style);
     my $file = $FILE;
     $file =~ s/\.th$/.html/;
-    my $output = qq(<?xml version="1.0" encoding="iso-8859-1"?>\n);
+    my $output = qq(<?xml version="1.0" encoding="utf-8"?>\n);
     $output .= qq(<!DOCTYPE html\n);
     $output .= qq(    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"\n);
     $output .= qq(    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\n);
@@ -757,7 +757,7 @@ sub do_heading {
     $output .= qq( lang="en">\n);
     $output .= qq(<head>\n  <title>$title</title>\n);
     $output .= qq(  <meta http-equiv="Content-Type");
-    $output .= qq( content="text/html; charset=iso-8859-1" />\n);
+    $output .= qq( content="text/html; charset=utf-8" />\n);
     if ($style) {
         $style .= '.css';
         $style = $STYLES . $style if $STYLES;
@@ -1924,7 +1924,7 @@ Russ Allbery <rra@stanford.edu>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005
+Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
 by Russ Allbery <rra@stanford.edu>.
 
 This program is free software; you may redistribute it and/or modify it
