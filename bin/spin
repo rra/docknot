@@ -613,6 +613,7 @@ sub format_string {
 # can contain multiple paragraphs.
 sub split_paragraphs {
     my $text = shift;
+    $text =~ s/^\n(\s*\n)+/\n/;
     my @paragraphs;
     while ($text && $text =~ s/^(.*?(?:\n\n+|\s*\z))//s) {
         my $paragraph = $1;
@@ -1031,6 +1032,7 @@ sub spin {
                 $_ .= $extra;
             }
             my $result = parse (escape ($_), 1);
+            $result =~ s/^(?:\s*\n)+//;
             output $result unless ($result =~ /^\s*$/);
             ($fh, $FILE) = @{ $FILES[0] };
         }
