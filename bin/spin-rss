@@ -1,0 +1,202 @@
+#!/usr/bin/perl -w
+our $ID = q$Id$;
+#
+# spin-changes -- Translate a changes file to RSS and thread.
+#
+# Copyright 2008 Russ Allbery <rra@stanford.edu>
+#
+# This program is free software; you may redistribute it and/or modify it
+# under the same terms as Perl itself.
+
+##############################################################################
+# Modules and declarations
+##############################################################################
+
+require 5.006;
+
+use strict;
+use Date::Parse qw(str2time);
+use Getopt::Long qw(GetOptions);
+use POSIX qw(strftime);
+
+##############################################################################
+# Parsing
+##############################################################################
+
+# Parse a change file.  Save the metadata into the provided hash reference and
+# the changes into the provided array reference.  Each element of the array
+# will be a hash with keys title, date, link, and description.
+sub parse_changes {
+    my ($file, $metadata, $changes) = @_;
+    open (CHANGES, '<', $file) or die "$0: cannot open $file: $!\n";
+    local $_;
+    while (<CHANGES>) {
+        last if /^\s*$/;
+        my ($key, $value) = /^(\S+):\s+(.*)/;
+        if ($value) {
+            $value =~ s/\s+$//;
+            $metadata->{lc $key} = $value;
+        }
+    }
+    my ($last, %guids);
+    while (<CHANGES>) {
+        if (/^\d/) {
+            my ($date, $title) = split ('  ', $_, 2);
+            $title =~ s/\s+$//;
+            $date = str2time ($date);
+            $last = { date => $date, title => $title };
+            my $guid = $date;
+            if ($guids{$guid}) {
+                my $n = 1;
+                $n++ while $guids{"$guid-$n"};
+                $guid = "$guid-$n";
+            }
+            $last->{guid} = $guid;
+            my $link = <CHANGES>;
+            $link =~ s/^\s+//;
+            $link =~ s/\s+$//;
+            $last->{link} = "$metadata->{base}$link";
+            push (@$changes, $last);
+        } elsif (/^\s+\S/ and $last) {
+            my $line = $_;
+            $line =~ s/^\s+//;
+            $last->{description} .= $line;
+        }
+    }
+    close CHANGES;
+}
+
+##############################################################################
+# RSS output
+##############################################################################
+
+# Escape a string for XML.
+sub xml_escape {
+    my ($string) = @_;
+    $string =~ s/&/&amp;/g;
+    $string =~ s/</&lt;/g;
+    $string =~ s/>/&gt;/g;
+    return $string;
+}
+
+# Print out the RSS version of the changes information given a file to which
+# to print it, the metadata resulting RSS file, and a reference to the array
+# of entries.  Various things are still hard-coded here.  Use the date of the
+# last change as <pubDate> and the current time as <lastBuildDate>; it's not
+# completely clear to me that this is correct.
+sub rss_output {
+    my ($file, $metadata, $entries) = @_;
+    my $format = '%a, %d %b %Y %H:%M:%S %z';
+    my $date = strftime ($format, localtime);
+    my $last = strftime ($format, localtime $entries->[0]{date});
+    my $version = (split (' ', $ID))[2];
+    print $file <<"EOC";
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>$metadata->{title}</title>
+    <link>$metadata->{base}</link>
+    <description>$metadata->{description}</description>
+    <language>$metadata->{language}</language>
+    <pubDate>$last</pubDate>
+    <lastBuildDate>$date</lastBuildDate>
+    <generator>spin-changes $version</generator>
+EOC
+    if ($metadata->{rss}) {
+        print $file qq(    <atom:link href="$metadata->{rss}" rel="self"\n);
+        print $file qq(               type="application/rss+xml" />\n);
+    }
+    print $file "\n";
+    for my $entry (@$entries) {
+        my $date = strftime ($format, localtime $entry->{date});
+        my $title = xml_escape ($entry->{title});
+        my $description = xml_escape ($entry->{description});
+        $description =~ s/^/        /mg;
+        print $file "    <item>\n";
+        print $file "      <title>$title</title>\n";
+        print $file "      <link>$entry->{link}</link>\n";
+        print $file "      <description>\n";
+        print $file "$description";
+        print $file "      </description>\n";
+        print $file "      <pubDate>$date</pubDate>\n";
+        print $file qq(      <guid isPermaLink="false">$entry->{guid}</guid>\n);
+        print $file "    </item>\n";
+    }
+    print $file "  </channel>\n";
+    print $file "</rss>\n";
+}
+
+##############################################################################
+# Thread output
+##############################################################################
+
+# Print out the thread version of the recent changes list, given a file to
+# which to print it and a reference to the array of entries.
+sub thread_output {
+    my ($file, $entries) = @_;
+    print $file "\\heading[Recent Changes][indent]\n\n";
+    print $file "\\h1[Recent Changes]\n\n";
+    my $last;
+    for my $entry (@$entries) {
+        my $month = strftime ('%B %Y', localtime $entry->{date});
+        if (not $last or $month ne $last) {
+            print $file "\\h2[$month]\n\n";
+            $last = $month;
+        }
+        my $date = strftime ('%Y-%m-%d', localtime $entry->{date});
+        print $file "\\desc[$date \\entity[mdash]\n";
+        print $file "      \\link[$entry->{link}]\n";
+        print $file "           [$entry->{title}]][\n";
+        my $description = $entry->{description};
+        $description =~ s/^/    /mg;
+        print $file $description;
+        print $file "]\n\n";
+    }
+    print $file "\\signature\n";
+}
+
+##############################################################################
+# Main routine
+##############################################################################
+
+$| = 1;
+my $fullpath = $0;
+$0 =~ s%.*/%%;
+
+# Parse command-line options.
+my ($help, $version);
+Getopt::Long::config ('bundling');
+GetOptions ('h|help'    => \$help,
+            'v|version' => \$version) or exit 1;
+if ($help) {
+    print "Feeding myself to perldoc, please wait....\n";
+    exec ('perldoc', '-t', $fullpath);
+} elsif ($version) {
+    my $version = join (' ', (split (' ', $ID))[1..3]);
+    $version =~ s/,v\b//;
+    $version =~ s/(\S+)$/($1)/;
+    $version =~ tr%/%-%;
+    print $version, "\n";
+    exit;
+}
+my ($source, $rss, $thread) = @ARGV;
+die "Usage: $0 [-hv] <source> <rss> [<thread>]\n" unless $rss;
+
+# Read in the changes.
+my (%metadata, @changes);
+parse_changes ($source, \%metadata, \@changes);
+
+# Write out the thread file if desired.
+if ($thread) {
+    open (THREAD, '>', $thread) or die "$0: cannot create $thread: $!\n";
+    thread_output (\*THREAD, \@changes);
+    close THREAD;
+}
+
+# Write out the RSS feed file, but only include the last 20 entries.
+if (@changes > 20) {
+    splice (@changes, 20);
+}
+open (RSS, '>', $rss) or die "$0: cannot create $rss: $!\n";
+rss_output (\*RSS, \%metadata, \@changes);
+close RSS;
