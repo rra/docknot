@@ -3,7 +3,7 @@ $ID = q$Id$;
 #
 # spin -- Translate thread (an HTML macro language) into HTML.
 #
-# Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+# Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
 #     by Russ Allbery <rra@stanford.edu>
 #
 # This program is free software; you may redistribute it and/or modify it
@@ -35,6 +35,7 @@ use Getopt::Long qw(GetOptions);
 use Image::Size qw(html_imgsize);
 use File::Copy qw(copy);
 use File::Find qw(find);
+use File::Spec ();
 use POSIX qw(mktime strftime);
 use Text::Balanced qw(extract_bracketed);
 
@@ -707,7 +708,10 @@ sub do_code   { inline ('code', @_) }
 sub do_emph   { inline ('em', @_) }
 sub do_italic { inline ('i', @_) }
 sub do_rule   { return (1, border . "<hr />\n") }
+sub do_strike { inline ('strike', @_) }
 sub do_strong { inline ('strong', @_) }
+sub do_sub    { inline ('sub', @_) }
+sub do_sup    { inline ('sup', @_) }
 
 # Basic block commands.
 sub do_div    { block ('div', '', @_) }
@@ -1224,12 +1228,15 @@ sub process_file {
     # Figure out what to do with the input.
     if (-d) {
         $OUTPUT{$output} = 1;
-        return if -d $output;
-        if (-e $output) {
+        if (-e $output && !-d $output) {
             die "$0: can't replace $output with a directory\n";
-        } else {
+        } elsif (!-d $output) {
             print "Creating $shortout\n";
             mkdir ($output, 0755) or die "$0: mkdir $output failed: $!\n";
+        }
+        if (-f "$_/.rss") {
+            system ('spin-rss', '-b', $_, "$_/.rss") == 0
+                or die "$0: running spin-rss on $input/.rss failed\n";
         }
     } elsif (/\.th$/) {
         $output =~ s/\.th$/.html/;
@@ -1338,14 +1345,28 @@ if ($filter) {
     if (@ARGV) { die "Usage: $0 -f\n" }
     spin ('-', '-');
 } else {
-    if (@ARGV != 2) { die "Usage: $0 <source> <output>\n" }
+    die "Usage: $0 <source> [<output>]\n" unless (@ARGV >= 1 && @ARGV <= 2);
     ($SOURCE, $OUTPUT) = @ARGV;
+    $OUTPUT ||= '-';
     $OUTPUT =~ s%/+$%%;
     if (-f $SOURCE) {
         open (STDIN, $SOURCE) or die "$0: cannot open $SOURCE: $!\n";
-        open (STDOUT, "> $OUTPUT") or die "$0: cannot create $OUTPUT: $!\n";
+        if ($OUTPUT ne '-') {
+            my (undef, $dir, $file) = File::Spec->splitpath ($OUTPUT);
+            my $current = getcwd;
+            chdir $dir or die "$0: cannot chdir to $dir: $!\n";
+            $OUTPUT = File::Spec->catpath ('', getcwd, $file);
+            chdir $current or die "$0: cannot chdir to $current: $!\n";
+            open (STDOUT, "> $OUTPUT")
+                or die "$0: cannot create $OUTPUT: $!\n";
+        }
+        my (undef, $dir, $file) = File::Spec->splitpath ($SOURCE);
+        my $current = getcwd;
+        chdir $dir or die "$0: cannot chdir to $dir: $!\n";
+        $SOURCE = File::Spec->catpath ('', getcwd, $file);
         spin ('-', '-');
     } else {
+        die "$0: no output directory specified\n" if $OUTPUT eq '-';
         if ($SOURCE !~ m%^/%) {
             my $current = getcwd;
             chdir $SOURCE or die "$0: cannot chdir to $SOURCE: $!\n";
@@ -1355,8 +1376,7 @@ if ($filter) {
         if ($OUTPUT !~ m%^/%) {
             unless (-d $OUTPUT) {
                 print "Creating $OUTPUT\n";
-                mkdir ($OUTPUT, 0755)
-                    or die "$0: cannot create $OUTPUT: $!\n";
+                mkdir ($OUTPUT, 0755) or die "$0: cannot create $OUTPUT: $!\n";
             }
             chdir $OUTPUT or die "$0: cannot chdir to $OUTPUT: $!\n";
             $OUTPUT = getcwd;
@@ -1364,6 +1384,13 @@ if ($filter) {
         read_sitemap ("$SOURCE/.sitemap");
         read_versions ("$SOURCE/.versions");
         $File::Find::dont_use_nlink = 1;
+        if (-f "$SOURCE/.rss") {
+            my $current = getcwd;
+            chdir $SOURCE or die "$0: cannot chdir to $SOURCE: $!\n";
+            system ('spin-rss', '.rss') == 0
+                or die "$0: running spin-rss on $SOURCE/.rss failed\n";
+            chdir $current or die "$0: cannot chdir to $current: $!\n";
+        }
         find (\&process_file, $SOURCE);
         find (\&delete_files, $OUTPUT) if $delete;
     }
@@ -1380,7 +1407,7 @@ spin - Translate thread, an HTML macro language, into XHTML
 =head1 SYNOPSIS
 
 spin [B<-dhv>] [B<-e> I<pattern> ...] [B<-s> I<url>] [B<-o> I<overrides>]
-I<source> I<output>
+I<source> [I<output>]
 
 spin [B<-s> I<url>] [B<-o> I<overrides>] B<-f>
 
@@ -1404,8 +1431,9 @@ this mode.
 
 If I<source> is a regular file, I<output> should be the name of the file
 into which to put the output, and B<spin> will process only that one file
-(which is assumed to be thread).  The same features are disabled in this
-mode as in filter mode.
+(which is assumed to be thread).  I<output> may be omitted to send the output
+to standard output. The same features are disabled in this mode as in filter
+mode.
 
 Otherwise, each file in the directory I<source> is examined recursively.
 For each one, it is either copied verbatim into the same relative path under
@@ -1492,6 +1520,12 @@ information.  If the date of a release is newer than the timestamp of the
 output from one of the files listed in <files>, that file will be spun again
 even if it hasn't changed (to pick up the latest version and release
 information).
+
+B<spin> looks for a file named F<.rss> in each directory it processes.  If
+one is found, B<spin> runs B<spin-rss> on that file, passing the B<-b>
+option to point to the directory about to be processed.  B<spin> does this
+before processing the files in that directory, so B<spin-rss> can create
+or update files that will then be processed by B<spin> as normal.
 
 =head1 OPTIONS
 
@@ -1796,7 +1830,10 @@ simple HTML tags:
     \code       <code></code>
     \emph       <em></em>
     \italic     <i></i>                 (usually use \emph)
+    \strike     <strike></strike>
     \strong     <strong></strong>
+    \sub        <sub></sub>
+    \sup        <sup></sup>
 
 Here are the other inline commands:
 
@@ -1912,7 +1949,7 @@ included.
 
 =head1 SEE ALSO
 
-cl2xhtml(1), cvs2xhtml(1), faq2html(1), pod2thread(1)
+cl2xhtml(1), cvs2xhtml(1), faq2html(1), pod2thread(1), spin-rss(1)
 
 The XHTML 1.0 standard at L<http://www.w3.org/TR/xhtml1/>.
 
@@ -1926,7 +1963,7 @@ Russ Allbery <rra@stanford.edu>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
 by Russ Allbery <rra@stanford.edu>.
 
 This program is free software; you may redistribute it and/or modify it
