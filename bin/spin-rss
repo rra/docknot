@@ -20,6 +20,17 @@ use Getopt::Long qw(GetOptions);
 use POSIX qw(strftime);
 
 ##############################################################################
+# Utility functions
+##############################################################################
+
+# Returns the intersection of two arrays as a list.
+sub intersect {
+    my ($a, $b) = @_;
+    my %a = map { $_ => 1 } @$a;
+    return grep { $a{$_} } @$b;
+}
+
+##############################################################################
 # Parsing
 ##############################################################################
 
@@ -30,40 +41,56 @@ sub parse_changes {
     my ($file, $metadata, $changes) = @_;
     open (CHANGES, '<', $file) or die "$0: cannot open $file: $!\n";
     local $_;
+    my ($last, @blocks);
+    push (@blocks, {});
+    my $current = $blocks[0];
     while (<CHANGES>) {
-        last if /^\s*$/;
-        my ($key, $value) = /^(\S+):\s+(.*)/;
-        if ($value) {
+        if (/^\s*$/) {
+            push (@blocks, {});
+            $current = $blocks[$#blocks];
+        } elsif (/^(\S+):[ \t]+(.*)/) {
+            my ($key, $value) = ($1, $2);
+            die "$0: cannot parse $file at line $.\n" unless $value;
             $value =~ s/\s+$//;
-            $metadata->{lc $key} = $value;
-        }
-    }
-    my ($last, %guids);
-    while (<CHANGES>) {
-        if (/^\d/) {
-            my ($date, $title) = split ('  ', $_, 2);
-            $title =~ s/\s+$//;
-            $date = str2time ($date);
-            $last = { date => $date, title => $title };
-            my $guid = $date;
-            if ($guids{$guid}) {
-                my $n = 1;
-                $n++ while $guids{"$guid-$n"};
-                $guid = "$guid-$n";
-            }
-            $last->{guid} = $guid;
-            my $link = <CHANGES>;
-            $link =~ s/^\s+//;
-            $link =~ s/\s+$//;
-            $last->{link} = "$metadata->{base}$link";
-            push (@$changes, $last);
-        } elsif (/^\s+\S/ and $last) {
-            my $line = $_;
-            $line =~ s/^\s+//;
-            $last->{description} .= $line;
+            $last = lc $key;
+            $current->{$last} = $value;
+        } elsif (/^(\S+):/) {
+            $last = lc $1;
+            $current->{$last} ||= '';
+        } elsif (/^\s/) {
+            my $value = $_;
+            $value =~ s/^\s//;
+            $value = "\n" if $value =~ /^\.\s*\n/;
+            $current->{$last} .= $value;
         }
     }
     close CHANGES;
+    %$metadata = %{ shift @blocks };
+    my %guids;
+    for my $block (@blocks) {
+        $block->{date} = str2time ($block->{date})
+            or die "$0: cannot parse date $block->{date}\n";
+        if ($block->{link} && $block->{link} !~ /^http/) {
+            $block->{link} = $metadata->{base} . $block->{link};
+        }
+        unless ($block->{guid}) {
+            my $guid;
+            if ($block->{journal} || $block->{review}) {
+                $guid = $block->{link};
+            } else {
+                $guid = $block->{date};
+            }
+            die "$0: duplicate GUID for entry $guid\n" if $guids{$guid};
+            $block->{guid} = $guid;
+        }
+        if ($block->{tags}) {
+            $block->{tags} = [ split (' ', $block->{tags}) ];
+        } else {
+            $block->{tags} = [];
+        }
+        push (@{ $block->{tags} }, 'review') if $block->{review};
+    }
+    @$changes = @blocks;
 }
 
 ##############################################################################
@@ -77,6 +104,59 @@ sub xml_escape {
     $string =~ s/</&lt;/g;
     $string =~ s/>/&gt;/g;
     return $string;
+}
+
+# Format a journal post into HTML for inclusion in an RSS feed.
+sub rss_journal {
+    my ($file) = @_;
+    my @page = `/home/eagle/web/spin '$file'`;
+    if ($? != 0) {
+        die "$0: spin of $file failed with status ", ($? >> 8), "\n";
+    }
+    shift @page while (@page and $page[0] !~ /<h1>/);
+    shift @page;
+    shift @page while (@page and $page[0] =~ /^\s*$/);
+    pop @page while (@page and $page[$#page] !~ /<p class=\"date\">/);
+    pop @page;
+    pop @page while (@page and $page[$#page] =~ /^\s*$/);
+    return '<![CDATA[' . join ('', @page) . "]]>\n";
+}
+
+# Format a review into HTML for inclusion in an RSS feed.  Takes the path to
+# the review thread file and the metadata for this feed.
+sub rss_review {
+    my ($file, $metadata) = @_;
+    my $dir = $file;
+    $dir =~ s%/+[^/]*$%%;
+    my $class = ($dir =~ /magazines/) ? 'magazines' : 'books';
+    my $base = $metadata->{base} . '/reviews';
+    my @page = `/home/eagle/web/spin '$file'`;
+    if ($? != 0) {
+        die "$0: spin of $file failed with status ", ($? >> 8), "\n";
+    }
+    shift @page while (@page and $page[0] !~ /<table class=\"info\">/);
+    pop @page while (@page and $page[$#page] !~ /<p class=\"rating\">/);
+    my $buy;
+    for my $i (0 .. $#page) {
+        if ($page[$i] =~ /<p class=\"buy\">/) {
+            $buy = $i;
+            last;
+        }
+    }
+    splice (@page, $buy, 2) if $buy;
+    my $page = join ('', @page);
+    $page =~ s/^\s*<table[^>]+>/<table>/mg;
+    $page =~ s/^\s*<tr/  <tr/mg;
+    $page =~ s/^\s*<td[^>]+>/    <td>/mg;
+    $page =~ s/<div class=\"review\">//;
+    $page =~ s/<p class=\"rating\">/<p>/;
+    $page =~ s{(href=\")(?!http:)(\w[^\"]+\")}
+              {$1$base/$class/$2}g;
+    $page =~ s{(href=\")\.\./(\w[^\"]+\")}
+              {$1$base/$2}g;
+    $page =~ s{<span class="story"><span id="\S+">(.*?)</span></span>}
+              {<strong>$1</strong>}sg;
+    return '<![CDATA[' . $page . "]]>\n";
 }
 
 # Print out the RSS version of the changes information given a file to which
@@ -110,8 +190,16 @@ EOC
     for my $entry (@$entries) {
         my $date = strftime ($format, localtime $entry->{date});
         my $title = xml_escape ($entry->{title});
-        my $description = xml_escape ($entry->{description});
-        $description =~ s/^/        /mg;
+        my $description;
+        if ($entry->{description}) {
+            $description = xml_escape ($entry->{description});
+            $description =~ s/^/        /mg;
+        } elsif ($entry->{journal}) {
+            $description = rss_journal ($entry->{journal});
+        } elsif ($entry->{review}) {
+            $description = rss_review ($entry->{review}, $metadata);
+        }
+        my $perma = ($entry->{guid} =~ /^http/) ? '' : ' isPermaLink="false"';
         print $file "    <item>\n";
         print $file "      <title>$title</title>\n";
         print $file "      <link>$entry->{link}</link>\n";
@@ -119,7 +207,7 @@ EOC
         print $file "$description";
         print $file "      </description>\n";
         print $file "      <pubDate>$date</pubDate>\n";
-        print $file qq(      <guid isPermaLink="false">$entry->{guid}</guid>\n);
+        print $file "      <guid$perma>$entry->{guid}</guid>\n";
         print $file "    </item>\n";
     }
     print $file "  </channel>\n";
@@ -164,9 +252,10 @@ my $fullpath = $0;
 $0 =~ s%.*/%%;
 
 # Parse command-line options.
-my ($help, $version);
+my ($base, $help, $version);
 Getopt::Long::config ('bundling');
-GetOptions ('h|help'    => \$help,
+GetOptions ('b|base=s'  => \$base,
+            'h|help'    => \$help,
             'v|version' => \$version) or exit 1;
 if ($help) {
     print "Feeding myself to perldoc, please wait....\n";
@@ -179,24 +268,44 @@ if ($help) {
     print $version, "\n";
     exit;
 }
-my ($source, $rss, $thread) = @ARGV;
-die "Usage: $0 [-hv] <source> <rss> [<thread>]\n" unless $rss;
+$base =~ s,/*$,/, if $base;
+my ($source) = @ARGV;
+die "Usage: $0 [-hv] <source>\n" unless $source;
 
 # Read in the changes.
 my (%metadata, @changes);
 parse_changes ($source, \%metadata, \@changes);
 
-# Write out the thread file if desired.
-if ($thread) {
-    open (THREAD, '>', $thread) or die "$0: cannot create $thread: $!\n";
-    thread_output (\*THREAD, \@changes);
-    close THREAD;
+# Now, the output key tells us what files to write out.
+my @output;
+if ($metadata{output}) {
+    @output = split (' ', $metadata{output});
+} else {
+    @output = ('*:rss:index.rss');
 }
-
-# Write out the RSS feed file, but only include the last 20 entries.
-if (@changes > 20) {
-    splice (@changes, 20);
+for my $output (@output) {
+    my ($tags, $format, $file) = split (':', $output);
+    $file = "$base$file" if ($base && $file !~ m,^/,);
+    next if (-f $file && -M $file <= -M $source);
+    my @tags = split (',', $tags);
+    my @interest;
+    for my $change (@changes) {
+        if ($tags eq '*' || intersect ($change->{tags}, \@tags)) {
+            push (@interest, $change);
+        }
+    }
+    if ($format eq 'thread') {
+        print "Generating thread file .../$file\n";
+        open (THREAD, '>', $file) or die "$0: cannot create $file: $!\n";
+        thread_output (\*THREAD, \@interest);
+        close THREAD;
+    } elsif ($format eq 'rss') {
+        if (@interest > 15) {
+            splice (@interest, 15);
+        }
+        print "Generating RSS file .../$file\n";
+        open (RSS, '>', $file) or die "$0: cannot create $file: $!\n";
+        rss_output (\*RSS, \%metadata, \@interest);
+        close RSS;
+    }
 }
-open (RSS, '>', $rss) or die "$0: cannot create $rss: $!\n";
-rss_output (\*RSS, \%metadata, \@changes);
-close RSS;
