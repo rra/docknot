@@ -109,7 +109,7 @@ sub xml_escape {
 # Format a journal post into HTML for inclusion in an RSS feed.
 sub rss_journal {
     my ($file) = @_;
-    my @page = `/home/eagle/web/spin '$file'`;
+    my @page = `spin '$file'`;
     if ($? != 0) {
         die "$0: spin of $file failed with status ", ($? >> 8), "\n";
     }
@@ -130,7 +130,7 @@ sub rss_review {
     $dir =~ s%/+[^/]*$%%;
     my $class = ($dir =~ /magazines/) ? 'magazines' : 'books';
     my $base = $metadata->{base} . '/reviews';
-    my @page = `/home/eagle/web/spin '$file'`;
+    my @page = `spin '$file'`;
     if ($? != 0) {
         die "$0: spin of $file failed with status ", ($? >> 8), "\n";
     }
