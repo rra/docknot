@@ -63,6 +63,7 @@ sub parse_changes {
             my $value = $_;
             $value =~ s/^\s//;
             $value = "\n" if $value =~ /^\.\s*\n/;
+            $current->{$last} .= "\n" unless $current->{$last} =~ /\n\z/;
             $current->{$last} .= $value;
         }
     }
