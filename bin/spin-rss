@@ -133,7 +133,8 @@ sub rss_review {
     my $dir = $file;
     $dir =~ s%/+[^/]*$%%;
     my $class = ($dir =~ /magazines/) ? 'magazines' : 'books';
-    my $base = $metadata->{base} . '/reviews';
+    my $base = $metadata->{base} . ($metadata->{base} =~ m%/$% ? '' : '/')
+        . 'reviews';
     my @page = `spin '$file'`;
     if ($? != 0) {
         die "$0: spin of $file failed with status ", ($? >> 8), "\n";
@@ -228,11 +229,14 @@ EOC
 ##############################################################################
 
 # Print out the thread version of the recent changes list, given a file to
-# which to print it and a reference to the array of entries.
+# which to print it, the metadata, and a reference to the array of entries.
 sub thread_output {
-    my ($file, $entries) = @_;
+    my ($file, $metadata, $entries) = @_;
     print $file "\\heading[Recent Changes][indent]\n\n";
     print $file "\\h1[Recent Changes]\n\n";
+    if ($metadata->{'thread-prefix'}) {
+        print $file $metadata->{'thread-prefix'}, "\n";
+    }
     my $last;
     for my $entry (@$entries) {
         my $month = strftime ('%B %Y', localtime $entry->{date});
@@ -306,7 +310,7 @@ for my $output (@output) {
     if ($format eq 'thread') {
         print "Generating thread file .../$file\n";
         open (THREAD, '>', $file) or die "$0: cannot create $file: $!\n";
-        thread_output (\*THREAD, \@interest);
+        thread_output (\*THREAD, \%metadata, \@interest);
         close THREAD;
     } elsif ($format eq 'rss') {
         if (@interest > 15) {
