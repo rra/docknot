@@ -153,6 +153,7 @@ sub rss_review {
     $page =~ s/^\s*<table[^>]+>/<table>/mg;
     $page =~ s/^\s*<tr/  <tr/mg;
     $page =~ s/^\s*<td[^>]+>/    <td>/mg;
+    $page =~ s{</tr></table></div>}{</tr></table>};
     $page =~ s/<div class=\"review\">//;
     $page =~ s/<p class=\"rating\">/<p>/;
     $page =~ s{(href=\")(?!http:)(\w[^\"]+\")}
