@@ -139,7 +139,17 @@ sub rss_review {
     if ($? != 0) {
         die "$0: spin of $file failed with status ", ($? >> 8), "\n";
     }
-    shift @page while (@page and $page[0] !~ /<table class=\"info\">/);
+    my ($title, $author);
+    while (@page and $page[0] !~ /<table class=\"info\">/) {
+        if ($page[0] =~ m{<h1><cite>(.*)</cite></h1>}) {
+            $title = $1;
+        } elsif ($page[0] =~ m{<p class="(?:author|date)">(.*)</p>}) {
+            $author = $1;
+        }
+        shift @page;
+    }
+    die "$0: cannot find title and author in $file"
+        unless ($title && $author);
     pop @page while (@page and $page[$#page] !~ /<p class=\"rating\">/);
     my $buy;
     for my $i (0 .. $#page) {
@@ -162,6 +172,7 @@ sub rss_review {
               {$1$base/$2}g;
     $page =~ s{<span class="story"><span id="\S+">(.*?)</span></span>}
               {<strong>$1</strong>}sg;
+    $page = "<p>Review: <cite>$title</cite>, $author</p>\n\n" . $page;
     return '<![CDATA[' . $page . "]]>\n";
 }
 
