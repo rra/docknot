@@ -185,8 +185,6 @@ sub rss_review {
     $page =~ s{</tr></table></div>}{</tr></table>};
     $page =~ s/<div class=\"review\">//;
     $page =~ s/<p class=\"rating\">/<p>/;
-    $page =~ s{(href=\")(?!http:)(\w[^\"]+)\"}
-              {$1 . resolve_url ($2, "$base/$class/") . '"'}ge;
     $page =~ s{<span class="story"><span id="\S+">(.*?)</span></span>}
               {<strong>$1</strong>}sg;
     $page = "<p>Review: <cite>$title</cite>, $author</p>\n\n" . $page;
@@ -238,6 +236,8 @@ EOC
         } elsif ($entry->{review}) {
             $description = rss_review ($entry->{review}, $metadata);
         }
+        $description =~ s{(<(?:a href|img src)=\")(?!http:)([./\w][^\"]+)\"}
+                         {$1 . resolve_url ($2, $entry->{link}) . '"'}ge;
         my $perma = ($entry->{guid} =~ /^http/) ? '' : ' isPermaLink="false"';
         print $file "    <item>\n";
         print $file "      <title>$title</title>\n";
