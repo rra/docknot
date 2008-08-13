@@ -385,7 +385,7 @@ sub index_output {
     }
     my $last;
     for my $entry (@$entries) {
-        my $date = strftime ('%Y-%m-%d %T', localtime $entry->{date});
+        my $date = strftime ('%Y-%m-%d %H:%M', localtime $entry->{date});
         my $day = $date;
         $day =~ s/ .*//;
         print $file "\\h2[$day: $entry->{title}]\n\n";
