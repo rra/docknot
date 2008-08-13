@@ -30,6 +30,23 @@ sub intersect {
     return grep { $a{$_} } @$b;
 }
 
+# Construct an absolute URL from a relative URL and a base URL.
+sub resolve_url {
+    my ($url, $base) = @_;
+    $base =~ s,[^/]+$,,;
+    if ($url =~ /^https?:/) {
+        return $url;
+    } elsif ($url =~ m,^/,) {
+        $base =~ s,^(https?://[^/]+).*,$1,;
+        return "$base$url";
+    } else {
+        while ($url =~ s,^\.\./+,,) {
+            $base =~ s,[^/]+/+$,,;
+        }
+        return "$base$url";
+    }
+}
+
 ##############################################################################
 # Parsing
 ##############################################################################
@@ -49,7 +66,7 @@ sub parse_changes {
             push (@blocks, {});
             $current = $blocks[$#blocks];
             undef $last;
-        } elsif (/^(\S+):[ \t]+(.*)/) {
+        } elsif (/^(\S+):[ \t]+(.+)/) {
             my ($key, $value) = ($1, $2);
             die "$0: cannot parse $file at line $.\n" unless $value;
             $value =~ s/\s+$//;
@@ -63,7 +80,9 @@ sub parse_changes {
             my $value = $_;
             $value =~ s/^\s//;
             $value = "\n" if $value =~ /^\.\s*\n/;
-            $current->{$last} .= "\n" unless $current->{$last} =~ /\n\z/;
+            if ($current->{$last} and $current->{$last} !~ /\n\z/) {
+                $current->{$last} .= "\n";
+            }
             $current->{$last} .= $value;
         }
     }
@@ -166,10 +185,8 @@ sub rss_review {
     $page =~ s{</tr></table></div>}{</tr></table>};
     $page =~ s/<div class=\"review\">//;
     $page =~ s/<p class=\"rating\">/<p>/;
-    $page =~ s{(href=\")(?!http:)(\w[^\"]+\")}
-              {$1$base/$class/$2}g;
-    $page =~ s{(href=\")\.\./(\w[^\"]+\")}
-              {$1$base/$2}g;
+    $page =~ s{(href=\")(?!http:)(\w[^\"]+)\"}
+              {$1 . resolve_url ($2, "$base/$class/") . '"'}ge;
     $page =~ s{<span class="story"><span id="\S+">(.*?)</span></span>}
               {<strong>$1</strong>}sg;
     $page = "<p>Review: <cite>$title</cite>, $author</p>\n\n" . $page;
@@ -269,6 +286,109 @@ sub thread_output {
 }
 
 ##############################################################################
+# Index output
+##############################################################################
+
+# Translate the thread of a journal entry for inclusion in an index page.
+# Also takes the full URL for the permanent link to the entry page.  Returns
+# the thread.
+sub index_journal {
+    my ($file, $url) = @_;
+    open (IN, '<', $file) or die "$0: cannot open $file: $!\n";
+    local $_;
+    while (<IN>) {
+        last if /\\h1/;
+    }
+    my $text = <IN>;
+    $text = '' if $text =~ /^\s*$/;
+    while (<IN>) {
+        last if /^\\class\(date\)/;
+        $text .= $_;
+    }
+    close IN;
+    return $text;
+}
+
+# Translate the thread of a book review for inclusion into an index page.
+# Also takes the full URL for the permanent link to the entry page.  Returns
+# the thread.
+sub index_review {
+    my ($file, $url) = @_;
+    open (IN, '<', $file) or die "$0: cannot open $file: $!\n";
+    local $_;
+    my ($title, $author);
+    while (<IN>) {
+        my $char = '(?:[^\]\\\\]|\\\\entity\[\S+\])';
+        if (/\\(header|edited)\s*\[($char+)\]\s*$/) {
+            $_ .= <IN>;
+        }
+        if (/\\(header|edited)\s*\[($char+)\]\s*\[($char+)\]/) {
+            ($title, $author) = ($2, $3);
+            $author .= ' (ed.)' if ($1 eq 'edited');
+            last;
+        }
+    }
+    unless (defined $author) {
+        die "$0: cannot parse review file $file\n";
+    }
+    my $text;
+    if ($file =~ m,/magazines/,) {
+        $text = "Review: \\cite[$title], $author\n\n";
+    } else {
+        $text = "Review: \\cite[$title], by $author\n\n";
+    }
+    $text .= "\\table[][\n";
+    while (<IN>) {
+        last if /^\\div\(review\)\[/;
+        my $char = '(?:[^\]\\\\]|\\\\entity\[\S+\])';
+        if (/^\s*\\data\[($char+)\]\s*\[($char+)\]/) {
+            $text .= "    \\tablerow[$1][$2]\n";
+        }
+    }
+    $text .= "]\n\n";
+    while (<IN>) {
+        last if /^\\done/;
+        s/\\story\[\d+\]/\\strong/g;
+        s/^\\rating\[([^\]]+)\]/Rating: $1 out of 10/;
+        $text .= $_;
+    }
+    close IN;
+    return $text;
+}
+
+# Print out the index version of the recent changes list, given a file to
+# which to print it, the metadata, and a reference to the array of entries.
+sub index_output {
+    my ($file, $metadata, $entries) = @_;
+    if ($metadata->{'index-prefix'}) {
+        print $file $metadata->{'index-prefix'}, "\n";
+    }
+    my $last;
+    for my $entry (@$entries) {
+        my $date = strftime ('%Y-%m-%d %T', localtime $entry->{date});
+        my $day = $date;
+        $day =~ s/ .*//;
+        print $file "\\h2[$day: $entry->{title}]\n\n";
+        my $text;
+        if ($entry->{journal}) {
+            $text = index_journal ($entry->{journal}, $entry->{link});
+        } elsif ($entry->{review}) {
+            $text = index_review ($entry->{review}, $entry->{link});
+        }
+        $text =~ s{(\\(?:link|image)\s*)\[([^\]]+)\]}
+                  {"${1}[" . resolve_url ($2, $entry->{link}) . ']'}ge;
+        print $file $text;
+        print $file "\\class(footer)[$date \\entity[mdash]\n";
+        print $file "    \\link[$entry->{link}]\n";
+        print $file "         [Permanent link]]\n\n";
+    }
+    if ($metadata->{'index-suffix'}) {
+        print $file $metadata->{'index-suffix'}, "\n";
+    }
+    print $file "\\signature\n";
+}
+
+##############################################################################
 # Main routine
 ##############################################################################
 
@@ -311,6 +431,8 @@ if ($metadata{output}) {
 for my $output (@output) {
     my ($tags, $format, $file) = split (':', $output);
     $file = "$base$file" if ($base && $file !~ m,^/,);
+    my $prettyfile = $file;
+    $prettyfile = ".../$prettyfile" unless $prettyfile =~ m,^/,;
     next if (-f $file && -M $file <= -M $source);
     my @tags = split (',', $tags);
     my @interest;
@@ -320,7 +442,7 @@ for my $output (@output) {
         }
     }
     if ($format eq 'thread') {
-        print "Generating thread file .../$file\n";
+        print "Generating thread file $prettyfile\n";
         open (THREAD, '>', $file) or die "$0: cannot create $file: $!\n";
         thread_output (\*THREAD, \%metadata, \@interest);
         close THREAD;
@@ -328,9 +450,17 @@ for my $output (@output) {
         if (@interest > 15) {
             splice (@interest, 15);
         }
-        print "Generating RSS file .../$file\n";
+        print "Generating RSS file $prettyfile\n";
         open (RSS, '>', $file) or die "$0: cannot create $file: $!\n";
         rss_output (\*RSS, \%metadata, \@interest);
         close RSS;
+    } elsif ($format eq 'index') {
+        if (@interest > 15) {
+            splice (@interest, 15);
+        }
+        print "Generating index file $prettyfile\n";
+        open (INDEX, '>', $file) or die "$0: cannot create $file: $!\n";
+        index_output (\*INDEX, \%metadata, \@interest);
+        close INDEX;
     }
 }
