@@ -369,7 +369,7 @@ sub index_review {
     while (<IN>) {
         last if /^\\done/;
         s/\\story\[\d+\]/\\strong/g;
-        s/^\\rating\[([^\]]+)\]/Rating: $1 out of 10/;
+        s/^\\rating\s*\[([^\]]+)\]/Rating: $1 out of 10/;
         $text .= $_;
     }
     close IN;
