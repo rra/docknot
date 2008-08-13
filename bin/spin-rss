@@ -31,7 +31,7 @@ sub intersect {
 }
 
 # Construct an absolute URL from a relative URL and a base URL.
-sub resolve_url {
+sub absolute_url {
     my ($url, $base) = @_;
     $base =~ s,[^/]+$,,;
     if ($url =~ /^https?:/) {
@@ -45,6 +45,26 @@ sub resolve_url {
         }
         return "$base$url";
     }
+}
+
+# Construct a relative URL from an absolute URL and a base URL.
+sub relative_url {
+    my ($url, $base) = @_;
+    return $url unless $base;
+    $base =~ s,^(https?://[^/]+/)/*,,;
+    my $host = $1;
+    if (!$host || index ($url, $host) != 0) {
+        return $url;
+    }
+    $url =~ s,^\Q$host\E/*,,;
+    my @base = split (m,/+,, $base);
+    while ($url and @base) {
+        my $segment = shift @base;
+        unless ($url =~ s,^\Q$segment\E/*,,) {
+            return ('../' x (@base + 1)) . $url;
+        }
+    }
+    return ('../' x @base) . $url;
 }
 
 ##############################################################################
@@ -217,7 +237,7 @@ sub rss_output {
     <language>$metadata->{language}</language>
     <pubDate>$last</pubDate>
     <lastBuildDate>$date</lastBuildDate>
-    <generator>spin-changes $version</generator>
+    <generator>spin-rss $version</generator>
 EOC
     if ($metadata->{rss}) {
         print $file qq(    <atom:link href="$metadata->{rss}" rel="self"\n);
@@ -237,7 +257,7 @@ EOC
             $description = rss_review ($entry->{review}, $metadata);
         }
         $description =~ s{(<(?:a href|img src)=\")(?!http:)([./\w][^\"]+)\"}
-                         {$1 . resolve_url ($2, $entry->{link}) . '"'}ge;
+                         {$1 . absolute_url ($2, $entry->{link}) . '"'}ge;
         my $perma = ($entry->{guid} =~ /^http/) ? '' : ' isPermaLink="false"';
         print $file "    <item>\n";
         print $file "      <title>$title</title>\n";
@@ -376,7 +396,9 @@ sub index_output {
             $text = index_review ($entry->{review}, $entry->{link});
         }
         $text =~ s{(\\(?:link|image)\s*)\[([^\]]+)\]}
-                  {"${1}[" . resolve_url ($2, $entry->{link}) . ']'}ge;
+                  {"${1}[" . absolute_url ($2, $entry->{link}) . ']'}ge;
+        $text =~ s{(\\image\s*)\[([^\]]+)\]}
+            {"${1}[" . relative_url ($2, $metadata->{'index-base'}) . ']'}ge;
         print $file $text;
         print $file "\\class(footer)[$date \\entity[mdash]\n";
         print $file "    \\link[$entry->{link}]\n";
