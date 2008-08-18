@@ -26,8 +26,8 @@ $URL = 'http://www.eyrie.org/~eagle/software/web/';
 use strict;
 use subs qw(expand parse parse_context);
 use vars qw(%DEPEND $DOCID @EXCLUDES $FILE @FILES $FULLPATH $ID $OUTPUT
-            %OUTPUT %SITEDESCS %SITELINKS $SOURCE $SPACE @STATE $STYLES $URL
-            %VERSIONS %commands %macros %strings);
+            %OUTPUT @RSS %SITEDESCS %SITELINKS $SOURCE $SPACE @STATE $STYLES
+            $URL %VERSIONS %commands %macros %strings);
 
 use Cwd qw(getcwd);
 use FileHandle ();
@@ -769,6 +769,14 @@ sub do_heading {
         $output .= qq(  <link rel="stylesheet" href="$style");
         $output .= qq( type="text/css" />\n);
     }
+    if (@RSS) {
+        for my $rss (@RSS) {
+            my ($url, $title) = @$rss;
+            $output .= qq(  <link rel="alternate" type="application/rss+xml");
+            $output .= qq( href="$url"\n);
+            $output .= qq(        title="$title" />\n);
+        }
+    }
     if ($FILE ne '-') {
         $output .= sitelinks $file;
     }
@@ -891,6 +899,16 @@ sub do_release {
     }
 }
 
+# Used to save RSS feed information for the page.  Doesn't output anything
+# directly; the RSS feed information is used later in do_heading.
+sub do_rss {
+    my ($format, $url, $title) = @_;
+    $url = parse ($url);
+    $title = parse ($title);
+    push (@RSS, [ $url, $title ]);
+    return (1, '');
+}
+
 # Used to end each page, this adds the navigation links and my standard
 # address block.
 sub do_signature {
@@ -985,6 +1003,7 @@ sub do_version {
              pre        => [  1, \&do_pre        ],
              quote      => [  3, \&do_quote      ],
              release    => [  1, \&do_release    ],
+             rss        => [  2, \&do_rss        ],
              rule       => [  0, \&do_rule       ],
              signature  => [  0, \&do_signature  ],
              strike     => [  1, \&do_strike     ],
@@ -1050,6 +1069,8 @@ sub spin {
     close OUT;
     undef %macros;
     undef %strings;
+    undef $DOCID;
+    undef @RSS;
 }
 
 ##############################################################################
@@ -1654,11 +1675,11 @@ the file.  \signature will take care of appending the signature, appending
 navigation links, closing any open blocks, and any other cleanup that has to
 happen at the end of a generated HTML page.
 
-It is also highly recommended, if you are using CVS or RCS for revision
-control, to put \id[$Z<>Id$] as the first command in each file.  B<spin>
-will then take care of putting the last modified date in the footer for you
-based on the CVS timestamp (which may be more accurate than the last
-modified time of the thread file).
+It is also highly recommended, if you are using Subversion, CVS, or RCS
+for revision control, to put \id[$Z<>Id$] as the first command in each
+file.  B<spin> will then take care of putting the last modified date in
+the footer for you based on the CVS timestamp (which may be more accurate
+than the last modified time of the thread file).
 
 You can include other files with the \include command, although it has a few
 restrictions.  The \include command should appear either at the beginning of
@@ -1683,10 +1704,11 @@ used verbatim as a URL.
 
 =item \id[$Z<>Id$]
 
-Tells B<spin> the CVS or RCS revision number and time.  This string is
-embedded verbatim in an HTML comment near the beginning of the generated
-output as well as used for the last modified information added by the
-\signature command.
+Tells B<spin> the Subversion, CVS, or RCS revision number and time.  This
+string is embedded verbatim in an HTML comment near the beginning of the
+generated output as well as used for the last modified information added
+by the \signature command.  For this command to behave properly, it must
+be given before \heading.
 
 =item \include[<file>]
 
@@ -1777,6 +1799,14 @@ C<attribution>) containing the author, a comma, and the <work> inside <cite>
 tags.  <work> can be omitted by passing an empty third argument.  If \quote
 is given a class argument of C<broken>, <text> will be treated as a series
 of lines and a line break (<br>) will be added to the end of each line.
+
+=item \rss[<url>][<title>]
+
+Indicates that this page has a corresponding RSS feed at the URL <url>.
+The title of the RSS feed (particularly important if a page has more than
+one feed) is given by <title>.  The feed links are included in the page
+header output by \heading, so this command must be given before \heading
+to be effective.
 
 =item \rule
 
