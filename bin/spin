@@ -26,8 +26,8 @@ $URL = 'http://www.eyrie.org/~eagle/software/web/';
 use strict;
 use subs qw(expand parse parse_context);
 use vars qw(%DEPEND $DOCID @EXCLUDES $FILE @FILES $FULLPATH $ID $OUTPUT
-            %OUTPUT @RSS %SITEDESCS %SITELINKS $SOURCE $SPACE @STATE $STYLES
-            $URL %VERSIONS %commands %macros %strings);
+            %OUTPUT @RSS %SITEDESCS %SITELINKS @SITEMAP $SOURCE $SPACE @STATE
+            $STYLES $URL %VERSIONS %commands %macros %strings);
 
 use Cwd qw(getcwd);
 use FileHandle ();
@@ -326,14 +326,20 @@ sub parse {
 # Data files
 ##############################################################################
 
-# Read the sitemap file for a site and flesh out the %SITEDESCS and %SITELINKS
-# hashes with information from that file.  The first holds a map of partial
-# URLs to descriptions, and %SITELINKS map partial URLs to a list of other
-# partial URLs (previous, next, and up).  The format of the sitemap file is
-# one line per web page, with indentation showing the tree structure, and with
-# each line formatted as a partial URL, a colon, and a page description.  If
-# two pages at the same level aren't related, a line with three dashes should
-# be put between them at the same indentation level.
+# Read the sitemap file for a site and flesh out the @SITEMAP array and
+# %SITEDESCS and %SITELINKS hashes with information from that file.
+#
+# @SITEMAP is an array of anonymous arrays holding the complete site map.
+# Each element represents a page.  The element will contain three elements:
+# the numeric indent level, the partial URL, and the description.  %SITEDESCS
+# holds a map of partial URLs to descriptions, and %SITELINKS map partial URLs
+# to a list of other partial URLs (previous, next, and up).
+#
+# The format of the sitemap file is one line per web page, with indentation
+# showing the tree structure, and with each line formatted as a partial URL, a
+# colon, and a page description.  If two pages at the same level aren't
+# related, a line with three dashes should be put between them at the same
+# indentation level.
 sub read_sitemap {
     my ($map) = @_;
 
@@ -374,6 +380,7 @@ sub read_sitemap {
         $SITELINKS{$prev[0]}[1] = $url if defined $prev[0];
         $prev[0] = $url;
         $SITEDESCS{$url} = $desc;
+        push (@SITEMAP, [ $indent, $url, $desc ]);
     }
     close MAP;
 }
@@ -927,6 +934,37 @@ sub do_signature {
     return (1, $output);
 }
 
+# Generates a HTML version of the sitemap and outputs that.
+sub do_sitemap {
+    unless (@SITEMAP) {
+        warn qq($0:$FILE:$.: No sitemap file found\n);
+        return (1, '');
+    }
+    my $output = border;
+    my @indents = (0);
+    for my $page (@SITEMAP) {
+        my ($indent, $url, $title) = @$page;
+        next if $indent == 0;
+        $url =~ s,^/,,;
+        if ($indent > $indents[0]) {
+            $output .= (' ' x $indent) . "<ul>\n";
+            unshift (@indents, $indent);
+        } else {
+            while ($indent < $indents[0]) {
+                $output .= (' ' x $indents[0]) . "</ul>\n";
+                shift @indents;
+            }
+        }
+        $output .= ' ' x $indent;
+        $output .= qq(<li><a href="$url">$title</a></li>\n);
+    }
+    for my $indent (@indents) {
+        last if $indent <= 0;
+        $output .= (' ' x $indent) . "</ul>\n";
+    }
+    return (1, $output);
+}
+
 # Start a table.  Takes any additional HTML attributes to set for the table
 # (this is ugly, but <table> takes so many attributes for which there is no
 # style sheet equivalent that it's unavoidable) and the body of the table
@@ -1006,6 +1044,7 @@ sub do_version {
              rss        => [  2, \&do_rss        ],
              rule       => [  0, \&do_rule       ],
              signature  => [  0, \&do_signature  ],
+             sitemap    => [  0, \&do_sitemap    ],
              strike     => [  1, \&do_strike     ],
              strong     => [  1, \&do_strong     ],
              sub        => [  1, \&do_sub        ],
@@ -1812,6 +1851,14 @@ to be effective.
 
 A horizontal rule, <hr> in HTML.
 
+=item \sitemap
+
+Inserts an unordered list showing the structure of the whole site,
+provided that a F<.sitemap> file was found at the root of the I<source>
+directory and B<spin> wasn't run as a filter or on a single file.  If
+F<.sitemap> wasn't found or if B<spin> is running as a filter or on a
+single file, inserts nothing.
+
 =item \table[<options>][<body>]
 
 Creates a table.  The <options> text is added verbatim to the <table> tag in
@@ -1971,6 +2018,9 @@ support is used.
 that each \include be in its own paragraph.  It should be possible to
 support \heading and \signature in included files without breaking the
 navigation link support.
+
+\sitemap can only be used at the top of the web site or the links would be
+wrong.  It needs to do relative adjustment of the links.
 
 =head1 NOTES
 
