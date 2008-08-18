@@ -455,7 +455,12 @@ if ($metadata{output}) {
 }
 for my $output (@output) {
     my ($tags, $format, $file) = split (':', $output);
-    $path = "$base$file" if ($base && $file !~ m,^/,);
+    my $path;
+    if ($base && $file !~ m,^/,) {
+        $path = "$base$file";
+    } else {
+        $path = $file;
+    }
     my $prettyfile = $path;
     $prettyfile = ".../$prettyfile" unless $prettyfile =~ m,^/,;
     next if (-f $path && -M $path <= -M $source);
