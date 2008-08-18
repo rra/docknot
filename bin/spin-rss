@@ -241,7 +241,7 @@ sub rss_output {
     <generator>spin-rss $version</generator>
 EOC
     if ($metadata->{'rss-base'}) {
-        print $file qq(    <atom:link href="$metadata->{'rss-base'}$file");
+        print $file qq(    <atom:link href="$metadata->{'rss-base'}$name");
         print $file qq( rel="self"\n);
         print $file qq(               type="application/rss+xml" />\n);
     }
