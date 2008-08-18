@@ -212,12 +212,13 @@ sub rss_review {
 }
 
 # Print out the RSS version of the changes information given a file to which
-# to print it, the metadata resulting RSS file, and a reference to the array
-# of entries.  Various things are still hard-coded here.  Use the date of the
-# last change as <pubDate> and the current time as <lastBuildDate>; it's not
-# completely clear to me that this is correct.
+# to print it, the file name, the metadata resulting RSS file, and a reference
+# to the array of entries.  Various things are still hard-coded here.  Use the
+# date of the last change as <pubDate> and the current time as
+# <lastBuildDate>; it's not completely clear to me that this is correct.
 sub rss_output {
-    my ($file, $metadata, $entries) = @_;
+    my ($file, $name, $metadata, $entries) = @_;
+    $name =~ s,.*/,,;
     my $format = '%a, %d %b %Y %H:%M:%S %z';
     my $date = strftime ($format, localtime);
     my $last;
@@ -239,8 +240,9 @@ sub rss_output {
     <lastBuildDate>$date</lastBuildDate>
     <generator>spin-rss $version</generator>
 EOC
-    if ($metadata->{rss}) {
-        print $file qq(    <atom:link href="$metadata->{rss}" rel="self"\n);
+    if ($metadata->{'rss-base'}) {
+        print $file qq(    <atom:link href="$metadata->{'rss-base'}$file");
+        print $file qq( rel="self"\n);
         print $file qq(               type="application/rss+xml" />\n);
     }
     print $file "\n";
@@ -453,10 +455,10 @@ if ($metadata{output}) {
 }
 for my $output (@output) {
     my ($tags, $format, $file) = split (':', $output);
-    $file = "$base$file" if ($base && $file !~ m,^/,);
-    my $prettyfile = $file;
+    $path = "$base$file" if ($base && $file !~ m,^/,);
+    my $prettyfile = $path;
     $prettyfile = ".../$prettyfile" unless $prettyfile =~ m,^/,;
-    next if (-f $file && -M $file <= -M $source);
+    next if (-f $path && -M $path <= -M $source);
     my @tags = split (',', $tags);
     my @interest;
     for my $change (@changes) {
@@ -466,7 +468,7 @@ for my $output (@output) {
     }
     if ($format eq 'thread') {
         print "Generating thread file $prettyfile\n";
-        open (THREAD, '>', $file) or die "$0: cannot create $file: $!\n";
+        open (THREAD, '>', $path) or die "$0: cannot create $path: $!\n";
         thread_output (\*THREAD, \%metadata, \@interest);
         close THREAD;
     } elsif ($format eq 'rss') {
@@ -474,15 +476,15 @@ for my $output (@output) {
             splice (@interest, 15);
         }
         print "Generating RSS file $prettyfile\n";
-        open (RSS, '>', $file) or die "$0: cannot create $file: $!\n";
-        rss_output (\*RSS, \%metadata, \@interest);
+        open (RSS, '>', $path) or die "$0: cannot create $path: $!\n";
+        rss_output (\*RSS, $file, \%metadata, \@interest);
         close RSS;
     } elsif ($format eq 'index') {
         if (@interest > 15) {
             splice (@interest, 15);
         }
         print "Generating index file $prettyfile\n";
-        open (INDEX, '>', $file) or die "$0: cannot create $file: $!\n";
+        open (INDEX, '>', $path) or die "$0: cannot create $path: $!\n";
         index_output (\*INDEX, \%metadata, \@interest);
         close INDEX;
     }
