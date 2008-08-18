@@ -281,10 +281,11 @@ EOC
 # which to print it, the metadata, and a reference to the array of entries.
 sub thread_output {
     my ($file, $metadata, $entries) = @_;
-    print $file "\\heading[Recent Changes][indent]\n\n";
-    print $file "\\h1[Recent Changes]\n\n";
     if ($metadata->{'thread-prefix'}) {
         print $file $metadata->{'thread-prefix'}, "\n";
+    } else {
+        print $file "\\heading[Recent Changes][indent]\n\n";
+        print $file "\\h1[Recent Changes]\n\n";
     }
     my $last;
     for my $entry (@$entries) {
