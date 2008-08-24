@@ -179,8 +179,10 @@ sub expand {
     if ($command eq '==') {
         my ($new, $args, $definition);
         ($new, $args, $definition, $text) = extract ($text, 3);
-        $macros{$new} = [ $args, $definition ];
-        return ('', 1, $text);
+        if (defined $definition) {
+            $macros{$new} = [ $args, $definition ];
+            return ('', 1, $text);
+        }
     } elsif ($command eq '=') {
         my ($variable, $value);
         ($variable, $value, $text) = extract ($text, 2);
@@ -934,6 +936,27 @@ sub do_signature {
     return (1, $output);
 }
 
+# Insert the formatted size in bytes, kilobytes, or megabytes of some local
+# file.  We could use Number::Format here, but what we're doing is simple
+# enough and doesn't seem worth the trouble of another dependency.
+sub do_size {
+    my ($format, $file) = @_;
+    $file = parse ($file);
+    my ($size) = (stat $file)[7];
+    unless (defined $size) {
+        warn "$0:$FILE:$.: cannot stat file $file: $!\n";
+        return (0, '');
+    }
+    my @suffixes = qw(K M G T);
+    my $suffix = '';;
+    while ($size > 1024 && @suffixes) {
+        $size /= 1024;
+        $suffix = shift @suffixes;
+    }
+    $size = sprintf ('%.0f', $size) . $suffix . 'B';
+    return (0, $size);
+}
+
 # Generates a HTML version of the sitemap and outputs that.
 sub do_sitemap {
     unless (@SITEMAP) {
@@ -1045,6 +1068,7 @@ sub do_version {
              rule       => [  0, \&do_rule       ],
              signature  => [  0, \&do_signature  ],
              sitemap    => [  0, \&do_sitemap    ],
+             size       => [  1, \&do_size       ],
              strike     => [  1, \&do_strike     ],
              strong     => [  1, \&do_strong     ],
              sub        => [  1, \&do_sub        ],
@@ -1956,6 +1980,12 @@ Create a link to <url> with link text <text>.  Basically <a href=""></a>.
 Replaced with the date portion of the version information for <product>,
 taken from the F<.versions> file at the top of the source tree.  The date
 will be returned in the UTC time zone, not the local time zone.
+
+=item \size[<file>]
+
+Replaced with the size of <file> in B, KB, MB, GB, or TB as is most
+appropriate, without decimal places.  The next largest unit is used if the
+value is larger than 1024.  1024 is used as the scaling factor, not 1000.
 
 =item \version[<product>]
 
