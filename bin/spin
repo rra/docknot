@@ -142,7 +142,8 @@ sub extract {
             if ($result[$_]) {
                 $result[$_] = substr ($result[$_], 1, -1);
             } else {
-                warn "$0:$FILE:$.: Can't find argument $_\n";
+                warn "$0:$FILE:$.: cannot find argument $_\n";
+                $result[$_] = '';
             }
         }
     } else {
@@ -942,6 +943,10 @@ sub do_signature {
 sub do_size {
     my ($format, $file) = @_;
     $file = parse ($file);
+    unless ($file) {
+        warn "$0:$FILE:$.: empty file name in \\size\n";
+        return (0, '');
+    }
     my ($size) = (stat $file)[7];
     unless (defined $size) {
         warn "$0:$FILE:$.: cannot stat file $file: $!\n";
@@ -1090,9 +1095,9 @@ for (1..6) { $commands{"h$_"} = [ 1, eval "sub { heading ($_, \@_) }" ] }
 # HTML from thread.
 sub spin {
     my ($thread, $output) = @_;
-    open (OUT, "> $output") or die "$0: can't create $output: $!\n";
+    open (OUT, "> $output") or die "$0: cannott create $output: $!\n";
     my $fh = FileHandle->new ("< $thread")
-        or die "$0: can't open $thread: $!\n";
+        or die "$0: cannott open $thread: $!\n";
     @FILES = ([$fh, $thread]);
     $SPACE = '';
 
@@ -1152,7 +1157,7 @@ sub run_converter {
         $command =~ s/ .*//;
         die "$0: command failed with exit status ", ($? >> 8), "\n";
     }
-    open (OUT, "> $output") or die "$0: can't create $output: $!\n";
+    open (OUT, "> $output") or die "$0: cannot create $output: $!\n";
     my $file = $output;
     $file =~ s%.*/%%;
 
@@ -1272,7 +1277,7 @@ sub pod2html {
 # returning them as a list with the newlines chomped off.
 sub read_pointer {
     my $file = shift;
-    open (POINTER, $file) or die "$0: can't open $file: $!\n";
+    open (POINTER, $file) or die "$0: cannot open $file: $!\n";
     my $master = <POINTER>;
     my $options = <POINTER>;
     my $style = <POINTER>;
@@ -1316,7 +1321,7 @@ sub process_file {
     if (-d) {
         $OUTPUT{$output} = 1;
         if (-e $output && !-d $output) {
-            die "$0: can't replace $output with a directory\n";
+            die "$0: cannot replace $output with a directory\n";
         } elsif (!-d $output) {
             print "Creating $shortout\n";
             mkdir ($output, 0755) or die "$0: mkdir $output failed: $!\n";
