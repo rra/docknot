@@ -302,6 +302,7 @@ sub thread_output {
         print $file "           [$entry->{title}]][\n";
         my $description = $entry->{description};
         $description =~ s/^/    /mg;
+        $description =~ s/\\/\\\\/g;
         print $file $description;
         print $file "]\n\n";
     }
