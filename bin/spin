@@ -1368,10 +1368,8 @@ sub process_file {
 # This routine is called for every file in the destination tree, if the user
 # requested file deletion of files not generated from the source tree.  It
 # checks each file to see if it is in the %OUTPUT hash that was generated
-# during spin processing, and if not, removes it.  Directories are not
-# removed; instead, the user is told about them so that they can remove the
-# directories by hand.  It's called from within File::Find and therefore uses
-# the standard File::Find variables.
+# during spin processing, and if not, removes it.  It's called from within
+# File::Find and therefore uses the standard File::Find variables.
 sub delete_files {
     return if ($_ eq '.' || $_ eq '..');
     my $file = $File::Find::name;
@@ -1507,45 +1505,48 @@ spin [B<-s> I<url>] [B<-o> I<overrides>] B<-f>
 =head1 REQUIREMENTS
 
 Perl 5.005 or later and the Image::Size and Text::Balanced modules.  Also
-expects to find B<faq2html>, B<cvs2xhtml>, B<cl2xhtml>, and B<pod2thread> to
-convert certain types of files.
+expects to find B<faq2html>, B<cvs2xhtml>, B<cl2xhtml>, and B<pod2thread>
+to convert certain types of files.
 
 =head1 DESCRIPTION
 
 B<spin> implements a fairly simple macro language that expands out into
-XHTML, as well as serving as a tool to maintain a set of web pages, updating
-a staging area with the latest versions, converting pages written in the
-macro language (named "thread"), and running B<faq2html> where directed.
+XHTML, as well as serving as a tool to maintain a set of web pages,
+updating a staging area with the latest versions, converting pages written
+in the macro language (named "thread"), and running B<faq2html> where
+directed.
 
 When invoked with the B<-f> option, B<spin> works in filter mode, reading
 thread from stdin and writing the converted output to stdout.  Some
-features, such as appending a signature or navigation links, are disabled in
-this mode.
+features, such as appending a signature or navigation links, are disabled
+in this mode.
 
 If I<source> is a regular file, I<output> should be the name of the file
 into which to put the output, and B<spin> will process only that one file
-(which is assumed to be thread).  I<output> may be omitted to send the output
-to standard output. The same features are disabled in this mode as in filter
-mode.
+(which is assumed to be thread).  I<output> may be omitted to send the
+output to standard output. The same features are disabled in this mode as
+in filter mode.
 
 Otherwise, each file in the directory I<source> is examined recursively.
-For each one, it is either copied verbatim into the same relative path under
-I<output>, used as instructions to an external program (see the details on
-converters below), or converted to HTML.  The HTML output for external
-programs or for converted pages is put under I<output> with the same file
-name but with the extension changed to C<.html>.  Missing directories are
-created.  If the B<-d> flag is given, any regular files in the I<output>
-directory that do not correspond to files in the I<source> directory will be
-deleted.
+For each one, it is either copied verbatim into the same relative path
+under I<output>, used as instructions to an external program (see the
+details on converters below), or converted to HTML.  The HTML output for
+external programs or for converted pages is put under I<output> with the
+same file name but with the extension changed to C<.html>.  Missing
+directories are created.  If the B<-d> flag is given, files and
+directories in the I<output> directory that do not correspond to files in
+the I<source> directory will be deleted.
 
 Files that end in C<.th> are assumed to be in thread and are turned into
-HTML.  For the details of the thread language, see L<THREAD LANGUAGE> below.
+HTML.  For the details of the thread language, see L<THREAD LANGUAGE>
+below.
 
 Files that end in various other extensions are taken to be instructions to
-run an external converter on a file.  The first line of such a pointer file
-should be the path to the source file, the second line any arguments to the
-converter, and the third line the style sheet to use if not the default.
-Which converter to run is based on the extension of the file as follows:
+run an external converter on a file.  The first line of such a pointer
+file should be the path to the source file, the second line any arguments
+to the converter, and the third line the style sheet to use if not the
+default.  Which converter to run is based on the extension of the file as
+follows:
 
     .changelog  cl2xhtml
     .faq        faq2html
@@ -1557,14 +1558,15 @@ files or directories named F<CVS> or F<Makefile> are ignored.  As an
 exception, F<.htaccess> files are also copied over.
 
 B<spin> looks for a file named F<.sitemap> at the top of the I<source>
-directory and reads it for navigation information to generate the navigation
-links at the top and bottom of each page.  The format of this file is one
-line per web page, with indentation showing the tree structure, and with
-each line formatted as a partial URL, a colon, and a page description.  If
-two pages at the same level aren't related, a line with three dashes should
-be put between them at the same indentation level.  The partial URLs should
-start with / representing the top of the hierarchy (the I<source>
-directory), but all generated links will be relative.
+directory and reads it for navigation information to generate the
+navigation links at the top and bottom of each page.  The format of this
+file is one line per web page, with indentation showing the tree
+structure, and with each line formatted as a partial URL, a colon, and a
+page description.  If two pages at the same level aren't related, a line
+with three dashes should be put between them at the same indentation
+level.  The partial URLs should start with / representing the top of the
+hierarchy (the I<source> directory), but all generated links will be
+relative.
 
 Here's an example of a simple F<.sitemap> file:
 
@@ -1582,37 +1584,37 @@ This defines two sub-pages of the top page, /personal/ and /links/.
 therefore shouldn't have links to each other).  /links/ has three pages
 under it which are part of a set and should be linked between each other.
 
-If F<.sitemap> is present, this navigation information will also be put into
-the <head> section of the resulting HTML file as <link> tags.  Some browsers
-will display this information as a navigation toolbar.
+If F<.sitemap> is present, this navigation information will also be put
+into the <head> section of the resulting HTML file as <link> tags.  Some
+browsers will display this information as a navigation toolbar.
 
-B<spin> also looks for a file named F<.signature> in the same directory as a
-thread file (and then at the top of the source tree if none is found in the
-current directory) and copies its contents verbatim into an <address> block
-at the end of the XHTML page (so the contents should be valid XHTML).  The
-contents will be surrounded by an <address> tag, and added to the end of the
-supplied F<.signature> contents will be information about when the page was
-last modified and generated.
+B<spin> also looks for a file named F<.signature> in the same directory as
+a thread file (and then at the top of the source tree if none is found in
+the current directory) and copies its contents verbatim into an <address>
+block at the end of the XHTML page (so the contents should be valid
+XHTML).  The contents will be surrounded by an <address> tag, and added to
+the end of the supplied F<.signature> contents will be information about
+when the page was last modified and generated.
 
 B<spin> looks for a file named F<.versions> at the top of the I<source>
-directory and reads it for version information.  If it is present, each line
-should be of the form:
+directory and reads it for version information.  If it is present, each
+line should be of the form:
 
     <product>  <version>  <date>  <time>  <files>
 
-where <product> is the name of a product with a version number, <version> is
-the version, <date> and <time> specify the time of the last release (in ISO
-YYYY-MM-DD HH:MM:SS format and the local time zone), and <files> is any
-number of paths relative to I<source>, separated by spaces, listing source
-thread files that use \version or \release for <product>.  If there are more
-files than can be listed on one line, additional files can be listed on the
-next and subsequent lines so long as they all begin with whitespace
-(otherwise, they'll be taken to be other products).  This information is not
-only used for the \version and \release commands, but also as dependency
-information.  If the date of a release is newer than the timestamp of the
-output from one of the files listed in <files>, that file will be spun again
-even if it hasn't changed (to pick up the latest version and release
-information).
+where <product> is the name of a product with a version number, <version>
+is the version, <date> and <time> specify the time of the last release (in
+ISO YYYY-MM-DD HH:MM:SS format and the local time zone), and <files> is
+any number of paths relative to I<source>, separated by spaces, listing
+source thread files that use \version or \release for <product>.  If there
+are more files than can be listed on one line, additional files can be
+listed on the next and subsequent lines so long as they all begin with
+whitespace (otherwise, they'll be taken to be other products).  This
+information is not only used for the \version and \release commands, but
+also as dependency information.  If the date of a release is newer than
+the timestamp of the output from one of the files listed in <files>, that
+file will be spun again even if it hasn't changed (to pick up the latest
+version and release information).
 
 B<spin> looks for a file named F<.rss> in each directory it processes.  If
 one is found, B<spin> runs B<spin-rss> on that file, passing the B<-b>
@@ -1627,9 +1629,10 @@ or update files that will then be processed by B<spin> as normal.
 =item B<-d>, B<--delete>
 
 After populating the I<output> tree with the results of converting or
-copying all the files in the I<source> tree, delete all regular files in the
-I<output> tree that do not have a corresponding file in the I<source> tree.
-Directories will be mentioned in B<spin>'s output but will not be deleted.
+copying all the files in the I<source> tree, delete all regular files in
+the I<output> tree that do not have a corresponding file in the I<source>
+tree.  Directories will be mentioned in B<spin>'s output but will not be
+deleted.
 
 =item B<-e> I<pattern>, B<--exclude>=I<pattern>
 
@@ -1639,13 +1642,13 @@ converted.  This flag may be used multiple times.
 =item B<-f>, B<--filter>
 
 Run B<spin> in filter mode rather than converting a whole tree of files.
-Thread source is read from stdin and the XHTML output is written to stdout.
-The signature and navigation links are disabled.
+Thread source is read from stdin and the XHTML output is written to
+stdout.  The signature and navigation links are disabled.
 
 =item B<-h>, B<--help>
 
-Print out this documentation (which is done simply by feeding the script to
-C<perldoc -t>).
+Print out this documentation (which is done simply by feeding the script
+to C<perldoc -t>).
 
 =item B<-o> I<overrides>, B<--overrides>=I<overrides>
 
@@ -1657,11 +1660,11 @@ existing commands.
 =item B<-s> I<url>, B<--style-url>=I<url>
 
 The base URL for style sheets.  All style sheets specified in \heading
-commands will be considered to be relative to this URL and this URL will be
-prepended to them (otherwise, they'll be referred to as if they're in the
-same directory as the generated file).  This will similarly be used as the
-base URL to style sheets for the output of B<cl2xhtml>, B<cvs2xhtml>, and
-B<faq2html>.
+commands will be considered to be relative to this URL and this URL will
+be prepended to them (otherwise, they'll be referred to as if they're in
+the same directory as the generated file).  This will similarly be used as
+the base URL to style sheets for the output of B<cl2xhtml>, B<cvs2xhtml>,
+and B<faq2html>.
 
 =item B<-v>, B<--version>
 
@@ -1676,20 +1679,20 @@ Print out the version of B<spin> and exit.
 A thread file is mostly plain ASCII text with a blank line between
 paragraphs.  There is no need to explicitly mark paragraphs; paragraph
 boundaries will be inferred from the blank line between them and the
-appropriate <p> tags will be added to the HTML output.  There is no need to
-escape any character except C<\> (which should be written as C<\\>) and an
-unbalanced [ or ] (which should be written as C<\entity[91]> or
+appropriate <p> tags will be added to the HTML output.  There is no need
+to escape any character except C<\> (which should be written as C<\\>) and
+an unbalanced [ or ] (which should be written as C<\entity[91]> or
 C<\entity[93]> respectively).  Escaping [ or ] is not necessary if the
 brackets are balanced within the paragraph, and therefore is only rarely
 needed.
 
 Commands begin with C<\>.  For example, the command to insert a line break
 (corresponding to the <br> tag in HTML) is \break.  If the command takes
-arguments, they are enclosed in square brackets after the command.  If there
-are multiple arguments, they are each enclosed in square brackets and follow
-each other.  Any amount of whitespace (but nothing else) is allowed between
-the command and the arguments, or between the arguments.  So, for example,
-all of the following are entirely equivalent:
+arguments, they are enclosed in square brackets after the command.  If
+there are multiple arguments, they are each enclosed in square brackets
+and follow each other.  Any amount of whitespace (but nothing else) is
+allowed between the command and the arguments, or between the arguments.
+So, for example, all of the following are entirely equivalent:
 
     \link[index.html][Main page]
     \link  [index.html]  [Main page]
@@ -1706,17 +1709,19 @@ all of the following are entirely equivalent:
 Commands can take multiple paragraphs of text as arguments in some cases
 (for things like list items).  Commands can be arbitrarily nested.
 
-Some commands take an additional optional argument which specifies the class
-attribute for that HTML tag, for use with style sheets, or the id attribute,
-for use with style sheets or as an anchor.  That argument is enclosed in
-parentheses and placed before any other arguments.  If the argument begins
-with C<#>, it will be taken to be an id.  Otherwise, it will be taken as a
-class.  For example, a first-level heading is normally written as:
+Some commands take an additional optional argument which specifies the
+class attribute for that HTML tag, for use with style sheets, or the id
+attribute, for use with style sheets or as an anchor.  That argument is
+enclosed in parentheses and placed before any other arguments.  If the
+argument begins with C<#>, it will be taken to be an id.  Otherwise, it
+will be taken as a class.  For example, a first-level heading is normally
+written as:
 
     \h1[Heading]
 
-(with one argument).  Either of the following will add a class attribute of
-C<header> to that HTML container that can be referred to in style sheets:
+(with one argument).  Either of the following will add a class attribute
+of C<header> to that HTML container that can be referred to in style
+sheets:
 
     \h1(header)[Heading]
     \h1  (header)  [Heading]
@@ -1726,50 +1731,55 @@ that it could be referred to with the anchor C<#intro>:
 
     \h1(#intro)[Introduction]
 
-Note that the heading commands have special handling for id attributes; see
-below for more details.
+Note that the heading commands have special handling for id attributes;
+see below for more details.
 
 =head2 Basic Format
 
 There are two commands that are required to occur in every document.  The
 first is \heading, which must occur before any regular page text.  It
 takes two arguments, the first of which is the page title (the title that
-shows up in the window title bar for the browser and is the default text for
-bookmarks, not anything that's displayed as part of the body of the page)
-and the second of which is the style sheet to use.  If there is no style
-sheet for this page, the second argument should be empty ([]).
+shows up in the window title bar for the browser and is the default text
+for bookmarks, not anything that's displayed as part of the body of the
+page) and the second of which is the style sheet to use.  If there is no
+style sheet for this page, the second argument should be empty ([]).
 
-The second required command is \signature, which must be the last command in
-the file.  \signature will take care of appending the signature, appending
-navigation links, closing any open blocks, and any other cleanup that has to
-happen at the end of a generated HTML page.
+The second required command is \signature, which must be the last command
+in the file.  \signature will take care of appending the signature,
+appending navigation links, closing any open blocks, and any other cleanup
+that has to happen at the end of a generated HTML page.
 
 It is also highly recommended, if you are using Subversion, CVS, or RCS
 for revision control, to put \id[$Z<>Id$] as the first command in each
-file.  B<spin> will then take care of putting the last modified date in
-the footer for you based on the CVS timestamp (which may be more accurate
-than the last modified time of the thread file).
+file.  In Subversion, you will also need to enable keyword expansion with
+C<svn propset svn:keywords Id I<file>>.  B<spin> will then take care of
+putting the last modified date in the footer for you based on the Id
+timestamp (which may be more accurate than the last modified time of the
+thread file).
 
-You can include other files with the \include command, although it has a few
-restrictions.  The \include command should appear either at the beginning of
-the file or after a blank line and should be followed by a blank line, and
-you should be careful not to include the same file recursively.
+You can include other files with the \include command, although it has a
+few restrictions.  The \include command must appear either at the
+beginning of the file or after a blank line and should be followed by a
+blank line, and you should be careful not to include the same file
+recursively.  Thread files will not be automatically respun when included
+files change, so you will need touch the thread file to force it to be
+respun.
 
 =head2 Block Commands
 
-Block commands are commands that should occur in a paragraph by themselves,
-not containined in a paragraph with other text.  They indicate high-level
-structural elements of the page.  Three of them were already discussed
-above:
+Block commands are commands that should occur in a paragraph by
+themselves, not containined in a paragraph with other text.  They indicate
+high-level structural elements of the page.  Three of them were already
+discussed above:
 
 =over 4
 
 =item \heading[<title>][<style>]
 
-As described above, this sets the page title to <title> and the style sheet
-to <style>.  If the B<-s> option was given, that base URL will be prepended
-to <style> to form the URL for the style sheet; otherwise, <style> will be
-used verbatim as a URL.
+As described above, this sets the page title to <title> and the style
+sheet to <style>.  If the B<-s> option was given, that base URL will be
+prepended to <style> to form the URL for the style sheet; otherwise,
+<style> will be used verbatim as a URL.
 
 =item \id[$Z<>Id$]
 
@@ -1781,11 +1791,12 @@ be given before \heading.
 
 =item \include[<file>]
 
-Include <file> after the current paragraph.  If multiple files are included
-in the same paragraph, they're included in reverse order, but this behavior
-may change in later versions of B<spin>.  It's strongly recommended to
-always put the \include command in its own paragraph.  Don't put \heading or
-\signature into an included file; the results won't be correct.
+Include <file> after the current paragraph.  If multiple files are
+included in the same paragraph, they're included in reverse order, but
+this behavior may change in later versions of B<spin>.  It's strongly
+recommended to always put the \include command in its own paragraph.
+Don't put \heading or \signature into an included file; the results won't
+be correct.
 
 =back
 
@@ -1812,16 +1823,16 @@ If used with a class attribute of C<packed>, such as with:
 
     \bullet(packed)[First item]
 
-then the <text> argument will not be treated as a paragraph and will not be
-surrounded in <p> tags.  No block commands should be used inside this type
-of \bullet command.  This variation will, on most browsers, not put any
-additional whitespace around the line and will look better for bulleted
-lists where each item is a single line.
+then the <text> argument will not be treated as a paragraph and will not
+be surrounded in <p> tags.  No block commands should be used inside this
+type of \bullet command.  This variation will, on most browsers, not put
+any additional whitespace around the line and will look better for
+bulleted lists where each item is a single line.
 
 =item \desc[<heading>][<text>]
 
-An element in a description list, where each item has a tag <heading> and an
-associated body text of <text>, like <dt> and <dd> in HTML.  As with
+An element in a description list, where each item has a tag <heading> and
+an associated body text of <text>, like <dt> and <dd> in HTML.  As with
 \bullet, the <dl> tags are inferred automatically.
 
 =item \h1[<heading>] .. \h6[<heading>]
@@ -1832,18 +1843,18 @@ given an id argument, such as:
     \h1(#anchor)[Heading]
 
 then not only will an id attribute be added to the <h1> container but the
-text of the heading will also be enclosed in an <a name> container to ensure
-that C<#anchor> can be used as an anchor in a link even in older browsers
-that don't understand id attributes.  This is special handling that only
-works with \h1 through \h6, not with other commands.
+text of the heading will also be enclosed in an <a name> container to
+ensure that C<#anchor> can be used as an anchor in a link even in older
+browsers that don't understand id attributes.  This is special handling
+that only works with \h1 through \h6, not with other commands.
 
 =item \number[<text>]
 
-<text> is formatted as an item in a numbered list, like <li> inside <ol> in
-HTML.  As with \bullet and \desc, the surrounding tags are inferred
+<text> is formatted as an item in a numbered list, like <li> inside <ol>
+in HTML.  As with \bullet and \desc, the surrounding tags are inferred
 automatically.  As with \bullet, a class attribute of C<packed> will omit
-the paragraph tags around <text> for better formatting with a list of short
-items.  See the description under \bullet for more information.
+the paragraph tags around <text> for better formatting with a list of
+short items.  See the description under \bullet for more information.
 
 =item \pre[<text>]
 
@@ -1851,23 +1862,24 @@ Insert <text> preformatted, preserving spacing and line breaks.  This uses
 the HTML <pre> tag, and therefore is normally also shown in a fixed-width
 font by the browser.
 
-When using \pre inside indented blocks or lists, it's worth bearing in mind
-how browsers show indentation with \pre.  Normally, the browser indents text
-inside \pre relative to the enclosing block, so you should only put as much
-whitespace before each line in \pre as those lines should be indented
-relative to the enclosing text.  However lynx, unfortunately, indents
-relative to the left margin, so it's difficult to use indentation that looks
-good in both lynx and other browsers.
+When using \pre inside indented blocks or lists, it's worth bearing in
+mind how browsers show indentation with \pre.  Normally, the browser
+indents text inside \pre relative to the enclosing block, so you should
+only put as much whitespace before each line in \pre as those lines should
+be indented relative to the enclosing text.  However B<lynx>,
+unfortunately, indents relative to the left margin, so it's difficult to
+use indentation that looks correct in both B<lynx> and other browsers.
 
 =item \quote[<text>][<author>][<work>]
 
 Used for quotes at the top of a web page.  The whole text will be enclosed
 in a <blockquote> tag with class C<quote> for style sheets.  <text> may be
 multiple paragraphs, and then a final paragraph will be added (with class
-C<attribution>) containing the author, a comma, and the <work> inside <cite>
-tags.  <work> can be omitted by passing an empty third argument.  If \quote
-is given a class argument of C<broken>, <text> will be treated as a series
-of lines and a line break (<br>) will be added to the end of each line.
+C<attribution>) containing the author, a comma, and the <work> inside
+<cite> tags.  <work> can be omitted by passing an empty third argument.
+If \quote is given a class argument of C<broken>, <text> will be treated
+as a series of lines and a line break (C<< <br /> >>) will be added to the
+end of each line.
 
 =item \rss[<url>][<title>]
 
@@ -1889,13 +1901,18 @@ directory and B<spin> wasn't run as a filter or on a single file.  If
 F<.sitemap> wasn't found or if B<spin> is running as a filter or on a
 single file, inserts nothing.
 
+Be aware that B<spin> doesn't know whether a file contains a \sitemap
+command and hence won't know to respin a file when the F<.sitemap> file
+has changed.  You will need touch the source file to force it to be
+respun.
+
 =item \table[<options>][<body>]
 
-Creates a table.  The <options> text is added verbatim to the <table> tag in
-the generated HTML, so it can be used to set various HTML attributes like
-C<cellpadding> that aren't easily accessible in a portable fashion from
-style sheets.  <body> is the body of the table, which should generally
-consist exclusively of \tablehead and \tablerow commands.
+Creates a table.  The <options> text is added verbatim to the <table> tag
+in the generated HTML, so it can be used to set various HTML attributes
+like C<cellpadding> that aren't easily accessible in a portable fashion
+from style sheets.  <body> is the body of the table, which should
+generally consist exclusively of \tablehead and \tablerow commands.
 
 The descriptions are somewhat hard to read, so here's a sample table:
 
@@ -1912,19 +1929,21 @@ of expressing tables, and it's possible that the syntax will change later.
 
 =item \tablehead[<cell>][<cell>] ...
 
-A heading row in a table.  \tablehead takes any number of <cell> arguments,
-wraps them all in a <tr> table row tag, and puts each cell inside <th>.  If
-a cell should have a certain class attribute, the easiest way to do that is
-to use a \class command around the <cell> text, and the class attribute will
-be "lifted" up to become an attribute of the enclosing <th> tag.
+A heading row in a table.  \tablehead takes any number of <cell>
+arguments, wraps them all in a <tr> table row tag, and puts each cell
+inside <th>.  If a cell should have a certain class attribute, the easiest
+way to do that is to use a \class command around the <cell> text, and the
+class attribute will be "lifted" up to become an attribute of the
+enclosing <th> tag.
 
 =item \tablerow[<cell>][<cell>] ...
 
 A regular row in a table.  \tablerow takes any number of <cell> arguments,
-wraps them all in a <tr> table row tag, and puts each cell inside <td>.  If
-a cell should have a certain class attribute, the easiest way to do that is
-to use a \class command around the <cell> text, and the class attribute will
-be "lifted" up to become an attribute of the enclosing <th> tag.
+wraps them all in a <tr> table row tag, and puts each cell inside <td>.
+If a cell should have a certain class attribute, the easiest way to do
+that is to use a \class command around the <cell> text, and the class
+attribute will be "lifted" up to become an attribute of the enclosing <th>
+tag.
 
 =back
 
@@ -1955,25 +1974,26 @@ A forced line break, <br> in HTML.
 
 =item \class[<text>]
 
-Does nothing except wrap <text> in an HTML <span> tag.  The only purpose of
-this command is to use it with a class argument that can be used in a style
-sheet.  For example, you might write:
+Does nothing except wrap <text> in an HTML <span> tag.  The only purpose
+of this command is to use it with a class argument that can be used in a
+style sheet.  For example, you might write:
 
     \class(red)[A style sheet can make this text red.]
 
-so that the style sheet can then refer to class C<red> and change its color.
+so that the style sheet can then refer to class C<red> and change its
+color.
 
 =item \entity[<code>]
 
 An HTML entity with code <code>.  Basically, becomes &<code>; in the
-generated HTML, or &#<code>; if <code> is entirely numeric.  About the only
-time you'd need to use this is for non-ASCII characters (European names, for
-example) or if you need a literal [ or ] that isn't balanced.
+generated HTML, or &#<code>; if <code> is entirely numeric.  About the
+only time you'd need to use this is for non-ASCII characters (European
+names, for example) or if you need a literal [ or ] that isn't balanced.
 
 =item \image[<url>][<text>]
 
-Insert an inline image.  <text> is the alt text for the image (which will be
-displayed on non-graphical browsers).  Height and width tags are added
+Insert an inline image.  <text> is the alt text for the image (which will
+be displayed on non-graphical browsers).  Height and width tags are added
 automatically assuming that <url> is a relative URL in the same tree of
 files as the thread source.
 
@@ -1995,57 +2015,60 @@ value is larger than 1024.  1024 is used as the scaling factor, not 1000.
 
 =item \version[<product>]
 
-Replaced with the version number for <product>, taken from the F<.versions>
-file at the top of the source tree.
+Replaced with the version number for <product>, taken from the
+F<.versions> file at the top of the source tree.
 
 =back
 
 =head2 Defining New Macros
 
-One of the important things that thread supports over HTML is the ability to
-define new macros on the fly.  If there are particular constructs that are
-frequently used on the page, you can define a macro at the top of that page
-and then just use it repeatedly throughout the page.
+One of the important things that thread supports over HTML is the ability
+to define new macros on the fly.  If there are particular constructs that
+are frequently used on the page, you can define a macro at the top of that
+page and then just use it repeatedly throughout the page.
 
 A string can be defined with the command:
 
     \=[<string>][<value>]
 
-where <string> is the name that will be used (can only be alphanumerics plus
-underscore) and <value> is the value that string will expand into.  Any
-later occurrance of \=<string> in the file will be replaced with <value>.
-For example:
+where <string> is the name that will be used (can only be alphanumerics
+plus underscore) and <value> is the value that string will expand into.
+Any later occurrance of \=<string> in the file will be replaced with
+<value>.  For example:
 
     \=[HOME][http://www.stanford.edu/]
 
 will cause any later occurrences of \=HOME in the file to be replaced with
 the text C<http://www.stanford.edu/>.  This can be useful for things like
-URLs for links, so that all the URLs can be collected at the top of the page
-for easy updating.
+URLs for links, so that all the URLs can be collected at the top of the
+page for easy updating.
 
 A new macro can be defined with the command:
 
     \==[<name>][<arguments>][<definition>]
 
 where <name> is the name of the macro (again consisting only of
-alphanumerics or underscore), <arguments> is the number of arguments that it
-takes, and <definition> is the definition of the macro.  When the macro is
-expanded, any occurrence of \1 in the definition is replaced with the first
-argument, any occurrence of \2 with the second argument, and so forth.
+alphanumerics or underscore), <arguments> is the number of arguments that
+it takes, and <definition> is the definition of the macro.  When the macro
+is expanded, any occurrence of \1 in the definition is replaced with the
+first argument, any occurrence of \2 with the second argument, and so
+forth.
 
 For example:
 
     \==[bolddesc] [2] [\desc[\bold[\1]][\2]]
 
 defines a new macro \bolddesc that takes the same arguments as the regular
-\desc command but always wraps the first argument, the heading, in <strong>.
+\desc command but always wraps the first argument, the heading, in
+<strong>.
 
 =head1 BUGS
 
-Currently, the style sheets for B<cl2xhtml>, B<cvs2xhtml>, B<faq2html>, and
-B<pod2thread> are hard-coded into this program to fit my web pages.  This
-makes this program awkward for others to use, since the style sheet has to
-be specified in every pointer file if they're using different names.
+Currently, the style sheets for B<cl2xhtml>, B<cvs2xhtml>, B<faq2html>,
+and B<pod2thread> are hard-coded into this program to fit my web pages.
+This makes this program awkward for others to use, since the style sheet
+has to be specified in every pointer file if they're using different
+names.
 
 There is no way to configure how navigation links are added if the sitemap
 support is used.
@@ -2058,10 +2081,8 @@ navigation link support.
 \sitemap can only be used at the top of the web site or the links would be
 wrong.  It needs to do relative adjustment of the links.
 
-=head1 NOTES
-
-The sitemap support currently only adds previous, next, up, and top links in
-the header of the generated web page.  Most browsers that support this
+The sitemap support currently only adds previous, next, up, and top links
+in the header of the generated web page.  Most browsers that support this
 functionality also support first and last links, and the information is
 available in the sitemap file to generate those.  They should also be
 included.
