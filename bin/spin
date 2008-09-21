@@ -34,7 +34,7 @@ use FileHandle ();
 use Getopt::Long qw(GetOptions);
 use Image::Size qw(html_imgsize);
 use File::Copy qw(copy);
-use File::Find qw(find);
+use File::Find qw(find finddepth);
 use File::Spec ();
 use POSIX qw(mktime strftime);
 use Text::Balanced qw(extract_bracketed);
@@ -1378,10 +1378,11 @@ sub delete_files {
     my $shortfile = $file;
     $shortfile =~ s/^\Q$OUTPUT/.../;
     return if $OUTPUT{$file};
+    print "Deleting $shortfile\n";
     if (-d $file) {
-        print "Not deleting directory $shortfile, remove manually\n";
+        rmdir $file or warn "$0: cannot remove directory $file: $!\n";
+        $File::Find::prune = 1;
     } else {
-        print "Deleting $shortfile\n";
         unlink $file or die "$0: unable to remove $file: $!\n";
     }
 }
@@ -1484,7 +1485,7 @@ if ($filter) {
             chdir $current or die "$0: cannot chdir to $current: $!\n";
         }
         find (\&process_file, $SOURCE);
-        find (\&delete_files, $OUTPUT) if $delete;
+        finddepth (\&delete_files, $OUTPUT) if $delete;
     }
 }
 
