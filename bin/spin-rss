@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 our $ID = q$Id$;
 #
-# spin-changes -- Translate a changes file to RSS and thread.
+# spin-rss -- Generate RSS and thread from a feed description file.
 #
 # Copyright 2008 Russ Allbery <rra@stanford.edu>
 #
@@ -109,6 +109,7 @@ sub parse_changes {
     close CHANGES;
     pop @blocks unless $last;
     %$metadata = %{ shift @blocks };
+    $metadata->{recent} = 15 unless defined $metadata->{recent};
     my %guids;
     for my $block (@blocks) {
         $block->{date} = str2time ($block->{date})
@@ -441,7 +442,7 @@ if ($help) {
 }
 $base =~ s,/*$,/, if $base;
 my ($source) = @ARGV;
-die "Usage: $0 [-hv] <source>\n" unless $source;
+die "Usage: $0 [-hv] [-b <base>] <source>\n" unless $source;
 
 # Read in the changes.
 my (%metadata, @changes);
@@ -478,16 +479,16 @@ for my $output (@output) {
         thread_output (\*THREAD, \%metadata, \@interest);
         close THREAD;
     } elsif ($format eq 'rss') {
-        if (@interest > 15) {
-            splice (@interest, 15);
+        if (@interest > $metadata{recent}) {
+            splice (@interest, $metadata{recent});
         }
         print "Generating RSS file $prettyfile\n";
         open (RSS, '>', $path) or die "$0: cannot create $path: $!\n";
         rss_output (\*RSS, $file, \%metadata, \@interest);
         close RSS;
     } elsif ($format eq 'index') {
-        if (@interest > 15) {
-            splice (@interest, 15);
+        if (@interest > $metadata{recent}) {
+            splice (@interest, $metadata{recent});
         }
         print "Generating index file $prettyfile\n";
         open (INDEX, '>', $path) or die "$0: cannot create $path: $!\n";
@@ -495,3 +496,309 @@ for my $output (@output) {
         close INDEX;
     }
 }
+
+##############################################################################
+# Documentation
+##############################################################################
+
+=head1 NAME
+
+spin-rss - Generate RSS and thread from a feed description file
+
+=head1 SYNOPSIS
+
+B<spin-rss> [B<-hv>] [B<-b> I<base>] I<file>
+
+=head1 REQUIREMENTS
+
+Perl 5.006 or later and the Date::Parse module, which is part of the
+TimeDate distribution on CPAN.  B<spin> is required for anything other
+than simple entries with the text of the entry inline in the feed
+description file.
+
+=head1 DESCRIPTION
+
+B<spin-rss> reads as input a feed description file consisting of simple
+key/value pairs and writes out either thread (for input to B<spin>) or
+RSS.  The feed description consists of a leading block of metadata and
+then one block per entry in the feed.  Each block can either include the
+content of the entry or can reference an external thread file, in several
+formats, for the content.  The feed description file defines one or more
+output files in the Output field of the metadata.
+
+Output files are only regenerated if they are older than the input feed
+description file.
+
+B<spin-rss> is designed for use with B<spin>.  It relies on B<spin> to
+convert thread to HTML, both for inclusion in RSS feeds and for
+post-processing of generated thread files.  B<spin-rss> is invoked
+automatically by B<spin> when B<spin> encounters an F<.rss> file in a
+directory it is processing.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-b> I<base>, B<--base>=I<base>
+
+By default, B<spin-rss> output files are relative to the current working
+directory.  If the B<-b> option is given, output files will be relative to
+I<base> instead.  Output files specified as absolute paths will not be
+affected.  B<spin> always passes this option to B<spin-rss>.
+
+=item B<-h>, B<--help>
+
+Print out this documentation (which is done simply by feeding the script
+to C<perldoc -t>).
+
+=item B<-v>, B<--version>
+
+Print out the version of B<spin-rss> and exit.
+
+=back
+
+=head1 INPUT LANGUAGE
+
+The input for B<spin-rss> is normally a F<.rss> file in a tree being
+processed by B<spin>, but may be any file name passed to B<spin-rss>.  The
+file consists of one or more blocks of RFC-2822-style fields with values,
+each separated by a blank line.  Each field and value looks like an e-mail
+header field, including possible continuation lines:
+
+    Field: value
+     continuation of value
+
+Any line beginning with whitespace is considered a continuation of the
+previous line.  If a value should contain a blank line, indicate that
+blank line with a continuation line containing only a period.  For
+example:
+
+    Field: first paragraph
+     .
+     second paragraph
+
+=head2 Metadata
+
+The first block of the file sets the metadata for this set of output.  The
+following fields are supported:
+
+=over 4
+
+=item Base
+
+The base URL for entries in this file.  All links in subsequent blocks of
+the file, if not absolute URLs, are treated as relative to this URL and
+are made absolute by prepending this URL.  Always specify this key unless
+all Link fields in the remainder of the file use absolute URLs.
+
+This field value is also used as the <link> element in the RSS feed,
+indicating the web site corresponding to this feed.
+
+=item Description
+
+The description of the feed, used only in the RSS output.  This should
+always be set if there are any RSS output files.
+
+=item Index-Base
+
+The base URL for output files of type C<index>.  This is used to
+canonicalize relative URLs and should be the URL to the directory
+containing the HTML file that will result from processing the thread
+output.  This should be set if there are any output files of type
+C<index>; if it isn't set, relative links may be rewritten incorrectly.
+
+=item Index-Prefix
+
+When generating output files of type C<index>, use the value as the
+initial content of the generated thread.  This field should almost always
+be set if any output files of type C<index> are defined.  It will contain
+such things as the \heading command, any prologue material, initial
+headings, and so forth.
+
+=item Index-Suffix
+
+When generating output files of type C<index>, append the value to the end
+of the generated thread.  The \signature command is always appended and
+should not be included here.  Set this field only if there is other thread
+that needs to be appended (such as closing brackets for \div commands).
+
+=item Language
+
+The language of the feed, used only in the RSS output.  This should always
+be set if there are any RSS output files.  Use C<en-us> for US English.
+
+=item Output
+
+Specifies the output files for this input file in the form of a
+whitespace-separated list of output specifiers.  This field must always be
+set.
+
+An output specifier is of the form I<tags>:I<type>:I<file>, where I<file>
+is the output file (always a relative path), I<type> is the type of
+output, and I<tags> indicates which entries to include in this file.
+I<tags> is a comma-separated list of tags or the special value C<*>,
+indicating all tags.
+
+There are three types of output:
+
+=over 4
+
+=item index
+
+Output thread containing all recent entries.  This output file honors the
+Recent field similar to RSS output and is used to generate something akin
+to a journal or blog front page: an HTML version of all recent entries.
+It only supports external entries (entries with Journal or Review fields).
+The Index-Base and Index-Prefix (and possibly Index-Suffix) fields should
+be set.
+
+For output for entries with simple descriptions included in the input
+file, see the C<thread> output type.
+
+=item rss
+
+Output an RSS file.  B<spin-rss> only understands the RSS 2.0 output
+format.  The Description, Language, RSS-Base, and Title fields should be
+set to provide additional metadata for the output file.
+
+=item thread
+
+Output thread containing all entries in this input file.  This should only
+be used for input files where all entries have their description text
+inline in the input file.  Every entry will be included.  The output will
+be divided into sections by month, and each entry will be in a description
+list, with the title prefixed by the date.  The Thread-Prefix field should
+be set.
+
+For output that can handle entries from external files, see the C<index>
+output type.
+
+=back
+
+=item Recent
+
+Sets the number of recent entries to include in output files of type
+C<rss> or C<index> (but not C<thread>, which will include the full
+contents of the file).  If this field is not present, the default is 15.
+
+=item RSS-Base
+
+The base URL for RSS files generated by this file.  Each generated RSS
+file should have a link back to itself, and that link will be formed by
+taking the output name and prepending this field.
+
+=item Thread-Prefix
+
+When generating thread output from this file, use the value as the initial
+content of the generated thread.  This field should almost always be set
+if any output files of type C<thread> are defined.  It will contain such
+things as the \heading command, any prologue material, initial headings,
+and so forth.
+
+=item Title
+
+The title of the feed, used only in the RSS output.  This should always be
+set if there are any RSS output files.
+
+=back
+
+=head2 Entries
+
+After the first block, each subsequent block in the input file defines an
+entry.  Entries take the following fields:
+
+=over 4
+
+=item Date
+
+The date of this entry in ISO date format (YYYY-MM-DD HH:MM).  This field
+is required.
+
+=item Description
+
+The inline contents of this entry.  One and only one of this field,
+Journal, or Review should be present.  Description fields can only be used
+with output types of C<rss> or C<thread>.
+
+=item Journal
+
+Specifies that the content of this entry should be read from an external
+thread file given by the value of this field.  The contents of that file
+are expected to be in the thread format used by my journal entries:
+specifically, everything is ignored up to the first \h1 and after
+\class(date), and the \class(date) line is stripped off (the date
+information from the Date field is used instead).
+
+One and only one of this field, Description, or Review should be present.
+
+=item Link
+
+The link to the page referenced by this entry.  The link is relative to
+the Base field set in the input filel metadata.  This field is required.
+
+=item Review
+
+Specifies that the content of this entry should be read from an external
+thread file given by the value ofo this field.  The contents of that file
+are expected to be in the thread format used by my book reviews.
+
+Many transformations are applied to entries of this sort based on the
+format used by my book reviews and the URL layout they use, none of which
+is documented at present.  For the time being, see the source code for
+what transformations are done.  This support will require modification for
+use by anyone else.
+
+One and only one of this field, Description, or Review should be present.
+
+=item Tags
+
+Whitespace-separated tags for this entry, used to determine whether this
+entry will be included in a given output file given its output
+specification.  In addition to any tags listed here, any entry with a
+Review field will automatically have the C<review> tag.
+
+Entries may have no tags, in which case they're only included in output
+files with a tag specification of C<*>.
+
+=item Title
+
+The title of the entry.  This field is required.
+
+=back
+
+=head1 BUGS
+
+The separate C<index> and C<thread> output types are a historical artifact
+and should be merged in some way.  This will likely also require a way of
+configuring different caps on number of included entries in different
+output specifications.
+
+The file format for review entries is not specified and involves a lot of
+ad hoc heuristics that work with my book review format.
+
+Support for additional RSS standards would be nice, although in practice
+everything seems to be able to cope with RSS 2.0.
+
+=head1 NOTES
+
+RSS 2.0 was chosen as the output format because it supports GUIDs for
+entries separate from the entry URLs and hence supports multiple entries
+for the same URL, something that I needed for an RSS feed of recent
+changes to my entire site.
+
+=head1 SEE ALSO
+
+spin(1)
+
+=head1 AUTHOR
+
+Russ Allbery <rra@stanford.edu>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright 2008 Russ Allbery <rra@stanford.edu>.
+
+This program is free software; you may redistribute it and/or modify it
+under the same terms as Perl itself.
+
+=cut
