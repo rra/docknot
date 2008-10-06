@@ -4,7 +4,7 @@ $ID = q$Id$;
 # faq2html -- Convert some particular text formats into XHTML.
 #
 # Copyright 1999, 2000, 2001, 2002, 2004, 2005, 2008
-#     by Russ Allbery <rra@stanford.edu>
+#     Russ Allbery <rra@stanford.edu>
 #
 # This program is free software; you may redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -83,8 +83,9 @@ sub modified {
     my ($version, $date) = (split (' ', $id))[2,3];
     my ($year, $month, $day) = split (m%[/-]%, $date);
     $day =~ s/^0//;
+    my $revision = ($version =~ /\./) ? " (revision $version)" : '';
     'Last modified '. $MONTHS[$month - 1] . ' ' . $day . ', ' . $year
-        . " (revision $version)";
+        . $revision;
 }
 
 # Output some text to the $OUT file handle, adding any preserved whitespace
@@ -1089,7 +1090,7 @@ Russ Allbery <rra@stanford.edu>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 1999, 2000, 2001, 2002, 2004, 2005, 2008 by Russ Allbery
+Copyright 1999, 2000, 2001, 2002, 2004, 2005, 2008 Russ Allbery
 <rra@stanford.edu>.
 
 This program is free software; you may redistribute it and/or modify it
