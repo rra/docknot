@@ -34,7 +34,7 @@ sub intersect {
 sub absolute_url {
     my ($url, $base) = @_;
     $base =~ s,[^/]+$,,;
-    if ($url =~ /^https?:/) {
+    if ($url =~ /^[a-z]+:/) {
         return $url;
     } elsif ($url =~ m,^/,) {
         $base =~ s,^(https?://[^/]+).*,$1,;
