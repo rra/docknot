@@ -3,7 +3,7 @@ $ID = q$Id$;
 #
 # spin -- Translate thread (an HTML macro language) into HTML.
 #
-# Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+# Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
 #     by Russ Allbery <rra@stanford.edu>
 #
 # This program is free software; you may redistribute it and/or modify it
@@ -1226,7 +1226,7 @@ sub cvs2xhtml {
     $options .= " -n $name" unless $options =~ /-n /;
     $style = $STYLES . 'cvs.css' unless $style;
     $options .= " -s $style";
-    my $command = "(cd $dir && cvs log $source) | cvs2xhtml $options";
+    my $command = "(cd $dir && cvs log $name) | cvs2xhtml $options";
     my $footer = sub {
         my ($blurb, $id, $file) = @_;
         $blurb =~ s%cvs2xhtml%\n<a href="$URL">cvs2xhtml</a>% if $blurb;
@@ -2103,8 +2103,8 @@ Russ Allbery <rra@stanford.edu>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
-by Russ Allbery <rra@stanford.edu>.
+Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+Russ Allbery <rra@stanford.edu>.
 
 This program is free software; you may redistribute it and/or modify it
 under the same terms as Perl itself.
