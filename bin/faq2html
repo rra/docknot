@@ -3,7 +3,7 @@ $ID = q$Id$;
 #
 # faq2html -- Convert some particular text formats into XHTML.
 #
-# Copyright 1999, 2000, 2001, 2002, 2004, 2005, 2008
+# Copyright 1999, 2000, 2001, 2002, 2004, 2005, 2008, 2010
 #     Russ Allbery <rra@stanford.edu>
 #
 # This program is free software; you may redistribute it and/or modify it
@@ -285,6 +285,7 @@ sub is_url;
 sub is_sentence {
     local $_ = shift;
     return 1 if /\S[.?!][\)\]\"]?\s*$/;
+    return 1 if /^\s*\w.*\s\S+:\s*$/;
     return 1 if is_url $_;
     0;
 }
@@ -1090,7 +1091,7 @@ Russ Allbery <rra@stanford.edu>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 1999, 2000, 2001, 2002, 2004, 2005, 2008 Russ Allbery
+Copyright 1999, 2000, 2001, 2002, 2004, 2005, 2008, 2010 Russ Allbery
 <rra@stanford.edu>.
 
 This program is free software; you may redistribute it and/or modify it
