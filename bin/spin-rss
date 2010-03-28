@@ -160,7 +160,8 @@ sub rss_journal {
     shift @page while (@page and $page[0] !~ /<h1>/);
     shift @page;
     shift @page while (@page and $page[0] =~ /^\s*$/);
-    pop @page while (@page and $page[$#page] !~ /<p class=\"date\">/);
+    pop @page while (@page and $page[$#page] !~ /<div class=\"date\"><p>/);
+    pop @page;
     pop @page;
     pop @page while (@page and $page[$#page] =~ /^\s*$/);
     return '<![CDATA[' . join ('', @page) . "]]>\n";
@@ -327,7 +328,7 @@ sub index_journal {
     my $text = <IN>;
     $text = '' if $text =~ /^\s*$/;
     while (<IN>) {
-        last if /^\\class\(date\)/;
+        last if /^\\date/;
         $text .= $_;
     }
     close IN;
