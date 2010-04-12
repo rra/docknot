@@ -115,7 +115,11 @@ sub parse_changes {
         $block->{date} = str2time ($block->{date})
             or die "$0: cannot parse date $block->{date}\n";
         if ($block->{link} && $block->{link} !~ /^http/) {
-            $block->{link} = $metadata->{base} . $block->{link};
+            if ($block->{link} eq '/') {
+                $block->{link} = $metadata->{base};
+            } else {
+                $block->{link} = $metadata->{base} . $block->{link};
+            }
         }
         unless ($block->{guid}) {
             my $guid;
