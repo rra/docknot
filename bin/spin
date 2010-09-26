@@ -690,14 +690,17 @@ sub inline {
 }
 
 # Enclose some text in another tag.  The one special thing that we do is if
-# the enclosed text is entirely enclosed in <span> tags, we pull the options
-# of the <span> out and instead apply them to the parent tag.  Takes the tag
-# and the text to enclose.
+# the enclosed text is entirely enclosed in <span> or <div> tags, we pull the
+# options of the <span> or <div> out and instead apply them to the parent tag.
+# Takes the tag and the text to enclose.
 sub enclose {
     my ($tag, $text) = @_;
     my $close = $tag;
     $close =~ s/ .*//;
     if ($text =~ m%^(\s*)<span(?!.*<span)([^>]*)>(.*)</span>(\s*)\z%s) {
+        my ($lead, $class, $text, $trail) = ($1, $2, $3, $4);
+        return "$lead<$tag$class>$text</$close>$trail";
+    } elsif ($text =~ m%^(\s*)<div(?!.*<div)([^>]*)>(.*)</div>(\s*)\z%s) {
         my ($lead, $class, $text, $trail) = ($1, $2, $3, $4);
         return "$lead<$tag$class>$text</$close>$trail";
     } else {
@@ -1008,7 +1011,7 @@ sub do_tablehead {
     my ($format, @cells) = @_;
     my $output = '  <tr' . format_string ($format) . ">\n";
     for (@cells) {
-        $output .= '    ' . enclose ('th', parse ($_)) . "\n";
+        $output .= '    ' . enclose ('th', parse ($_) . border) . "\n";
     }
     $output .= "  </tr>\n";
     return (1, $output);
@@ -1019,7 +1022,7 @@ sub do_tablerow {
     my ($format, @cells) = @_;
     my $output = '  <tr' . format_string ($format) . ">\n";
     for (@cells) {
-        $output .= '    ' . enclose ('td', parse ($_)) . "\n";
+        $output .= '    ' . enclose ('td', parse ($_) . border) . "\n";
     }
     $output .= "  </tr>\n";
     return (1, $output);
