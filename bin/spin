@@ -1188,12 +1188,11 @@ sub run_converter {
             last;
         }
     }
-    print OUT $_ if defined;
     warn "$0: malformed HTML output from $command\n" unless @page;
 
     # Snarf input and write it to output until we see </body>, which is our
     # signal to start adding things.  We just got very confused if </body> was
-    # on the same line as <html>, so don't do that.
+    # on the same line as <body>, so don't do that.
     print OUT $_ while (defined ($_ = shift @page) && !m%</body>%i);
 
     # Add the footer and finish with the output.
