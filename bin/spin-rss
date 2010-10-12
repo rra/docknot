@@ -168,7 +168,7 @@ sub rss_journal {
     pop @page;
     pop @page;
     pop @page while (@page and $page[$#page] =~ /^\s*$/);
-    return '<![CDATA[' . join ('', @page) . "]]>\n";
+    return join ('', @page) . "\n";
 }
 
 # Format a review into HTML for inclusion in an RSS feed.  Takes the path to
@@ -214,7 +214,7 @@ sub rss_review {
     $page =~ s{<span class="story"><span id="\S+">(.*?)</span></span>}
               {<strong>$1</strong>}sg;
     $page = "<p>Review: <cite>$title</cite>, $author</p>\n\n" . $page;
-    return '<![CDATA[' . $page . "]]>\n";
+    return $page . "\n";
 }
 
 # Print out the RSS version of the changes information given a file to which
@@ -259,6 +259,8 @@ EOC
         if ($entry->{description}) {
             $description = xml_escape ($entry->{description});
             $description =~ s/^/        /mg;
+            $description =~ s,^(\s*),$1<p>,;
+            $description =~ s,\n*\z,</p>\n,;
         } elsif ($entry->{journal}) {
             $description = rss_journal ($entry->{journal});
         } elsif ($entry->{review}) {
@@ -270,9 +272,9 @@ EOC
         print $file "    <item>\n";
         print $file "      <title>$title</title>\n";
         print $file "      <link>$entry->{link}</link>\n";
-        print $file "      <description>\n";
+        print $file "      <description><![CDATA[\n";
         print $file "$description";
-        print $file "      </description>\n";
+        print $file "      ]]></description>\n";
         print $file "      <pubDate>$date</pubDate>\n";
         print $file "      <guid$perma>$entry->{guid}</guid>\n";
         print $file "    </item>\n";
