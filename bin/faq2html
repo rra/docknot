@@ -244,7 +244,7 @@ sub is_heading {
     ($outdented && lines ($_) == 1 && (/\S\s\S/ || length ($_) < 30))
         || ($even && m%^\s*[ \w\"\(\),:./&-]{0,30}[\w\"\)]\s*\n[-=~]+\s*$%)
         || ($even && m%^\s*[ A-Z0-9\"\(\),:./&-]{0,30}[A-Z0-9\"\)]\s*\n$%)
-        || ($even && $nobase && m%^\s*[ \w\"\(\),:./&-]{0,32}[\w\"\)]\s*\n$%);
+        || ($even && $nobase && m%^\s*[ \w\"\(\),:./&-]{0,33}[\w\"\)]\s*\n$%);
 }
 
 # Expects a line, returns whether it's an RCS/CVS Id string that has been
