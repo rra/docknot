@@ -820,8 +820,11 @@ sub do_image {
     my ($format, $image, $text) = @_;
     $image = parse ($image);
     $text = parse ($text);
-    my $size = lc html_imgsize ($image);
-    my $output = qq(<img src="$image" alt="$text" $size);
+    my $size = '';
+    if (-f $image) {
+        $size = ' ' . lc html_imgsize ($image);
+    }
+    my $output = qq(<img src="$image" alt="$text"$size);
     $output .= format_string ($format) . " />";
     return (1, $output);
 }
