@@ -725,6 +725,7 @@ sub do_strike { inline ('strike', @_) }
 sub do_strong { inline ('strong', @_) }
 sub do_sub    { inline ('sub', @_) }
 sub do_sup    { inline ('sup', @_) }
+sub do_under  { inline ('u', @_) }
 
 # Basic block commands.
 sub do_div    { block ('div', '', @_) }
@@ -1087,6 +1088,7 @@ sub do_version {
              table      => [  2, \&do_table      ],
              tablehead  => [ -1, \&do_tablehead  ],
              tablerow   => [ -1, \&do_tablerow   ],
+             under      => [  1, \&do_under      ],
              verbatim   => [  1, \&do_verbatim   ],
              version    => [  1, \&do_version    ]);
 
@@ -1964,10 +1966,11 @@ simple HTML tags:
     \code       <code></code>
     \emph       <em></em>
     \italic     <i></i>                 (usually use \emph)
-    \strike     <strike></strike>
+    \strike     <strike></strike>       (should use styles)
     \strong     <strong></strong>
     \sub        <sub></sub>
     \sup        <sup></sup>
+    \under      <u></u>                 (should use styles)
 
 Here are the other inline commands:
 
