@@ -166,7 +166,6 @@ sub rss_journal {
     shift @page while (@page and $page[0] =~ /^\s*$/);
     pop @page while (@page and $page[$#page] !~ /<div class=\"date\"><p>/);
     pop @page;
-    pop @page;
     pop @page while (@page and $page[$#page] =~ /^\s*$/);
     return join ('', @page) . "\n";
 }
