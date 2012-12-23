@@ -195,14 +195,18 @@ sub rss_review {
     die "$0: cannot find title and author in $file"
         unless ($title && $author);
     pop @page while (@page and $page[$#page] !~ /<p class=\"rating\">/);
-    my $buy;
+    my ($buy, $ebook);
     for my $i (0 .. $#page) {
+        if ($page[$i] =~ /<p class=\"ebook\">/) {
+            $ebook = $i;
+        }
         if ($page[$i] =~ /<p class=\"buy\">/) {
             $buy = $i;
             last;
         }
     }
     splice (@page, $buy, 2) if $buy;
+    splice (@page, $ebook, 4) if $ebook;
     my $page = join ('', @page);
     $page =~ s/^\s*<table[^>]+>/<table>/mg;
     $page =~ s/^\s*<tr/  <tr/mg;
