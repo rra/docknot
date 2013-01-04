@@ -582,7 +582,7 @@ sub footer {
             $modified = sprintf ("%d-%02d-%02d", $1, $2, $3);
         }
     } elsif (defined $REPO && $source =~ /^\Q$SOURCE/) {
-        my $modified = $REPO->run ('log', '-1', '--format=%ct', $source);
+        $modified = $REPO->run ('log', '-1', '--format=%ct', $source);
         if ($modified) {
             $modified = strftime ('%Y-%m-%d', gmtime $modified);
         }
