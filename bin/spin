@@ -3,8 +3,8 @@ $ID = q$Id$;
 #
 # spin -- Translate thread (an HTML macro language) into HTML.
 #
-# Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
-#     by Russ Allbery <rra@stanford.edu>
+# Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
+#     2010, 2011, 2013 Russ Allbery <rra@stanford.edu>
 #
 # This program is free software; you may redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -18,7 +18,8 @@ require 5.005;
 # The default list of files and/or directories to exclude from spinning.  This
 # can be added to with the -e option.  Each of these should be a regular
 # expression.
-@EXCLUDES = (qr/^\.(?!\.\z)(?!htaccess\z)/, qr/^CVS\z/, qr/^Makefile\z/);
+@EXCLUDES = (qr/^\.(?!\.\z)(?!htaccess\z)/, qr/^CVS\z/, qr/^Makefile\z/,
+             qr/^RCS\z/);
 
 # The URL to the software page for all of my web page generation software.
 $URL = 'http://www.eyrie.org/~eagle/software/web/';
@@ -26,8 +27,8 @@ $URL = 'http://www.eyrie.org/~eagle/software/web/';
 use strict;
 use subs qw(expand parse parse_context);
 use vars qw(%DEPEND $DOCID @EXCLUDES $FILE @FILES $FULLPATH $ID $OUTPUT
-            %OUTPUT @RSS %SITEDESCS %SITELINKS @SITEMAP $SOURCE $SPACE @STATE
-            $STYLES $URL %VERSIONS %commands %macros %strings);
+            %OUTPUT $REPO @RSS %SITEDESCS %SITELINKS @SITEMAP $SOURCE $SPACE
+            @STATE $STYLES $URL %VERSIONS %commands %macros %strings);
 
 use Cwd qw(getcwd);
 use FileHandle ();
@@ -572,11 +573,21 @@ sub footer {
     my $output = placement $file;
     $output .= "<address>\n    " . sign;
 
-    # Figure out the modified dates.
-    my $modified = (split (' ', $id || ''))[3];
-    if ($modified && $modified =~ m%^(\d+)[-/](\d+)[-/](\d+)%) {
-        $modified = sprintf ("%d-%02d-%02d", $1, $2, $3);
-    } else {
+    # Figure out the modified dates.  Use the RCS/CVS Id if available,
+    # otherwise use the Git repository if available.
+    my $modified;
+    if (defined $id) {
+        my $date = (split (' ', $id))[3];
+        if ($date && $date =~ m%^(\d+)[-/](\d+)[-/](\d+)%) {
+            $modified = sprintf ("%d-%02d-%02d", $1, $2, $3);
+        }
+    } elsif (defined $REPO && $source =~ /^\Q$SOURCE/) {
+        my $modified = $REPO->run ('log', '-1', '--format=%ct', $source);
+        if ($modified) {
+            $modified = strftime ('%Y-%m-%d', gmtime $modified);
+        }
+    }
+    if (!$modified) {
         $modified = strftime ('%Y-%m-%d', gmtime ((stat $source)[9]));
     }
     my $now = strftime ('%Y-%m-%d', gmtime);
@@ -937,7 +948,11 @@ sub do_signature {
     my $file = $FILE;
     $file =~ s/\.th$/.html/;
     my $link = '<a href="%URL%">spun</a>';
-    $output .= footer ($FILE, $file, $DOCID,
+    my $source = $FILE;
+    if (defined $File::Find::dir) {
+        $source = $File::Find::dir . '/' . $source;
+    }
+    $output .= footer ($source, $file, $DOCID,
                        "Last modified and\n    $link %MOD%",
                        "Last $link\n    %NOW% from thread modified %MOD%");
     $output .= "</body>\n</html>\n";
@@ -1481,6 +1496,12 @@ if ($filter) {
         }
         read_sitemap ("$SOURCE/.sitemap");
         read_versions ("$SOURCE/.versions");
+        if (-d "$SOURCE/.git") {
+            eval {
+                require Git::Repository;
+                $REPO = Git::Repository->new (work_tree => $SOURCE);
+            };
+        }
         $File::Find::dont_use_nlink = 1;
         if (-f "$SOURCE/.rss") {
             my $current = getcwd;
@@ -1513,7 +1534,8 @@ spin [B<-s> I<url>] [B<-o> I<overrides>] B<-f>
 
 Perl 5.005 or later and the Image::Size and Text::Balanced modules.  Also
 expects to find B<faq2html>, B<cvs2xhtml>, B<cl2xhtml>, and B<pod2thread>
-to convert certain types of files.
+to convert certain types of files.  The Git::Repository module is required
+to determine last change dates for thread source from Git history.
 
 =head1 DESCRIPTION
 
@@ -1561,8 +1583,8 @@ follows:
     .rpod       pod2thread <file> | spin -f
 
 All other files not beginning with a period are copied as-is, except that
-files or directories named F<CVS> or F<Makefile> are ignored.  As an
-exception, F<.htaccess> files are also copied over.
+files or directories named F<CVS>, F<Makefile>, or F<RCS> are ignored.  As
+an exception, F<.htaccess> files are also copied over.
 
 B<spin> looks for a file named F<.sitemap> at the top of the I<source>
 directory and reads it for navigation information to generate the
@@ -1628,6 +1650,10 @@ one is found, B<spin> runs B<spin-rss> on that file, passing the B<-b>
 option to point to the directory about to be processed.  B<spin> does this
 before processing the files in that directory, so B<spin-rss> can create
 or update files that will then be processed by B<spin> as normal.
+
+If there is a directory named F<.git> at the top of the source tree,
+B<spin> will assume that the source is a Git repository and will try to
+use C<git log> to determine the last modification date of files.
 
 =head1 OPTIONS
 
@@ -1762,7 +1788,10 @@ file.  In Subversion, you will also need to enable keyword expansion with
 C<svn propset svn:keywords Id I<file>>.  B<spin> will then take care of
 putting the last modified date in the footer for you based on the Id
 timestamp (which may be more accurate than the last modified time of the
-thread file).
+thread file).  If you are using Git, you don't need to include anything
+special in the thread source; as long as the source directory is the
+working tree of a Git repository, B<spin> will use Git to determine the
+last modification date of the file.
 
 You can include other files with the \include command, although it has a
 few restrictions.  The \include command must appear either at the
