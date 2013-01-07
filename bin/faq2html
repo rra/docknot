@@ -3,7 +3,7 @@ $ID = q$Id$;
 #
 # faq2html -- Convert some particular text formats into XHTML.
 #
-# Copyright 1999, 2000, 2001, 2002, 2004, 2005, 2008, 2010
+# Copyright 1999, 2000, 2001, 2002, 2004, 2005, 2008, 2010, 2013
 #     Russ Allbery <rra@stanford.edu>
 #
 # This program is free software; you may redistribute it and/or modify it
@@ -78,7 +78,7 @@ sub indent { $_[0] =~ /^(\s*)/; length $1 }
 sub lines { local $_ = shift; s/\s+$/\n/; tr/\n// }
 
 # Returns a nicely formatted "Last modified" string from an RCS/CVS Id.
-sub modified {
+sub modified_id {
     my $id = shift;
     my ($version, $date) = (split (' ', $id))[2,3];
     my ($year, $month, $day) = split (m%[/-]%, $date);
@@ -86,6 +86,14 @@ sub modified {
     my $revision = ($version =~ /\./) ? " (revision $version)" : '';
     'Last modified '. $MONTHS[$month - 1] . ' ' . $day . ', ' . $year
         . $revision;
+}
+
+# The same, but from a UNIX timestamp.
+sub modified_timestamp {
+    my $timestamp = shift;
+    my ($year, $month, $day) = (localtime $timestamp)[5, 4, 3];
+    $year += 1900;
+    'Last modified ' . $MONTHS[$month] . ' ' . $day . ', ' . $year;
 }
 
 # Output some text to the $OUT file handle, adding any preserved whitespace
@@ -511,13 +519,14 @@ my $fullpath = $0;
 $0 =~ s%.*/%%;
 
 # Parse command-line options, if any.
-my ($help, $numbered, $style, $realtitle, $version);
+my ($help, $lastmod, $numbered, $style, $realtitle, $version);
 Getopt::Long::config ('bundling');
-GetOptions ('h|help'      => \$help,
-            's|style=s'   => \$style,
-            't|title=s'   => \$realtitle,
-            'u|use-value' => \$USEVALUE,
-            'v|version'   => \$version) or exit 1;
+GetOptions ('h|help'          => \$help,
+            'l|last-modified' => \$lastmod,
+            's|style=s'       => \$style,
+            't|title=s'       => \$realtitle,
+            'u|use-value'     => \$USEVALUE,
+            'v|version'       => \$version) or exit 1;
 
 # If they asked for help, give them the documentation.
 if ($help) {
@@ -612,25 +621,39 @@ output "<body>\n\n";
 output h1 ($heading), "\n" if $heading;
 
 # If we have additional headers, print them out.  Otherwise, if we have author
-# information from a From header, print that out under the main heading.  If
-# we have RCS/CVS Id information, add another subheading containing the
-# version number and the last modified date.  Existing subheadings that look
-# like they're just Revision or Date strings are replaced by our more nicely
-# formatted string.  We go to some length here to avoid unnecessary <br> tags.
+# information from a From header, print that out under the main heading.
+#
+# If we have RCS/CVS Id information, add another subheading containing the
+# last modified date.  Alternately, if the -l option was given, get the last
+# modified date from the source file.  Existing subheadings that look like
+# they're just Revision or Date strings are replaced by our more nicely
+# formatted string.
+#
+# We go to some length here to avoid unnecessary <br> tags.
+#
 # Note that </strong> has to be on the end of the last line rather than the
 # beginning of the next to work around a bug in lynx.
 if ($heading) {
-    my $subheading;
+    my ($subheading, $modified);
+    if ($id) {
+        $modified = modified_id ($id);
+    } elsif ($lastmod && $input ne '-') {
+        my $timestamp = (stat $input)[9];
+        if ($timestamp) {
+            $modified = modified_timestamp ($timestamp);
+        }
+    }
     while (defined && (/^\s*$/ || is_centered ($_) || $subheading)) {
         if (/^\s*$/) {
-            output "\n</p>\n" if $subheading;
-            $subheading = 0;
+            do { $_ = <$IN> } while (defined && is_rule $_);
+            last;
         } else {
             output qq(<p class="subheading">\n) unless $subheading;
             output "<br />\n" if $subheading;
             $subheading++;
-            if ($id && (/\$Revision/ || /\$Date/)) {
-                output '  ', modified ($id);
+            if ($modified && (/\$Revision/ || /\$Date/)) {
+                output '  ', $modified;
+                undef $modified;
             } else {
                 $_ = urlize (escape (whitechomp ($_)));
                 output '  ', $_;
@@ -644,7 +667,12 @@ if ($heading) {
         output '  ', escape ($author);
         output "<br />\n  (originally by ", escape ($original), ')'
             if $original;
-        output "<br />\n  ", modified ($id) if $id;
+    }
+    if ($modified) {
+        output qq(<p class="subheading">\n) unless $subheading;
+        output "<br />\n" if $subheading;
+        output '  ', $modified;
+        $subheading++;
     }
     output "\n</p>\n" if $subheading;
 }
@@ -917,8 +945,8 @@ faq2html - Convert some particular text formats into XHTML
 
 =head1 SYNOPSIS
 
-B<faq2html> [B<-huv>] [B<-s> I<style>] [B<-t> I<title>] [I<infile>
-[I<outfile>]]
+B<faq2html> [B<-hluv>] [B<-s> I<style>] [B<-t> I<title>]
+    [I<infile> [I<outfile>]]
 
 =head1 DESCRIPTION
 
@@ -1009,6 +1037,13 @@ character set is assumed to be UTF-8.
 Print out this documentation (which is done simply by feeding the script
 to C<perldoc -t>.
 
+=item B<-l>, B<--last-modified>
+
+Add a last modified subheading to the converted document based on the last
+modification timestamp of the source file.  This is only done if no
+RCS/CVS Id string is found in the file.  If there is one, it is used in
+preference.  This option is ignored if the input is not a file.
+
 =item B<-s> I<style>, B<--style>=I<style>
 
 Insert a reference to I<style> as a style sheet into the generated web
@@ -1091,8 +1126,8 @@ Russ Allbery <rra@stanford.edu>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 1999, 2000, 2001, 2002, 2004, 2005, 2008, 2010 Russ Allbery
-<rra@stanford.edu>.
+Copyright 1999, 2000, 2001, 2002, 2004, 2005, 2008, 2010, 2013 Russ
+Allbery <rra@stanford.edu>
 
 This program is free software; you may redistribute it and/or modify it
 under the same terms as Perl itself.
