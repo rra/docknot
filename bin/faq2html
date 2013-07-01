@@ -646,7 +646,13 @@ if ($heading) {
     while (defined && (/^\s*$/ || is_centered ($_) || $subheading)) {
         if (/^\s*$/) {
             do { $_ = <$IN> } while (defined && is_rule $_);
-            last;
+            if (defined && is_centered ($_)) {
+                output "\n</p>\n" if $subheading;
+                $subheading = 0;
+                next;
+            } else {
+                last;
+            }
         } else {
             output qq(<p class="subheading">\n) unless $subheading;
             output "<br />\n" if $subheading;
