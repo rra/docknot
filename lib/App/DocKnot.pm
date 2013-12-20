@@ -283,8 +283,8 @@ sub generate {
     # Load the package metadata from JSON.
     my $data_ref = $self->_load_metadata_json('metadata.json');
 
-    # Load documentation sections.  readme.sections will contain a list of
-    # sections to add to the README file.
+    # Load supplemental README sections.  readme.sections will contain a list
+    # of sections to add to the README file.
     for my $section (@{ $data_ref->{readme}{sections} }) {
         my $title = $section->{title};
 
@@ -294,7 +294,7 @@ sub generate {
         $file =~ s{ [ ] }{-}xms;
 
         # Load the section content.
-        $section->{body} = $self->_load_metadata('sections', $file);
+        $section->{body} = $self->_load_metadata('readme', $file);
     }
 
     # Expand the package license into license text.
