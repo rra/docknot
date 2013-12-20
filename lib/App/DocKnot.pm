@@ -318,6 +318,9 @@ sub generate {
     $vars{description}  = $self->_load_metadata('description');
     $vars{requirements} = $self->_load_metadata('requirements');
 
+    # Load Debian summary information.
+    $vars{debian}{summary} = $self->_load_metadata('debian', 'summary');
+
     # Add code references for our defined helper functions.
     $vars{center}    = $self->_code_for_center;
     $vars{copyright} = $self->_code_for_copyright($data_ref->{copyrights});
@@ -346,16 +349,13 @@ sub generate {
     # two or four spaces and consistently on each line, remove the indentation
     # and then add it back in while wrapping the text.
     for my $paragraph (@paragraphs) {
-        my ($indent) = ($paragraph =~ m{ \A ([ ]+) \S }xms);
-
-        # If the paragraph is not indented, skip it.
-        next if !defined($indent);
+        my ($indent) = ($paragraph =~ m{ \A ([ ]*) \S }xms);
 
         # If the indent is longer than four characters, leave it alone.
         next if length($indent) > 4;
 
-        # If this looks like a bullet list, leave it alone.
-        next if $paragraph =~ m{ \A \s+ [*] }xms;
+        # If this looks like a bullet list or thread commands leave it alone.
+        next if $paragraph =~ m{ \A \s* [*\\] }xms;
 
         # If this paragraph is not consistently indented, leave it alone.
         next if $paragraph !~ m{ \A (?: \Q$indent\E \S[^\n]+ \n )+ \z }xms;

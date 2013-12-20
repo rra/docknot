@@ -22,4 +22,19 @@
             { "title": "SUPPORT" },
         ],
     },
+    "distribution": {
+        "section": "system",
+    },
+    "docs": {
+        "user": [
+            {
+                "name": "lbcd",
+                "title": "lbcd manual page",
+            },
+            {
+                "name": "lbcdclient",
+                "title": "lbcdclient manual page",
+            },
+        ],
+    },
 }

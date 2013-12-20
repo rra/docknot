@@ -1,0 +1,106 @@
+\==[doc]      [2] [\bullet(packed)[\link[\1][\2]]]
+\==[program]  [3]
+    [\tablerow[\1 \version[\2]] [\release[\2]]
+        [\link[http://archives.eyrie.org/software/\3.tar.gz][tar.gz]
+        (\link[http://archives.eyrie.org/software/\3.tar.gz.asc]
+              [PGP signature])]
+        [\link[http://archives.eyrie.org/software/\3.tar.xz][tar.xz]
+        (\link[http://archives.eyrie.org/software/\3.tar.xz.asc]
+              [PGP signature])]]
+\==[download] [3]
+    [\1 \version[\2]\break
+     \link[http://archives.eyrie.org/software/\3.tar.gz][tar.gz]
+     (\link[http://archives.eyrie.org/software/\3.tar.gz.asc]
+           [signature])\break
+     \link[http://archives.eyrie.org/software/\3.tar.xz][tar.xz]
+     (\link[http://archives.eyrie.org/software/\3.tar.xz.asc]
+           [signature])\break
+    Released \release[\2]]
+
+\heading[lbcd][software]
+
+\h1[lbcd]
+
+\div(sidebar)[
+    \h2[Download]
+
+    \download[[% name %]][[% name %]]
+        [[% distribution.section %]/[% name %]-\version[[% name %]]]
+
+    \link[http://archives.eyrie.org/software/ARCHIVE/[% name %]/]
+         [Archive]
+
+    \h2[Documentation]
+
+    \link[readme.html][General overview] \break
+    \link[news.html][Change summary][% FOREACH doc IN docs.user %] \break
+    \link[[% doc.name %].html][[% doc.title %]][% END %]
+
+    \h2[Development]
+
+    \link[todo.html][To-do list][% IF vcs.type == 'Git' %] \break
+    \link[[% vcs.browse %]]
+         [Git repository][% END %]
+]
+
+\h2[Description]
+
+[% description %]
+
+\h2[Requirements]
+
+[% requirements %]
+
+\h2[Download]
+
+The distribution:
+
+\table[][
+    \program[[% name %]][[% name %]]
+        [[% distribution.section %]/[% name %]-\version[[% name %]]]
+]
+
+An \link[http://archives.eyrie.org/software/ARCHIVE/[% name %]/][archive
+of older releases] is also available.
+
+[% debian.summary %]
+
+lbcd is maintained using the [% vcs.type %] version control system.  To
+check out the current development tree, clone:
+
+\pre[    [% vcs.url %]]
+
+You can also \link[[% vcs.browse %]][browse the current development
+source].
+
+\h2[Documentation]
+
+User documentation:
+
+\doc[readme.html][README]
+\doc[news.html][Change summary][% FOREACH doc IN docs.user %]
+\doc[[% doc.name %].html][[% doc.title %]][% END %]
+\doc[license.html][License and copyright]
+
+Developer documentation:
+
+\doc[todo.html][To-do list]
+
+\h2[License]
+
+The [% name %] package as a whole is covered by the following copyright
+and license:
+
+\block[
+
+[% copyright(4) %]
+
+[% indent(license.full, 4) %]
+
+]
+
+Some individual source files are covered by other, compatible licenses.
+For complete copyright and license information, see the file
+\link[license.html][LICENSE] in the [% name %] source distribution.
+
+\signature
