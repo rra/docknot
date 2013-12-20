@@ -1,0 +1,15 @@
+Build.PL
+lib/App/DocKnot.pm
+MANIFEST			This list of files
+share/licenses.json
+share/licenses/Expat
+share/templates/readme.tmpl
+t/api/basic.t
+t/data/lbcd/metadata/metadata.json
+t/data/lbcd/metadata/sections/blurb
+t/data/lbcd/metadata/sections/description
+t/data/lbcd/metadata/sections/installation
+t/data/lbcd/metadata/sections/requirements
+t/data/lbcd/metadata/sections/support
+t/data/lbcd/metadata/sections/testing
+t/data/lbcd/output/readme

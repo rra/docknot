@@ -1,0 +1,13 @@
+lbcd comes with a rudimentary test suite, which you can run after building
+lbcd with:
+
+    make check
+
+If a test case fails, please run the that individual test case with
+verbose output using:
+
+    tests/runtests -o <name-of-test>
+
+and send me the output when reporting the problem.  Currently, the test
+suite only checks the portability and utility libraries; tests for lbcd
+and lbcdclient are coming in later releases.

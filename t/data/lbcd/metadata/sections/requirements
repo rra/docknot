@@ -1,0 +1,14 @@
+lbcd is written in C, so you'll need a C compiler.  It also uses kernel
+calls to obtain load and uptime information, and at present has only been
+ported to Linux, Solaris, AIX, various BSD systems, Mac OS X, HP-UX, IRIX,
+and Tru64.  It is currently primarily tested on Linux.  Platforms not
+listed may require some porting effort, as may old or unusual platforms
+that aren't regularly tested.
+
+The lbcdclient program requires Perl (any version should do).
+
+To bootstrap from a Git checkout, or if you change the Automake files and
+need to regenerate Makefile.in, you will need Automake 1.11 or later.  For
+bootstrap or if you change configure.ac or any of the m4 files it includes
+and need to regenerate configure or config.h.in, you will need Autoconf
+2.64 or later.
