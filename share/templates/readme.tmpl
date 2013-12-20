@@ -7,6 +7,18 @@
   [% license.summary %].  Please see the section LICENSE below for more
   information.
 
+BLURB
+
+[% indent(blurb, 2) %]
+
+DESCRIPTION
+
+[% indent(description, 2) %]
+
+REQUIREMENTS
+
+[% indent(requirements, 2) %]
+
 [% FOREACH section IN readme.sections %][% section.title %]
 
 [% indent(section.body, 2) %]

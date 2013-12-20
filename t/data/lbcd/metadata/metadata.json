@@ -17,9 +17,6 @@
     },
     "readme": {
         "sections": [
-            { "title": "BLURB" },
-            { "title": "DESCRIPTION" },
-            { "title": "REQUIREMENTS" },
             { "title": "INSTALLATION" },
             { "title": "TESTING" },
             { "title": "SUPPORT" },

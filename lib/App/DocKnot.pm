@@ -313,6 +313,11 @@ sub generate {
     # metadata as loaded above.
     my %vars = %{$data_ref};
 
+    # Load the standard sections.
+    $vars{blurb}        = $self->_load_metadata('blurb');
+    $vars{description}  = $self->_load_metadata('description');
+    $vars{requirements} = $self->_load_metadata('requirements');
+
     # Add code references for our defined helper functions.
     $vars{center}    = $self->_code_for_center;
     $vars{copyright} = $self->_code_for_copyright($data_ref->{copyrights});
