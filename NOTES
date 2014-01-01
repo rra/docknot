@@ -54,3 +54,13 @@ Metadata required for release:
 * GPG key IDs for package signing
 * License overrides for build-license
 * Default license for build-license
+
+Overall design:
+
+* Directory of metadata in each project
+* Include the metadata in the distribution as source
+* Add README file to the metadata directory explaining it
+* properties.json file with main information
+* docs.json with all docs, whether to link in sidebar
+* Separate files for text components
+* Use *.txt or *.th extensions to distinguish markup language
