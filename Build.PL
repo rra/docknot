@@ -2,7 +2,7 @@
 #
 # Build script for the docknot application.
 #
-# Written by Russ Allbery <rra@stanford.edu>
+# Written by Russ Allbery <rra@cpan.org>
 # Copyright 2013
 #     The Board of Trustees of the Leland Stanford Junior University
 #
