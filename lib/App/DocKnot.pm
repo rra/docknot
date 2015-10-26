@@ -64,7 +64,7 @@ sub _code_for_center {
     my ($self) = @_;
     my $center = sub {
         my ($text) = @_;
-        my $space  = $self->{width} - length($text);
+        my $space = $self->{width} - length($text);
         if ($space <= 0) {
             return $text;
         } else {
@@ -97,7 +97,7 @@ sub _code_for_copyright {
             my $years  = $copyright->{years};
 
             # Build the initial notice with the word copyright and the years.
-            my $text = "Copyright " . $copyright->{years};
+            my $text = 'Copyright ' . $copyright->{years};
             local $Text::Wrap::columns  = $self->{width} + 1;
             local $Text::Wrap::unexpand = 0;
             $text = wrap($prefix, $prefix . q{ } x 4, $text);
@@ -297,16 +297,14 @@ sub generate {
     }
 
     # Expand the package license into license text.
-    my $license = $data_ref->{license};
+    my $license      = $data_ref->{license};
     my $licenses_ref = $self->_load_appdata_json('licenses.json');
     if (!exists($licenses_ref->{$license})) {
-        die "Unknown license $license";
+        die "Unknown license $license\n";
     }
     my $license_text = slurp($self->_appdata_path('licenses', $license));
-    $data_ref->{license} = {
-        %{ $licenses_ref->{$license} },
-        full => $license_text,
-    };
+    $data_ref->{license} = { %{ $licenses_ref->{$license} } };
+    $data_ref->{license}{full} = $license_text;
 
     # Create the variable information for the template.  Start with all
     # metadata as loaded above.
@@ -329,9 +327,9 @@ sub generate {
     $template = $self->_appdata_path('templates', "${template}.tmpl");
 
     # Run Template Toolkit processing.
-    my $tt = Template->new({ ABSOLUTE => 1 }) or die Template->error;
+    my $tt = Template->new({ ABSOLUTE => 1 }) or die Template->error . "\n";
     my $result;
-    $tt->process($template, \%vars, \$result) or die $tt->error;
+    $tt->process($template, \%vars, \$result) or die $tt->error . "\n";
 
     # Word-wrap the results to our width.  This requires some annoying
     # heuristics, but the alternative is to try to get the template to always

@@ -45,7 +45,7 @@ sub is_diff {
     close($tmp);
 
     # Run diff and report the results.
-    my $diff = capturex([0..1], 'diff', '-u', $expected, 'tmp');
+    my $diff = capturex([0 .. 1], 'diff', '-u', $expected, 'tmp');
     diag($diff);
 
     # Remove the temporary file and report failure.
