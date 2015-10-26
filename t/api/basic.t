@@ -3,8 +3,7 @@
 # Tests for the App::DocKnot module API.
 #
 # Written by Russ Allbery <rra@cpan.org>
-# Copyright 2013
-#     The Board of Trustees of the Leland Stanford Junior University
+# Copyright 2013 Russ Allbery <rra@cpan.org>
 #
 # See LICENSE for licensing terms.
 
