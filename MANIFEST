@@ -1,6 +1,8 @@
+.gitignore
 Build.PL
 lib/App/DocKnot.pm
 MANIFEST			This list of files
+MANIFEST.SKIP
 NOTES
 share/licenses.json
 share/licenses/Expat
