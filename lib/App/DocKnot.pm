@@ -272,7 +272,7 @@ sub generate {
         $file =~ s{ [ ] }{-}xms;
 
         # Load the section content.
-        $section->{body} = $self->_load_metadata('readme', $file);
+        $section->{body} = $self->_load_metadata('sections', $file);
     }
 
     # Expand the package license into license text.
