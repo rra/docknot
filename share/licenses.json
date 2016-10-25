@@ -1,5 +1,8 @@
 {
     "Expat": {
-        "summary": "BSD-style license",
+        "summary": "a BSD-style license",
+    },
+    "Perl": {
+        "summary": "the same terms as Perl itself",
     },
 }
