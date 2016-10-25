@@ -11,6 +11,7 @@ lib/App/DocKnot.pm
 MANIFEST			This list of files
 MANIFEST.SKIP
 NOTES
+README
 share/licenses.json
 share/licenses/Expat
 share/licenses/Perl
@@ -21,12 +22,8 @@ t/data/lbcd/metadata/blurb
 t/data/lbcd/metadata/debian/summary
 t/data/lbcd/metadata/description
 t/data/lbcd/metadata/metadata.json
-t/data/lbcd/metadata/readme/installation
-t/data/lbcd/metadata/readme/support
-t/data/lbcd/metadata/readme/testing
 t/data/lbcd/metadata/requirements
 t/data/lbcd/metadata/sections/installation
-t/data/lbcd/metadata/sections/support
 t/data/lbcd/metadata/sections/testing
 t/data/lbcd/output/readme
 t/data/lbcd/output/thread
