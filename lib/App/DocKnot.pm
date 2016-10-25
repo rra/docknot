@@ -485,6 +485,8 @@ SOFTWARE.
 
 =head1 SEE ALSO
 
+L<docknot(1)>
+
 This module is part of the DocKnot distribution.  The current version of
 App::DocKnot is available from CPAN, or directly from its web site at
 <https://www.eyrie.org/~eagle/software/docknot/>.
