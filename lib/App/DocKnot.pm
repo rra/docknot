@@ -3,27 +3,6 @@
 # This is the primary class for the DocKnot application, which supports
 # generation of various documentation files based on package metadata and
 # general templates.
-#
-# Written by Russ Allbery <rra@cpan.org>
-# Copyright 2013 Russ Allbery <rra@cpan.org>
-#
-# Permission is hereby granted, free of charge, to any person obtaining a
-# copy of this software and associated documentation files (the "Software"),
-# to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense,
-# and/or sell copies of the Software, and to permit persons to whom the
-# Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
 
 ##############################################################################
 # Modules and declarations
@@ -162,7 +141,7 @@ sub _appdata_path {
     my ($self, @path) = @_;
 
     # Try XDG paths first.
-    my $path = config_files(@path);
+    my $path = config_files('docknot', @path);
 
     # If that doesn't work, use the data that came with the module.
     if (!defined($path)) {
@@ -391,3 +370,123 @@ sub generate {
 
 1;
 __END__
+
+=for stopwords
+Allbery DocKnot MERCHANTABILITY NONINFRINGEMENT XDG sublicense
+
+=head1 NAME
+
+App::DocKnot - Generate human-readable documentation from package metadata
+
+=head1 SYNOPSIS
+
+    my $docknot = App::DocKnot->new({ metadata => 'docs/metadata' });
+    my $readme = $docknot->generate('readme');
+    my $index = $docknot->generate('thread');
+
+=head1 DESCRIPTION
+
+DocKnot is a system for generating consistent human-readable software package
+documentation from metadata files, primarily JSON and files containing
+documentation snippets.  It takes as input a directory of metadata and a set
+of templates and generates a documentation file from the metadata given the
+template name.
+
+The path to the metadata directory for a package is given as an explicit
+argument to the App::DocKnot constructor.  All other data (currently templates
+and license information) is loaded via File::BaseDir and therefore uses XDG
+paths by default.  This means that templates and other global configuration
+are found by searching the following paths in order:
+
+=over 4
+
+=item 1.
+
+F<$HOME/.config/docknot>
+
+=item 2.
+
+F<$XDG_CONFIG_DIRS/docknot> (F</etc/xdg/docknot> by default)
+
+=item 3.
+
+Files included in the package.
+
+=back
+
+As noted above, default templates and license files are included with the
+App::DocKnot module and are used unless more specific configuration files
+exist.
+
+=head1 CLASS METHODS
+
+=over 4
+
+=item new(ARGS)
+
+Create a new App::DocKnot object.  This should be used for all subsequent
+actions.  ARGS should be a hash reference with one or more of the following
+keys:
+
+=over 4
+
+=item metadata
+
+The path to the directory containing metadata for a package.  This argument is
+required.
+
+=item width
+
+The wrap width to use when generating documentation.  Default is 74.
+
+=back
+
+=back
+
+=head1 INSTANCE METHODS
+
+=over 4
+
+=item generate(TEMPLATE)
+
+Load the metadata from the path given in the constructor and generate the
+documentation file defined by TEMPLATE, which is the name of a template.  The
+template itself will be loaded from the App::DocKnot configuration path as
+described in L<DESCRIPTION>.  Returns the generated documentation file as a
+string.
+
+=back
+
+=head1 AUTHOR
+
+Russ Allbery <rra@cpan.org>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright 2013, 2014, 2015, 2016 Russ Allbery <rra@cpan.org>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+=head1 SEE ALSO
+
+This module is part of the DocKnot distribution.  The current version of
+App::DocKnot is available from CPAN, or directly from its web site at
+<https://www.eyrie.org/~eagle/software/docknot/>.
+
+=cut
