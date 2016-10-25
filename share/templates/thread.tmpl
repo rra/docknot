@@ -50,7 +50,14 @@
 \h2[Requirements]
 
 [% requirements %]
-
+[% IF build.autotools %]
+To bootstrap from a Git checkout, or if you change the Automake files and
+need to regenerate Makefile.in, you will need Automake
+[% build.automake %] or later.  For bootstrap or if you change
+configure.ac or any of the m4 files it includes and need to regenerate
+configure or config.h.in, you will need Autoconf [% build.autoconf %] or
+later.
+[% END %]
 \h2[Download]
 
 The distribution:

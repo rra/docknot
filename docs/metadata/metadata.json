@@ -1,0 +1,42 @@
+{
+    "name": "DocKnot",
+    "version": "1.00",
+    "synopsis": "package documentation generator",
+    "maintainer": "Russ Allbery <rra@cpan.org>",
+    "copyrights": [
+        {
+            "holder": "Russ Allbery <rra@cpan.org>",
+            "years": "2013-2016",
+        },
+    ],
+    "license": "Expat",
+    "build": {
+        "lancaster": true,
+        "type": "Module::Build",
+    },
+    "support": {
+        "cpan": "App-Docknot",
+        "email": "rra@cpan.org",
+        "web": "https://www.eyrie.org/~eagle/software/docknot/",
+    },
+    "vcs": {
+        "type": "Git",
+        "url": "https://git.eyrie.org/git/devel/docknot.git",
+        "browse": "https://git.eyrie.org/?p=devel/docknot.git",
+    },
+    "distribution": {
+        "section": "devel",
+    },
+    "docs": {
+        "user": [
+            {
+                "name": "docknot",
+                "title": "docknot manual page",
+            },
+            {
+                "name": "api/app-docknot",
+                "title": "App::DocKnot manual page",
+            },
+        ],
+    },
+}

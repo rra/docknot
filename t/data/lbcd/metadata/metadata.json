@@ -10,16 +10,26 @@
         },
     ],
     "license": "Expat",
+    "build": {
+        "autotools": true,
+        "automake": "1.11",
+        "autoconf": "2.64",
+    },
     "vcs": {
         "type": "Git",
         "url": "git://git.eyrie.org/system/lbcd.git",
         "browse": "http://git.eyrie.org/?p=system/lbcd.git",
     },
+    "support": {
+        "email": "eagle@eyrie.org",
+        "list": "lbnamed-users",
+        "listurl": "https://mailman.stanford.edu/mailman/listinfo/lbnamed-users",
+        "web": "https://www.eyrie.org/~eagle/software/lbcd/",
+    },
     "readme": {
         "sections": [
             { "title": "INSTALLATION" },
             { "title": "TESTING" },
-            { "title": "SUPPORT" },
         ],
     },
     "distribution": {

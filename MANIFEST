@@ -2,12 +2,18 @@
 .travis.yml
 bin/docknot
 Build.PL
+docs/metadata/blurb
+docs/metadata/description
+docs/metadata/metadata.json
+docs/metadata/README
+docs/metadata/requirements
 lib/App/DocKnot.pm
 MANIFEST			This list of files
 MANIFEST.SKIP
 NOTES
 share/licenses.json
 share/licenses/Expat
+share/licenses/Perl
 share/templates/readme.tmpl
 share/templates/thread.tmpl
 t/api/basic.t
@@ -19,6 +25,9 @@ t/data/lbcd/metadata/readme/installation
 t/data/lbcd/metadata/readme/support
 t/data/lbcd/metadata/readme/testing
 t/data/lbcd/metadata/requirements
+t/data/lbcd/metadata/sections/installation
+t/data/lbcd/metadata/sections/support
+t/data/lbcd/metadata/sections/testing
 t/data/lbcd/output/readme
 t/data/lbcd/output/thread
 t/data/perl.conf
