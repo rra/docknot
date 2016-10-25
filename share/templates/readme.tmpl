@@ -50,9 +50,9 @@ REQUIREMENTS
   For bug tracking, this package uses the CPAN bug tracker at:
 
       https://rt.cpan.org/Dist/Display.html?Name=[% support.cpan %]
-[% END %][% IF support.list %]
-  New [% name %] releases are announced on the [% support.list %] mailing
-  list.  To subscribe or see the list archives, go to:
+[% END %][% IF support.listname %]
+  New [% name %] releases are announced on the [% support.listname %]
+  mailing list.  To subscribe or see the list archives, go to:
 
       [% support.listurl %]
 [% END %]
@@ -96,15 +96,11 @@ LICENSE
 
 [% indent(license.full, 4) %]
 
-  All individual files without an explicit exception below are released
-  under this license.  Some files may have additional copyright holders as
-  noted in those files.  There is detailed information about the licensing
-  of each file in the LICENSE file in this distribution.
-
   Some files in this distribution are individually released under
   different licenses, all of which are compatible with the above general
   package license but which may require preservation of additional
-  notices.  All required notices are preserved in the LICENSE file.
+  notices.  All required notices, and detailed information about the
+  licensing of each file, are recorded in the LICENSE file.
 
   For any copyright range specified by files in this package as YYYY-ZZZZ,
   the range specifies every single year in that closed interval.

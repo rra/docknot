@@ -1,16 +1,16 @@
 Perl 5.18 or later and Module::Build are required to build this module.
 The following additional Perl modules are required to use it:
 
-    JSON
     File::BaseDir
     File::ShareDir
     JSON
     Perl6::Slurp
     Template (part of Template Toolkit)
 
-The following additional Perl modules will be used by the test suite if
-present:
+IPC::System::Simple is required to run the test suite.  The following
+additional Perl modules will be used by the test suite if present:
 
+    Devel::Cover
     Test::MinimumVersion
     Test::Perl::Critic
     Test::Pod

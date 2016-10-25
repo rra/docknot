@@ -22,7 +22,7 @@
     },
     "support": {
         "email": "eagle@eyrie.org",
-        "list": "lbnamed-users",
+        "listname": "lbnamed-users",
         "listurl": "https://mailman.stanford.edu/mailman/listinfo/lbnamed-users",
         "web": "https://www.eyrie.org/~eagle/software/lbcd/",
     },
