@@ -1,0 +1,175 @@
+# lbcd 3.4.2
+
+Copyright 1993-1994, 1996-1998, 2000, 2003-2009, 2012-2013 The Board of
+Trustees of the Leland Stanford Junior University.  This software is
+distributed under a BSD-style license.  Please see the section LICENSE
+below for more information.
+
+## Blurb
+
+lbcd is a daemon that runs on a UNIX system and answers UDP queries with
+information about system load, number of logged-on users, uptime, and free
+/tmp space.  This information can be used to accumulate system status
+across a cluster with light-weight queries or can be used as input to a
+load-balancing system to choose the best system to which to direct new
+incoming connections.
+
+## Description
+
+The lbcd daemon runs on a UNIX system and answers UDP queries (by default
+on port 4330) with information about system load, number of logged on
+users, uptime, and free /tmp space.  This information can be used to
+accumulate system status across a cluster with light-weight queries or can
+be used as input to a load-balancing system to choose the best system to
+which to direct new incoming connections.  It was designed for use with
+the lbnamed DNS load balancer, available at:
+
+    https://www.stanford.edu/~riepel/lbnamed/
+
+It was originally written by Roland Schemers, was rewritten by Larry
+Schwimmer to add protocol version 3 with some additional features and
+service probing, and is currently maintained by Russ Allbery.
+
+The information provided isn't particularly sophisticated, and a good
+hardware load balancer will be able to consider such things as connection
+latency and responsiveness to make better decisions, but lbcd with lbnamed
+works quite well for smaller scale problems, scales well to multiple load
+balance pools for different services, and is much simpler and cheaper to
+understand and deploy.
+
+Included in this package is a small client program, lbcdclient, which can
+query an lbcd server and display a formatted version of the returned
+information.
+
+## Requirements
+
+lbcd is written in C, so you'll need a C compiler.  It also uses kernel
+calls to obtain load and uptime information, and at present has only been
+ported to Linux, Solaris, AIX, various BSD systems, Mac OS X, HP-UX, IRIX,
+and Tru64.  It is currently primarily tested on Linux.  Platforms not
+listed may require some porting effort, as may old or unusual platforms
+that aren't regularly tested.
+
+The lbcdclient program requires Perl (any version should do).
+
+To bootstrap from a Git checkout, or if you change the Automake files and
+need to regenerate Makefile.in, you will need Automake 1.11 or later.  For
+bootstrap or if you change configure.ac or any of the m4 files it includes
+and need to regenerate configure or config.h.in, you will need Autoconf
+2.64 or later.
+
+## Installation
+
+You can build and install remctl with the standard commands:
+
+    ./configure make make install
+
+Pass --enable-silent-rules to configure for a quieter build (similar to
+the Linux kernel).  Use make warnings instead of make to build with full
+GCC compiler warnings (requires a relatively current version of GCC).
+
+The last step will probably have to be done as root.  By default, remctl
+installs itself under /usr/local; you can change that path by passing the
+--prefix=PATH argument to configure.
+
+lbcd looks for $sysconfdir/nolbcd and returns the maximum load if that
+file is present, allowing one to effectively drop a system out of a
+load-balanced pool by touching that file.  By default, the path is
+/usr/local/etc/nolbcd, but you may want to pass --sysconfdir=/etc to
+configure to use /etc/nolbcd.
+
+lbcdclient is written in Perl, so you may have to edit the first line of
+the script to point to the correct Perl location on your system.  It does
+not use any sophisticated Perl features or add-on modules.
+
+You will generally want to start lbcd at system boot.  All that is needed
+is a simple init script to start lbcd with the appropriate options or kill
+it again.  It writes its PID into /var/run/lbcd.pid by default (and this
+can be changed with the -P option).  On many systems, lbcd will need to
+run as root or as a member of particular groups to obtain system load
+average and uptime information.
+
+## Testing
+
+lbcd comes with a rudimentary test suite, which you can run after building
+lbcd with:
+
+    make check
+
+If a test case fails, please run the that individual test case with
+verbose output using:
+
+    tests/runtests -o <name-of-test>
+
+and send me the output when reporting the problem.  Currently, the test
+suite only checks the portability and utility libraries; tests for lbcd
+and lbcdclient are coming in later releases.
+
+## Support
+
+The lbcd web page at:
+
+    https://www.eyrie.org/~eagle/software/lbcd/
+
+will always have the current version of this package, the current
+documentation, and pointers to any additional resources.
+
+New lbcd releases are announced on the lbnamed-users mailing list.  To
+subscribe or see the list archives, go to:
+
+    https://mailman.stanford.edu/mailman/listinfo/lbnamed-users
+
+I welcome bug reports and patches for this package at eagle@eyrie.org.
+However, please be aware that I tend to be extremely busy and work
+projects often take priority.  I'll save your mail and get to it as soon
+as I can, but it may take me a couple of months.
+
+## Source Repository
+
+lbcd is maintained using Git.  You can access the current source by
+cloning the repository at:
+
+    git://git.eyrie.org/system/lbcd.git
+
+or view the repository via the web at:
+
+    http://git.eyrie.org/?p=system/lbcd.git
+
+When contributing modifications, patches (possibly generated by
+git-format-patch) are preferred to Git pull requests.
+
+## License
+
+The lbcd package as a whole is covered by the following copyright
+statement and license:
+
+  Copyright 1993-1994, 1996-1998, 2000, 2003-2009, 2012-2013
+      The Board of Trustees of the Leland Stanford Junior University
+
+  Permission is hereby granted, free of charge, to any person obtaining a
+  copy of this software and associated documentation files (the
+  "Software"), to deal in the Software without restriction, including
+  without limitation the rights to use, copy, modify, merge, publish,
+  distribute, sublicense, and/or sell copies of the Software, and to
+  permit persons to whom the Software is furnished to do so, subject to
+  the following conditions:
+
+  The above copyright notice and this permission notice shall be included
+  in all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+  CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+  TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Some files in this distribution are individually released under different
+licenses, all of which are compatible with the above general package
+license but which may require preservation of additional notices.  All
+required notices, and detailed information about the licensing of each
+file, are recorded in the LICENSE file.
+
+For any copyright range specified by files in this package as YYYY-ZZZZ,
+the range specifies every single year in that closed interval.

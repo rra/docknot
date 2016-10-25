@@ -28,8 +28,8 @@
     },
     "readme": {
         "sections": [
-            { "title": "INSTALLATION" },
-            { "title": "TESTING" },
+            { "title": "Installation" },
+            { "title": "Testing" },
         ],
     },
     "distribution": {

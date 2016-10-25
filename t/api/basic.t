@@ -3,7 +3,7 @@
 # Tests for the App::DocKnot module API.
 #
 # Written by Russ Allbery <rra@cpan.org>
-# Copyright 2013 Russ Allbery <rra@cpan.org>
+# Copyright 2013, 2016 Russ Allbery <rra@cpan.org>
 #
 # See LICENSE for licensing terms.
 
@@ -14,7 +14,7 @@ use warnings;
 use File::Spec;
 use IPC::System::Simple qw(capturex);
 use Perl6::Slurp;
-use Test::More tests => 4;
+use Test::More tests => 5;
 
 # Load the module.
 BEGIN { use_ok('App::DocKnot') }
@@ -29,7 +29,7 @@ BEGIN { use_ok('App::DocKnot') }
 #
 # Returns: undef
 #  Throws: Exception on failure to read or write files or run diff
-sub is_diff {
+sub is_file_contents {
     my ($got, $expected, $message) = @_;
 
     # If they're equal, this is simple.
@@ -71,9 +71,9 @@ for my $test (@tests) {
     isa_ok($docknot, 'App::DocKnot', "for $test");
 
     # Loop through the possible templates.
-    for my $template (qw(readme thread)) {
+    for my $template (qw(readme readme-md thread)) {
         my $got = $docknot->generate($template);
         my $path = File::Spec->catfile($dataroot, $test, 'output', $template);
-        is_diff($got, $path, "$template for $test");
+        is_file_contents($got, $path, "$template for $test");
     }
 }
