@@ -74,6 +74,6 @@ for my $test (@tests) {
     for my $template (qw(readme thread)) {
         my $got = $docknot->generate($template);
         my $path = File::Spec->catfile($dataroot, $test, 'output', $template);
-        is_diff($got, $path, "README for $test");
+        is_diff($got, $path, "$template for $test");
     }
 }
