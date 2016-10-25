@@ -59,9 +59,10 @@ REQUIREMENTS
       Perl6::Slurp
       Template (part of Template Toolkit)
 
-  The following additional Perl modules will be used by the test suite if
-  present:
+  IPC::System::Simple is required to run the test suite.  The following
+  additional Perl modules will be used by the test suite if present:
 
+      Devel::Cover
       Test::MinimumVersion
       Test::Perl::Critic
       Test::Pod

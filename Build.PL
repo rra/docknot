@@ -3,7 +3,7 @@
 # Build script for the docknot application.
 #
 # Written by Russ Allbery <rra@cpan.org>
-# Copyright 2013 Russ Allbery <rra@cpan.org>
+# Copyright 2013, 2016 Russ Allbery <rra@cpan.org>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -43,7 +43,8 @@ my $build = Module::Build->new(
     share_dir => { module => { 'App::DocKnot' => 'share' } },
 
     # Other package relationships.
-    configure_requires => { 'Module::Build' => 0.36 },
+    configure_requires => { 'Module::Build'       => 0.36 },
+    test_requires      => { 'IPC::System::Simple' => 0 },
     requires           => {
         'File::BaseDir'  => 0,
         'File::ShareDir' => 0,
