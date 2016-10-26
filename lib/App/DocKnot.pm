@@ -140,6 +140,9 @@ sub _code_for_to_text {
     my $to_text = sub {
         my ($text) = @_;
 
+        # Remove triple backticks.
+        $text =~ s{ ``` \w* (\s .*?) ``` }{$1}xmsg;
+
         # Remove backticks.
         $text =~ s{ [`] ([^\`]+) [`] }{$1}xmsg;
 
@@ -180,11 +183,38 @@ sub _code_for_to_thread {
     my $to_thread = sub {
         my ($text) = @_;
 
+        # Rewrite triple backticks to \pre blocks.
+        $text =~ s{ ``` \w* (\s .*?) ``` }{\\pre[$1]}xmsg;
+
         # Rewrite backticks to \code blocks.
-        $text =~ s{ [`] ([^\`]+) [`] }{\\code[$1]}xmsg;
+        $text =~ s{ ` ([^\`]+) ` }{\\code[$1]}xmsg;
 
         # Rewrite all Markdown links into thread syntax.
         $text =~ s{ \[ ([^\]]+) \] [(] (\S+) [)] }{\\link[$2][$1]}xmsg;
+
+        # Rewrite long bullets.  This is quite tricky since we have to grab
+        # every line from the first bulleted one to the point where the
+        # indentation stops.
+        $text =~ s{
+            (                   # capture whole contents
+                ^ (\s*)         #   indent before bullet
+                [*] (\s+)       #   bullet and following indent
+                [^\n]+ \n       #   rest of line
+                (?: \s* \n )*   #   optional blank lines
+                (\2 [ ] \3)     #   matching indent
+                [^\n]+ \n       #   rest of line
+                (?:             #   one or more of
+                    \4          #       matching indent
+                    [^\n]+ \n   #       rest of line
+                |               #   or
+                    \s* \n      #       blank lines
+                )+              #   end of indented block
+            )                   # full bullet with leading bullet
+        }{
+            my $text = $1;
+            $text =~ s{ [*] }{ }xms;
+            "\\bullet[\n\n" . $text . "\n]\n";
+        }xmsge;
 
         # Rewrite compact bulleted lists.
         $text =~ s{ \n ( (?: \s* [*] \s+ [^\n]+ \s* \n ){2,} ) }{
@@ -290,9 +320,83 @@ sub _load_metadata_json {
     return $json->decode($data);
 }
 
+# Word-wrap a paragraph of text.  This is a helper function for _wrap, mostly
+# so that it can be invoked recursively to wrap bulleted paragraphs.
+#
+# If the paragraph looks like regular text, which means indented by two or
+# four spaces and consistently on each line, remove the indentation and then
+# add it back in while wrapping the text.
+#
+# $self      - The App::DocKnot object
+# $paragraph - A paragraph of text to wrap
+#
+# Returns: The wrapped paragraph
+sub _wrap_paragraph {
+    my ($self, $paragraph) = @_;
+    my ($indent) = ($paragraph =~ m{ \A ([ ]*) \S }xms);
+
+    # If the indent is longer than four characters, leave it alone.
+    if (length($indent) > 4) {
+        return $paragraph;
+    }
+
+    # If this looks like thread commands leave it alone.
+    if ($paragraph =~ m{ \A \s* \\ }xms) {
+        return $paragraph;
+    }
+
+    # If this starts with a bullet, strip the bullet off, wrap the paragaraph,
+    # and then add it back in.
+    if ($paragraph =~ s{ \A (\s*) [*] (\s+) }{$1 $2}xms) {
+        my $offset = length($1);
+        $paragraph = $self->_wrap_paragraph($paragraph);
+        substr($paragraph, $offset, 1, q{*});
+        return $paragraph;
+    }
+
+    # If this looks like a Markdown block quote leave it alone, but strip
+    # trailing whitespace.
+    if ($paragraph =~ m{ \A \s* > \s }xms) {
+        $paragraph =~ s{ [ ]+ \n }{\n}xmsg;
+        return $paragraph;
+    }
+
+    # If this paragraph is not consistently indented, leave it alone.
+    if ($paragraph !~ m{ \A (?: \Q$indent\E \S[^\n]+ \n )+ \z }xms) {
+        return $paragraph;
+    }
+
+    # Strip the indent from each line.
+    $paragraph =~ s{ (?: \A | (?<=\n) ) \Q$indent\E }{}xmsg;
+
+    # Remove any existing newlines, preserving two spaces after periods.
+    $paragraph =~ s{ [.] \n (\S) }{.  $1}xmsg;
+    $paragraph =~ s{ \n(\S) }{ $1}xmsg;
+
+    # Force locally correct configuration of Text::Wrap.
+    local $Text::Wrap::break    = qr{\s+}xms;
+    local $Text::Wrap::columns  = $self->{width} + 1;
+    local $Text::Wrap::unexpand = 0;
+
+    # Do the wrapping.  This modifies @paragraphs in place.
+    $paragraph = wrap($indent, $indent, $paragraph);
+
+    # Strip any trailing whitespace, since some gets left behind after periods
+    # by Text::Wrap.
+    $paragraph =~ s{ [ ]+ \n }{\n}xmsg;
+
+    # All done.
+    return $paragraph;
+}
+
 # Word-wrap a block of text.  This requires some annoying heuristics, but the
 # alternative is to try to get the template to always produce correctly
 # wrapped results, which is far harder.
+#
+# $self - The App::DocKnot object
+# $text - The text to wrap
+#
+# Returns: The wrapped text
 sub _wrap {
     my ($self, $text) = @_;
 
@@ -303,46 +407,9 @@ sub _wrap {
     # Add back the trailing newlines at the end of each paragraph.
     @paragraphs = map { $_ . "\n" } @paragraphs;
 
-    # For each paragraph that looks like regular text, which means indented by
-    # two or four spaces and consistently on each line, remove the indentation
-    # and then add it back in while wrapping the text.
+    # Wrap all of the paragraphs.  This modifies @paragraphs in place.
     for my $paragraph (@paragraphs) {
-        my ($indent) = ($paragraph =~ m{ \A ([ ]*) \S }xms);
-
-        # If the indent is longer than four characters, leave it alone.
-        next if length($indent) > 4;
-
-        # If this looks like a bullet list or thread commands leave it alone.
-        next if $paragraph =~ m{ \A \s* [*\\] }xms;
-
-        # If this looks like a Markdown block quote leave it alone, but strip
-        # trailing whitespace.
-        if ($paragraph =~ m{ \A \s* > \s }xms) {
-            $paragraph =~ s{ [ ]+ \n }{\n}xmsg;
-            next;
-        }
-
-        # If this paragraph is not consistently indented, leave it alone.
-        next if $paragraph !~ m{ \A (?: \Q$indent\E \S[^\n]+ \n )+ \z }xms;
-
-        # Strip the indent from each line.
-        $paragraph =~ s{ (?: \A | (?<=\n) ) \Q$indent\E }{}xmsg;
-
-        # Remove any existing newlines, preserving two spaces after periods.
-        $paragraph =~ s{ [.] \n (\S) }{.  $1}xmsg;
-        $paragraph =~ s{ \n(\S) }{ $1}xmsg;
-
-        # Force locally correct configuration of Text::Wrap.
-        local $Text::Wrap::break    = qr{\s+}xms;
-        local $Text::Wrap::columns  = $self->{width} + 1;
-        local $Text::Wrap::unexpand = 0;
-
-        # Do the wrapping.  This modifies @paragraphs in place.
-        $paragraph = wrap($indent, $indent, $paragraph);
-
-        # Strip any trailing whitespace, since some gets left behind after
-        # periods by Text::Wrap.
-        $paragraph =~ s{ [ ]+ \n }{\n}xmsg;
+        $paragraph = $self->_wrap_paragraph($paragraph);
     }
 
     # Glue the paragraphs back together and return the result.  Because the
@@ -411,7 +478,7 @@ sub generate {
         # The file containing the section data will match the title, converted
         # to lowercase and with spaces changed to dashes.
         my $file = lc($title);
-        $file =~ s{ [ ] }{-}xms;
+        $file =~ tr{ }{-};
 
         # Load the section content.
         $section->{body} = $self->_load_metadata('sections', $file);
@@ -473,7 +540,8 @@ sub generate {
 __END__
 
 =for stopwords
-Allbery DocKnot MERCHANTABILITY NONINFRINGEMENT XDG sublicense
+Allbery DocKnot MERCHANTABILITY NONINFRINGEMENT XDG sublicense JSON CPAN
+ARGS
 
 =head1 NAME
 

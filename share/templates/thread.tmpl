@@ -24,12 +24,12 @@
 \div(sidebar)[
     \h2[Download]
 
-    \download[[% name %]][[% name %]]
-        [[% distribution.section %]/[% name %]-\version[[% name %]]]
+    \download[[% name %]][[% distribution.tarname %]]
+        [[% distribution.section %]/[% distribution.tarname %]-\version[[% distribution.tarname %]]]
 [% IF packaging.debian %]
     \link[https://packages.debian.org/source/sid/[% packaging.debian %]]
          [Debian packages] \break[% END %]
-    \link[http://archives.eyrie.org/software/ARCHIVE/[% name %]/]
+    \link[http://archives.eyrie.org/software/ARCHIVE/[% distribution.tarname %]/]
          [Archive]
 
     \h2[Documentation]
@@ -42,9 +42,15 @@
 
     \link[todo.html][To-do list][% IF vcs.github %] \break
     \link[https://github.com/[% vcs.github %]]
-         [GitHub][% END %][% IF vcs.type == 'Git' %] \break
+         [GitHub][% END %][% IF support.github %] \break
+    \link[https://github.com/[% support.github %]/issues]
+         [Bug tracker][% ELSIF support.cpan %] \break
+    \link[https://rt.cpan.org/Dist/Display.html?Name=[% support.cpan %]]
+         [Bug tracker][% END %][% IF vcs.type == 'Git' %] \break
     \link[[% vcs.browse %]]
-         [Git repository][% END %][% IF packaging.debian %] \break
+         [Git repository][% END %][% IF vcs.openhub %] \break
+    \link[[% vcs.openhub %]]
+         [Open HUB code analysis][% END %][% IF packaging.debian %] \break
     \link[https://tracker.debian.org/pkg/[% packaging.debian %]]
          [Debian package tracker][% END %]
 ]
@@ -78,15 +84,17 @@ later.
 The distribution:
 
 \table[][
-    \program[[% name %]][[% name %]]
-        [[% distribution.section %]/[% name %]-\version[[% name %]]]
+    \program[[% name %]][[% distribution.tarname %]]
+        [[% distribution.section %]/[% distribution.tarname %]-\version[[% distribution.tarname %]]]
 ]
 
-An \link[http://archives.eyrie.org/software/ARCHIVE/[% name %]/][archive
-of older releases] is also available.
-
-[% debian.summary %]
-
+An \link[http://archives.eyrie.org/software/ARCHIVE/[% distribution.tarname %]/]
+[archive of older releases] is also available.
+[% IF debian.summary %]
+[% debian.summary | trim %]  See the
+\link[https://tracker.debian.org/pkg/[% packaging.debian %]][Debian
+package tracker] for more information.
+[% END %]
 [% name %] is maintained using the [% vcs.type %] version control system.
 To check out the current development tree, [% IF vcs.github %]see
 \link[https://github.com/[% vcs.github %]][GitHub] or [% END %]clone:
@@ -97,7 +105,34 @@ To check out the current development tree, [% IF vcs.github %]see
 also \link[[% vcs.browse %]][browse the current development source].
 
 \h2[Documentation]
+[% IF docs.api %]
+\div(left)[
+    \class(first)[User documentation:]
 
+    \doc[readme.html][README]
+    \doc[news.html][Change summary][% FOREACH doc IN docs.user %]
+    \doc[[% doc.name %].html][[% doc.title %]][% END %]
+    \doc[license.html][License and copyright]
+
+    Developer documentation:
+
+    \doc[todo.html][To-do list][% IF vcs.github %]
+    \doc[https://github.com/[% vcs.github %]]
+        [GitHub][% END %][% IF support.github %]
+    \doc[https://github.com/[% support.github %]/issues]
+        [Bug tracker][% END %][% IF vcs.openhub %]
+    \doc[[% vcs.openhub %]]
+        [Open HUB code analysis][% END %]
+]
+
+\div(right)[
+    \class(first)[API documentation:]
+[% FOREACH doc IN docs.api %]
+    \doc[[% doc.name %].html][[% doc.title %]][% END %]
+]
+
+\h2(after)[License]
+[% ELSE %]
 User documentation:
 
 \doc[readme.html][README]
@@ -107,10 +142,16 @@ User documentation:
 
 Developer documentation:
 
-\doc[todo.html][To-do list]
+\doc[todo.html][To-do list][% IF vcs.github %]
+\doc[https://github.com/[% vcs.github %]]
+    [GitHub][% END %][% IF support.github %]
+\doc[https://github.com/[% support.github %]/issues]
+    [Bug tracker][% END %][% IF vcs.openhub %]
+\doc[[% vcs.openhub %]]
+    [Open HUB code analysis][% END %]
 
 \h2[License]
-
+[% END %]
 The [% name %] package as a whole is covered by the following copyright
 and license:
 

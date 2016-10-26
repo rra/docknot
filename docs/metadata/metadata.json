@@ -27,6 +27,7 @@
     },
     "distribution": {
         "section": "devel",
+        "tarname": "App-DocKnot",
     },
     "docs": {
         "user": [

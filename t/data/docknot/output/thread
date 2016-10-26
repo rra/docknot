@@ -24,10 +24,10 @@
 \div(sidebar)[
     \h2[Download]
 
-    \download[DocKnot][DocKnot]
-        [devel/DocKnot-\version[DocKnot]]
+    \download[DocKnot][App-DocKnot]
+        [devel/App-DocKnot-\version[App-DocKnot]]
 
-    \link[http://archives.eyrie.org/software/ARCHIVE/DocKnot/]
+    \link[http://archives.eyrie.org/software/ARCHIVE/App-DocKnot/]
          [Archive]
 
     \h2[Documentation]
@@ -42,6 +42,8 @@
     \link[todo.html][To-do list] \break
     \link[https://github.com/rra/docknot]
          [GitHub] \break
+    \link[https://rt.cpan.org/Dist/Display.html?Name=App-DocKnot]
+         [Bug tracker] \break
     \link[https://git.eyrie.org/?p=devel/docknot.git]
          [Git repository]
 ]
@@ -119,12 +121,12 @@ not available.
 The distribution:
 
 \table[][
-    \program[DocKnot][DocKnot]
-        [devel/DocKnot-\version[DocKnot]]
+    \program[DocKnot][App-DocKnot]
+        [devel/App-DocKnot-\version[App-DocKnot]]
 ]
 
-An \link[http://archives.eyrie.org/software/ARCHIVE/DocKnot/][archive of
-older releases] is also available.
+An \link[http://archives.eyrie.org/software/ARCHIVE/App-DocKnot/] [archive
+of older releases] is also available.
 
 DocKnot is maintained using the Git version control system.  To check out
 the current development tree, see
@@ -149,6 +151,8 @@ User documentation:
 Developer documentation:
 
 \doc[todo.html][To-do list]
+\doc[https://github.com/rra/docknot]
+    [GitHub]
 
 \h2[License]
 

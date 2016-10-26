@@ -123,11 +123,13 @@ The distribution:
         [system/lbcd-\version[lbcd]]
 ]
 
-An \link[http://archives.eyrie.org/software/ARCHIVE/lbcd/][archive of
+An \link[http://archives.eyrie.org/software/ARCHIVE/lbcd/] [archive of
 older releases] is also available.
 
 A Debian package is included in Debian 5.0 (lenny) and later releases.
-Thanks to Guido Guenther for doing the initial upload to Debian.
+Thanks to Guido Guenther for doing the initial upload to Debian.  See the
+\link[https://tracker.debian.org/pkg/lbcd][Debian package tracker] for
+more information.
 
 lbcd is maintained using the Git version control system.  To check out the
 current development tree, see \link[https://github.com/rra/lbcd][GitHub]
@@ -152,6 +154,8 @@ User documentation:
 Developer documentation:
 
 \doc[todo.html][To-do list]
+\doc[https://github.com/rra/lbcd]
+    [GitHub]
 
 \h2[License]
 
