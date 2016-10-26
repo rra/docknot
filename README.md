@@ -85,13 +85,11 @@ The [DocKnot web page](https://www.eyrie.org/~eagle/software/docknot/)
 will always have the current version of this package, the current
 documentation, and pointers to any additional resources.
 
-For bug tracking, this package uses the [CPAN bug
-tracker](https://rt.cpan.org/Dist/Display.html?Name=App-DocKnot)
-
-I welcome bug reports and patches for this package at rra@cpan.org or via
-the CPAN bug tracker.  However, please be aware that I tend to be
-extremely busy and work projects often take priority.  I'll save your mail
-and get to it as soon as I can, but it may take me a couple of months.
+For bug tracking, use the [CPAN bug
+tracker](https://rt.cpan.org/Dist/Display.html?Name=App-DocKnot).
+However, please be aware that I tend to be extremely busy and work
+projects often take priority.  I'll save your mail and get to it as soon
+as I can, but it may take me a couple of months.
 
 ## Source Repository
 

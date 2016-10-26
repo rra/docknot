@@ -47,21 +47,28 @@ REQUIREMENTS
 
   will always have the current version of this package, the current
   documentation, and pointers to any additional resources.
-[% IF support.cpan %]
-  For bug tracking, this package uses the CPAN bug tracker at:
-
-      https://rt.cpan.org/Dist/Display.html?Name=[% support.cpan %]
-[% END %][% IF support.listname %]
+[% IF support.listname %]
   New [% name %] releases are announced on the [% support.listname %]
   mailing list.  To subscribe or see the list archives, go to:
 
       [% support.listurl %]
 [% END %]
+[% IF support.cpan %]
+  For bug tracking, use the CPAN bug tracker at:
+
+      https://rt.cpan.org/Dist/Display.html?Name=[% support.cpan %]
+
+[% ELSIF support.github %]
+  For bug tracking, use the issue tracker on GitHub:
+
+      https://github.com/[% support.github %]/issues
+
+[% ELSE %]
   I welcome bug reports and patches for this package at
-  [% support.email %][% IF support.cpan %] or via the CPAN bug
-  tracker[% END %].  However, please be aware that I tend to be extremely
-  busy and work projects often take priority.  I'll save your mail and get
-  to it as soon as I can, but it may take me a couple of months.
+  [% support.email %].[% END %]  However, please be aware that I tend to
+  be extremely busy and work projects often take priority.  I'll save your
+  report and get to it as soon as I can, but it may take me a couple of
+  months.
 
 SOURCE REPOSITORY
 
