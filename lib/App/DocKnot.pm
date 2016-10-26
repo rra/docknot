@@ -186,6 +186,13 @@ sub _code_for_to_thread {
         # Rewrite all Markdown links into thread syntax.
         $text =~ s{ \[ ([^\]]+) \] [(] (\S+) [)] }{\\link[$2][$1]}xmsg;
 
+        # Rewrite compact bulleted lists.
+        $text =~ s{ \n ( (?: \s* [*] \s+ [^\n]+ \s* \n ){2,} ) }{
+            my $list = $1;
+            $list =~ s{ \n [*] \s+ ([^\n]+) }{\n\\bullet(packed)[$1]}xmsg;
+            "\n" . $list;
+        }xmsge;
+
         # Done.  Return the results.
         return $text;
     };
