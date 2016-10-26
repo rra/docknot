@@ -44,6 +44,13 @@
          [Git repository]
 ]
 
+\h2[Warning]
+
+\class(alert)[This package is orphaned.]  Although I believe it is still
+useful, I no longer use this package and am no longer maintaining it.  If
+you would like to pick up maintenance, please feel free.  Contact me if
+you would like this page to redirect to its new home.
+
 \h2[Description]
 
 The lbcd daemon runs on a UNIX system and answers UDP queries (by default
