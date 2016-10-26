@@ -95,15 +95,14 @@ and get to it as soon as I can, but it may take me a couple of months.
 
 ## Source Repository
 
-DocKnot is maintained using Git.  You can access the current source by
-cloning the repository at:
+DocKnot is maintained using Git.  You can access the current source on
+[GitHub](https://github.com/rra/docknot) or by cloning the repository at:
 
 https://git.eyrie.org/git/devel/docknot.git
 
 or [view the repository on the
 web](https://git.eyrie.org/?p=devel/docknot.git).
 
-You can also use [GitHub](https://github.com/rra/docknot) if you prefer.
 The eyrie.org repository is the canonical one, maintained by the author,
 but using GitHub is probably more convenient for most purposes.  Pull
 requests are gratefully reviewed and normally accepted.  It's probably
