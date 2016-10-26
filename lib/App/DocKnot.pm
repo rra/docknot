@@ -123,6 +123,69 @@ sub _code_for_indent {
     return $indent;
 }
 
+# Returns code that converts metadata text (which is assumed to be in
+# Markdown) to text.  This is not a complete Markdown formatter.  It only
+# supports the bits of markup that I've had some reason to use.
+#
+# This is constructed as a method returning a closure so that its behavior can
+# be influenced by App::DocKnot configuration in the future, but it currently
+# doesn't use any configuration.
+#
+# $self - The App::DocKnot object
+#
+# Returns: Code reference to a closure that takes a block of text and returns
+#          the coverted text
+sub _code_for_to_text {
+    my ($self) = @_;
+    my $to_text = sub {
+        my ($text) = @_;
+
+        # Remove URLs from all links, replacing them with numeric references,
+        # and accumulate the mapping of numbers to URLs in %urls.
+        my %urls;
+        my $ref = 1;
+        while ($text =~ s{ \[ ([^\]]+) \] [(] (\S+) [)] }{$1 [$ref]}xmsg) {
+            $urls{$ref} = $2;
+            $ref++;
+        }
+
+        # If there are any URLs, add an additional paragraph with all the
+        # references and URLs.
+        if (%urls) {
+            $text .= "\n";
+            $text .= join("\n", map { "[$_] $urls{$_}" } keys(%urls)) . "\n";
+        }
+        return $text;
+    };
+    return $to_text;
+}
+
+# Returns code that converts metadata text (which is assumed to be in
+# Markdown) to thread.  This is not a complete Markdown formatter.  It only
+# supports the bits of markup that I've had some reason to use.
+#
+# This is constructed as a method returning a closure so that its behavior can
+# be influenced by App::DocKnot configuration in the future, but it currently
+# doesn't use any configuration.
+#
+# $self - The App::DocKnot object
+#
+# Returns: Code reference to a closure that takes a block of text and returns
+#          the coverted thread
+sub _code_for_to_thread {
+    my ($self) = @_;
+    my $to_thread = sub {
+        my ($text) = @_;
+
+        # Rewrite all Markdown links into thread syntax.
+        $text =~ s{ \[ ([^\]]+) \] [(] (\S+) [)] }{\\link[$2][$1]}xmsg;
+
+        # Done.  Return the results.
+        return $text;
+    };
+    return $to_thread;
+}
+
 ##############################################################################
 # Helper methods
 ##############################################################################
@@ -369,6 +432,8 @@ sub generate {
     $vars{center}    = $self->_code_for_center;
     $vars{copyright} = $self->_code_for_copyright($data_ref->{copyrights});
     $vars{indent}    = $self->_code_for_indent;
+    $vars{to_text}   = $self->_code_for_to_text;
+    $vars{to_thread} = $self->_code_for_to_thread;
 
     # Find the path to the relevant template.
     $template = $self->_appdata_path('templates', "${template}.tmpl");

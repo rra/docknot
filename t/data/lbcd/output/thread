@@ -59,9 +59,8 @@ users, uptime, and free /tmp space.  This information can be used to
 accumulate system status across a cluster with light-weight queries or can
 be used as input to a load-balancing system to choose the best system to
 which to direct new incoming connections.  It was designed for use with
-the lbnamed DNS load balancer, available at:
-
-    https://www.stanford.edu/~riepel/lbnamed/
+the \link[https://www.stanford.edu/~riepel/lbnamed/][lbnamed DNS load
+balancer].
 
 It was originally written by Roland Schemers, was rewritten by Larry
 Schwimmer to add protocol version 3 with some additional features and
