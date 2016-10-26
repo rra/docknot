@@ -1,8 +1,8 @@
 # DocKnot 1.00
 
 Copyright 2013-2016 Russ Allbery <rra@cpan.org>.  This software is
-distributed under a BSD-style license.  Please see the section LICENSE
-below for more information.
+distributed under a BSD-style license.  Please see the section
+[License](#license) below for more information.
 
 ## Blurb
 
