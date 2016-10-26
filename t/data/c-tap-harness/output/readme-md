@@ -249,7 +249,9 @@ requests are gratefully reviewed and normally accepted.
 The C TAP Harness package as a whole is covered by the following copyright
 statement and license:
 
-> Copyright 2000-2001, 2004, 2006-2016 Russ Allbery <eagle@eyrie.org>
+> Copyright 2000-2001, 2004, 2006-2016
+>     Russ Allbery <eagle@eyrie.org>
+>
 > Copyright 2006-2009, 2011-2013
 >     The Board of Trustees of the Leland Stanford Junior University
 >

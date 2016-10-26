@@ -114,7 +114,8 @@ Perl module issues in the same place.
 The DocKnot package as a whole is covered by the following copyright
 statement and license:
 
-> Copyright 2013-2016 Russ Allbery <rra@cpan.org>
+> Copyright 2013-2016
+>     Russ Allbery <rra@cpan.org>
 >
 > Permission is hereby granted, free of charge, to any person obtaining a
 > copy of this software and associated documentation files (the "Software"),

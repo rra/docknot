@@ -79,9 +79,10 @@ git-format-patch) are preferred to Git pull requests.
 
 The [% name %] package as a whole is covered by the following copyright
 statement and license:
-
-[% copyright(1, '>') %]
->
+[% FOREACH copr IN copyrights %]
+> Copyright [% copr.years %]
+>     [% copr.holder %]
+>[% END %]
 [% indent(license.full, 1, '>') %]
 
 Some files in this distribution are individually released under different
