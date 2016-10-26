@@ -135,7 +135,11 @@ also \link[[% vcs.browse %]][browse the current development source].
 \div(right)[
     \class(first)[API documentation:]
 [% FOREACH doc IN docs.api %]
-    \doc[[% doc.name %].html][[% doc.title %]][% END %]
+    \doc[[% doc.name %].html][[% doc.title %]][% END %][% IF docs.extra %]
+[% FOREACH section IN docs.extra %]
+    [% section.title %]:
+[% FOREACH doc IN section.links %]
+    \doc[[% doc.name %].html][[% doc.title %]][% END %][% END %][% END %]
 ]
 
 \h2(after)[License]

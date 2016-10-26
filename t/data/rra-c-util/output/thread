@@ -198,6 +198,11 @@ development source].
     \class(first)[API documentation:]
 
     \doc[xmalloc.html][xmalloc, xcalloc, and xrealloc]
+
+    Test scripts:
+
+    \doc[module-version.html][tests/perl/module-version-t]
+    \doc[module-version-perl.html][t/style/module-version.t]
 ]
 
 \h2(after)[License]
