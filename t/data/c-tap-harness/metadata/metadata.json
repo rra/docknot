@@ -18,6 +18,7 @@
         "autotools": true,
         "automake": "1.11",
         "autoconf": "2.64",
+        "manpages": true,
     },
     "support": {
         "email": "eagle@eyrie.org",

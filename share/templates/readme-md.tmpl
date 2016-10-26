@@ -29,7 +29,8 @@ and need to regenerate Makefile.in, you will need Automake
 [% build.automake %] or later.  For bootstrap or if you change
 configure.ac or any of the m4 files it includes and need to regenerate
 configure or config.h.in, you will need Autoconf [% build.autoconf %] or
-later.
+later.[% IF build.manpages %]  Perl is also required to generate manual
+pages from a fresh Git checkout.[% END %]
 [% END %]
 [% FOREACH section IN readme.sections %]## [% section.title %]
 
