@@ -65,7 +65,11 @@ REQUIREMENTS
 SOURCE REPOSITORY
 
   [% name %] is maintained using [% vcs.type %].  You can access the
-  current source by cloning the repository at:
+  current source [% IF vcs.github %]on GitHub at:
+
+      https://github.com/[% vcs.github %]
+
+  or [% END %]by cloning the repository at:
 
       [% vcs.url %]
 
@@ -73,10 +77,6 @@ SOURCE REPOSITORY
 
       [% vcs.browse %]
 [% IF vcs.github %]
-  You can also use GitHub via:
-
-      https://github.com/[% vcs.github %]
-
   The eyrie.org repository is the canonical one, maintained by the author,
   but using GitHub is probably more convenient for most purposes.  Pull
   requests are gratefully reviewed and normally accepted.
