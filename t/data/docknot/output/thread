@@ -1,19 +1,19 @@
 \==[doc]      [2] [\bullet(packed)[\link[\1][\2]]]
 \==[program]  [3]
     [\tablerow[\1 \version[\2]] [\release[\2]]
-        [\link[http://archives.eyrie.org/software/\3.tar.gz][tar.gz]
-        (\link[http://archives.eyrie.org/software/\3.tar.gz.asc]
+        [\link[https://archives.eyrie.org/software/\3.tar.gz][tar.gz]
+        (\link[https://archives.eyrie.org/software/\3.tar.gz.asc]
               [PGP signature])]
-        [\link[http://archives.eyrie.org/software/\3.tar.xz][tar.xz]
-        (\link[http://archives.eyrie.org/software/\3.tar.xz.asc]
+        [\link[https://archives.eyrie.org/software/\3.tar.xz][tar.xz]
+        (\link[https://archives.eyrie.org/software/\3.tar.xz.asc]
               [PGP signature])]]
 \==[download] [3]
     [\1 \version[\2]\break
-     \link[http://archives.eyrie.org/software/\3.tar.gz][tar.gz]
-     (\link[http://archives.eyrie.org/software/\3.tar.gz.asc]
+     \link[https://archives.eyrie.org/software/\3.tar.gz][tar.gz]
+     (\link[https://archives.eyrie.org/software/\3.tar.gz.asc]
            [signature])\break
-     \link[http://archives.eyrie.org/software/\3.tar.xz][tar.xz]
-     (\link[http://archives.eyrie.org/software/\3.tar.xz.asc]
+     \link[https://archives.eyrie.org/software/\3.tar.xz][tar.xz]
+     (\link[https://archives.eyrie.org/software/\3.tar.xz.asc]
            [signature])\break
     Released \release[\2]]
 
@@ -27,7 +27,7 @@
     \download[DocKnot][App-DocKnot]
         [devel/App-DocKnot-\version[App-DocKnot]]
 
-    \link[http://archives.eyrie.org/software/ARCHIVE/App-DocKnot/]
+    \link[https://archives.eyrie.org/software/ARCHIVE/App-DocKnot/]
          [Archive]
 
     \h2[Documentation]
@@ -125,8 +125,8 @@ The distribution:
         [devel/App-DocKnot-\version[App-DocKnot]]
 ]
 
-An \link[http://archives.eyrie.org/software/ARCHIVE/App-DocKnot/] [archive
-of older releases] is also available.
+An \link[https://archives.eyrie.org/software/ARCHIVE/App-DocKnot/]
+[archive of older releases] is also available.
 
 DocKnot is maintained using the Git version control system.  To check out
 the current development tree, see

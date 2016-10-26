@@ -1,19 +1,19 @@
 \==[doc]      [2] [\bullet(packed)[\link[\1][\2]]]
 \==[program]  [3]
     [\tablerow[\1 \version[\2]] [\release[\2]]
-        [\link[http://archives.eyrie.org/software/\3.tar.gz][tar.gz]
-        (\link[http://archives.eyrie.org/software/\3.tar.gz.asc]
+        [\link[https://archives.eyrie.org/software/\3.tar.gz][tar.gz]
+        (\link[https://archives.eyrie.org/software/\3.tar.gz.asc]
               [PGP signature])]
-        [\link[http://archives.eyrie.org/software/\3.tar.xz][tar.xz]
-        (\link[http://archives.eyrie.org/software/\3.tar.xz.asc]
+        [\link[https://archives.eyrie.org/software/\3.tar.xz][tar.xz]
+        (\link[https://archives.eyrie.org/software/\3.tar.xz.asc]
               [PGP signature])]]
 \==[download] [3]
     [\1 \version[\2]\break
-     \link[http://archives.eyrie.org/software/\3.tar.gz][tar.gz]
-     (\link[http://archives.eyrie.org/software/\3.tar.gz.asc]
+     \link[https://archives.eyrie.org/software/\3.tar.gz][tar.gz]
+     (\link[https://archives.eyrie.org/software/\3.tar.gz.asc]
            [signature])\break
-     \link[http://archives.eyrie.org/software/\3.tar.xz][tar.xz]
-     (\link[http://archives.eyrie.org/software/\3.tar.xz.asc]
+     \link[https://archives.eyrie.org/software/\3.tar.xz][tar.xz]
+     (\link[https://archives.eyrie.org/software/\3.tar.xz.asc]
            [signature])\break
     Released \release[\2]]
 
@@ -29,7 +29,7 @@
 
     \link[https://packages.debian.org/source/sid/lbcd]
          [Debian packages] \break
-    \link[http://archives.eyrie.org/software/ARCHIVE/lbcd/]
+    \link[https://archives.eyrie.org/software/ARCHIVE/lbcd/]
          [Archive]
 
     \h2[Documentation]
@@ -123,7 +123,7 @@ The distribution:
         [system/lbcd-\version[lbcd]]
 ]
 
-An \link[http://archives.eyrie.org/software/ARCHIVE/lbcd/] [archive of
+An \link[https://archives.eyrie.org/software/ARCHIVE/lbcd/] [archive of
 older releases] is also available.
 
 A Debian package is included in Debian 5.0 (lenny) and later releases.
