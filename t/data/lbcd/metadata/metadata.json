@@ -3,7 +3,7 @@
     "version": "3.4.2",
     "synopsis": "responder for load balancing",
     "maintainer": "Russ Allbery <eagle@eyrie.org>",
-    "obsolete": true,
+    "orphaned": true,
     "copyrights": [
         {
             "holder": "The Board of Trustees of the Leland Stanford Junior University",

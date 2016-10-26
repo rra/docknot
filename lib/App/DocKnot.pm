@@ -417,6 +417,11 @@ sub generate {
         $section->{body} = $self->_load_metadata('sections', $file);
     }
 
+    # If the package is marked orphaned, load the explanation.
+    if ($data_ref->{orphaned}) {
+        $data_ref->{orphaned} = $self->_load_metadata('orphaned');
+    }
+
     # Expand the package license into license text.
     my $license      = $data_ref->{license};
     my $licenses_ref = $self->_load_appdata_json('licenses.json');
