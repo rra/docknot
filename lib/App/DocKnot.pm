@@ -54,22 +54,23 @@ sub _code_for_center {
 }
 
 # Returns code that formats the copyright notices for the package.  The
-# resulting code reference takes one parameter, the indentation level, and
-# wraps the copyright notices accordingly.  They will be wrapped with a
-# four-space outdent and kept within $self->{width} columns.
+# resulting code reference takes two parameter, the indentation level and an
+# optional prefix for each line, and wraps the copyright notices accordingly.
+# They will be wrapped with a four-space outdent and kept within
+# $self->{width} columns.
 #
 # $self           - The App::DocKnot object
 # $copyrights_ref - A reference to a list of anonymous hashes, each with keys:
 #   holder - The copyright holder for that copyright
 #   years  - The years of that copyright
 #
-# Returns: Code reference to a closure taking an indent level and returning
-#          the formatted copyright notice
+# Returns: Code reference to a closure taking an indent level and an optional
+#          prefix and returning the formatted copyright notice
 sub _code_for_copyright {
     my ($self, $copyrights_ref) = @_;
     my $copyright = sub {
-        my ($indent) = @_;
-        my $prefix = q{ } x $indent;
+        my ($indent, $lead) = @_;
+        my $prefix = ($lead // q{}) . q{ } x $indent;
         my $notice;
         for my $copyright (@{$copyrights_ref}) {
             my $holder = $copyright->{holder};
@@ -105,7 +106,8 @@ sub _code_for_copyright {
 # Returns code to indent each line of a paragraph by a given number of spaces.
 # This is constructed as a method returning a closure so that its behavior can
 # be influenced by App::DocKnot configuration in the future, but it currently
-# doesn't use any configuration.
+# doesn't use any configuration.  It takes the indentation and an optional
+# prefix to put at the start of each line.
 #
 # $self - The App::DocKnot object
 #
@@ -113,9 +115,10 @@ sub _code_for_copyright {
 sub _code_for_indent {
     my ($self) = @_;
     my $indent = sub {
-        my ($text, $space) = @_;
+        my ($text, $space, $lead) = @_;
+        $lead //= q{};
         my @text = split(m{\n}xms, $text);
-        return join("\n", map { q{ } x $space . $_ } @text);
+        return join("\n", map { $lead . q{ } x $space . $_ } @text);
     };
     return $indent;
 }
@@ -334,6 +337,13 @@ sub generate {
 
         # If this looks like a bullet list or thread commands leave it alone.
         next if $paragraph =~ m{ \A \s* [*\\] }xms;
+
+        # If this looks like a Markdown block quote leave it alone, but strip
+        # trailing whitespace.
+        if ($paragraph =~ m{ \A \s* > \s }xms) {
+            $paragraph =~ s{ [ ]+ \n }{\n}xmsg;
+            next;
+        }
 
         # If this paragraph is not consistently indented, leave it alone.
         next if $paragraph !~ m{ \A (?: \Q$indent\E \S[^\n]+ \n )+ \z }xms;
