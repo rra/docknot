@@ -214,6 +214,69 @@ sub _load_metadata_json {
     return $json->decode($data);
 }
 
+# Word-wrap a block of text.  This requires some annoying heuristics, but the
+# alternative is to try to get the template to always produce correctly
+# wrapped results, which is far harder.
+sub _wrap {
+    my ($self, $text) = @_;
+
+    # First, break the text up into paragraphs.  (This will also turn more
+    # than two consecutive newlines into just two newlines.)
+    my @paragraphs = split(m{ \n(?:[ ]*\n)+ }xms, $text);
+
+    # Add back the trailing newlines at the end of each paragraph.
+    @paragraphs = map { $_ . "\n" } @paragraphs;
+
+    # For each paragraph that looks like regular text, which means indented by
+    # two or four spaces and consistently on each line, remove the indentation
+    # and then add it back in while wrapping the text.
+    for my $paragraph (@paragraphs) {
+        my ($indent) = ($paragraph =~ m{ \A ([ ]*) \S }xms);
+
+        # If the indent is longer than four characters, leave it alone.
+        next if length($indent) > 4;
+
+        # If this looks like a bullet list or thread commands leave it alone.
+        next if $paragraph =~ m{ \A \s* [*\\] }xms;
+
+        # If this looks like a Markdown block quote leave it alone, but strip
+        # trailing whitespace.
+        if ($paragraph =~ m{ \A \s* > \s }xms) {
+            $paragraph =~ s{ [ ]+ \n }{\n}xmsg;
+            next;
+        }
+
+        # If this paragraph is not consistently indented, leave it alone.
+        next if $paragraph !~ m{ \A (?: \Q$indent\E \S[^\n]+ \n )+ \z }xms;
+
+        # Strip the indent from each line.
+        $paragraph =~ s{ (?: \A | (?<=\n) ) \Q$indent\E }{}xmsg;
+
+        # Remove any existing newlines, preserving two spaces after periods.
+        $paragraph =~ s{ [.] \n (\S) }{.  $1}xmsg;
+        $paragraph =~ s{ \n(\S) }{ $1}xmsg;
+
+        # Force locally correct configuration of Text::Wrap.
+        local $Text::Wrap::break    = qr{\s+}xms;
+        local $Text::Wrap::columns  = $self->{width} + 1;
+        local $Text::Wrap::unexpand = 0;
+
+        # Do the wrapping.  This modifies @paragraphs in place.
+        $paragraph = wrap($indent, $indent, $paragraph);
+
+        # Strip any trailing whitespace, since some gets left behind after
+        # periods by Text::Wrap.
+        $paragraph =~ s{ [ ]+ \n }{\n}xmsg;
+    }
+
+    # Glue the paragraphs back together and return the result.  Because the
+    # last newline won't get stripped by the split above, we have to strip an
+    # extra newline from the end of the file.
+    my $result = join("\n", @paragraphs);
+    $result =~ s{ \n+ \z }{\n}xms;
+    return $result;
+}
+
 ##############################################################################
 # Public interface
 ##############################################################################
@@ -315,65 +378,8 @@ sub generate {
     my $result;
     $tt->process($template, \%vars, \$result) or die $tt->error . "\n";
 
-    # Word-wrap the results to our width.  This requires some annoying
-    # heuristics, but the alternative is to try to get the template to always
-    # produce correctly-wrapped results, which is far harder.
-    #
-    # First, break the resulting text up into paragraphs.  (This will also
-    # turn more than two consecutive newlines into just two newlines.)
-    my @paragraphs = split(m{ \n(?:[ ]*\n)+ }xms, $result);
-
-    # Add back the trailing newlines at the end of each paragraph.
-    @paragraphs = map { $_ . "\n" } @paragraphs;
-
-    # For each paragraph that looks like regular text, which means indented by
-    # two or four spaces and consistently on each line, remove the indentation
-    # and then add it back in while wrapping the text.
-    for my $paragraph (@paragraphs) {
-        my ($indent) = ($paragraph =~ m{ \A ([ ]*) \S }xms);
-
-        # If the indent is longer than four characters, leave it alone.
-        next if length($indent) > 4;
-
-        # If this looks like a bullet list or thread commands leave it alone.
-        next if $paragraph =~ m{ \A \s* [*\\] }xms;
-
-        # If this looks like a Markdown block quote leave it alone, but strip
-        # trailing whitespace.
-        if ($paragraph =~ m{ \A \s* > \s }xms) {
-            $paragraph =~ s{ [ ]+ \n }{\n}xmsg;
-            next;
-        }
-
-        # If this paragraph is not consistently indented, leave it alone.
-        next if $paragraph !~ m{ \A (?: \Q$indent\E \S[^\n]+ \n )+ \z }xms;
-
-        # Strip the indent from each line.
-        $paragraph =~ s{ (?: \A | (?<=\n) ) \Q$indent\E }{}xmsg;
-
-        # Remove any existing newlines, preserving two spaces after periods.
-        $paragraph =~ s{ [.] \n (\S) }{.  $1}xmsg;
-        $paragraph =~ s{ \n(\S) }{ $1}xmsg;
-
-        # Force locally correct configuration of Text::Wrap.
-        local $Text::Wrap::break    = qr{\s+}xms;
-        local $Text::Wrap::columns  = $self->{width} + 1;
-        local $Text::Wrap::unexpand = 0;
-
-        # Do the wrapping.  This modifies @paragraphs in place.
-        $paragraph = wrap($indent, $indent, $paragraph);
-
-        # Strip any trailing whitespace, since some gets left behind after
-        # periods by Text::Wrap.
-        $paragraph =~ s{ [ ]+ \n }{\n}xmsg;
-    }
-
-    # Glue the paragraphs back together and return the result.  Because the
-    # last newline won't get stripped by the split above, we have to strip an
-    # extra newline from the end of the file.
-    $result = join("\n", @paragraphs);
-    $result =~ s{ \n+ \z }{\n}xms;
-    return $result;
+    # Word-wrap the results to our width and return them.
+    return $self->_wrap($result);
 }
 
 ##############################################################################
