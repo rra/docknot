@@ -5,4 +5,5 @@ and Tru64.  It is currently primarily tested on Linux.  Platforms not
 listed may require some porting effort, as may old or unusual platforms
 that aren't regularly tested.
 
-The lbcdclient program requires Perl (any version should do).
+The lbcdclient program requires Perl 5.6 or later and requires the
+IO::Socket::INET6 module for IPv6 support.

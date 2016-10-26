@@ -26,7 +26,9 @@
 
     \download[[% name %]][[% name %]]
         [[% distribution.section %]/[% name %]-\version[[% name %]]]
-
+[% IF packaging.debian %]
+    \link[https://packages.debian.org/source/sid/[% packaging.debian %]]
+         [Debian packages] \break[% END %]
     \link[http://archives.eyrie.org/software/ARCHIVE/[% name %]/]
          [Archive]
 
@@ -40,7 +42,9 @@
 
     \link[todo.html][To-do list][% IF vcs.type == 'Git' %] \break
     \link[[% vcs.browse %]]
-         [Git repository][% END %]
+         [Git repository][% END %][% IF packaging.debian %] \break
+    \link[https://tracker.debian.org/pkg/[% packaging.debian %]]
+         [Debian package tracker][% END %]
 ]
 [% IF obsolete %]
 \h2[Warning]

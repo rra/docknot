@@ -6,10 +6,6 @@ be used as input to a load-balancing system to choose the best system to
 which to direct new incoming connections.  It was designed for use with
 the [lbnamed DNS load balancer](https://www.stanford.edu/~riepel/lbnamed/).
 
-It was originally written by Roland Schemers, was rewritten by Larry
-Schwimmer to add protocol version 3 with some additional features and
-service probing, and is currently maintained by Russ Allbery.
-
 The information provided isn't particularly sophisticated, and a good
 hardware load balancer will be able to consider such things as connection
 latency and responsiveness to make better decisions, but lbcd with lbnamed
@@ -20,3 +16,8 @@ understand and deploy.
 Included in this package is a small client program, lbcdclient, which can
 query an lbcd server and display a formatted version of the returned
 information.
+
+It was originally written by Roland Schemers.  Larry Schwimmer rewrote it
+to add protocol version 3 with some additional features and service
+probing, and then I rewrote it again to update the coding style and use my
+standard portability layer.
