@@ -140,11 +140,19 @@ sub _code_for_to_text {
     my $to_text = sub {
         my ($text) = @_;
 
-        # Remove triple backticks.
-        $text =~ s{ ``` \w* (\s .*?) ``` }{$1}xmsg;
+        # Remove triple backticks but escape all backticks inside them.
+        $text =~ s{ ``` \w* (\s .*?) ``` }{
+            my $text = $1;
+            $text =~ s{ [\`] }{``}xmsg;
+            $text;
+        }xmsge;
 
-        # Remove backticks.
-        $text =~ s{ [`] ([^\`]+) [`] }{$1}xmsg;
+        # Remove backticks, but don't look at things starting with doubled
+        # backticks.
+        $text =~ s{ (?<! \` ) ` ([^\`]+) ` }{$1}xmsg;
+
+        # Undo backtick escaping.
+        $text =~ s{ `` }{\`}xmsg;
 
         # Remove URLs from all links, replacing them with numeric references,
         # and accumulate the mapping of numbers to URLs in %urls.
@@ -183,11 +191,22 @@ sub _code_for_to_thread {
     my $to_thread = sub {
         my ($text) = @_;
 
-        # Rewrite triple backticks to \pre blocks.
-        $text =~ s{ ``` \w* (\s .*?) ``` }{\\pre[$1]}xmsg;
+        # Escape all backslashes.
+        $text =~ s{ \\ }{\\\\}xmsg;
+
+        # Rewrite triple backticks to \pre blocks and escape backticks inside
+        # them so that they're not turned into \code blocks.
+        $text =~ s{ ``` \w* (\s .*?) ``` }{
+            my $text = $1;
+            $text =~ s{ [\`] }{``}xmsg;
+            '\pre[' . $1 . ']';
+        }xmsge;
 
         # Rewrite backticks to \code blocks.
         $text =~ s{ ` ([^\`]+) ` }{\\code[$1]}xmsg;
+
+        # Undo backtick escaping.
+        $text =~ s{ `` }{\`}xmsg;
 
         # Rewrite all Markdown links into thread syntax.
         $text =~ s{ \[ ([^\]]+) \] [(] (\S+) [)] }{\\link[$2][$1]}xmsg;
