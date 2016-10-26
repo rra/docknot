@@ -15,7 +15,7 @@
         "type": "Module::Build",
     },
     "support": {
-        "cpan": "App-Docknot",
+        "cpan": "App-DocKnot",
         "email": "rra@cpan.org",
         "web": "https://www.eyrie.org/~eagle/software/docknot/",
     },

@@ -86,7 +86,7 @@ will always have the current version of this package, the current
 documentation, and pointers to any additional resources.
 
 For bug tracking, this package uses the [CPAN bug
-tracker](https://rt.cpan.org/Dist/Display.html?Name=App-Docknot)
+tracker](https://rt.cpan.org/Dist/Display.html?Name=App-DocKnot)
 
 I welcome bug reports and patches for this package at rra@cpan.org or via
 the CPAN bug tracker.  However, please be aware that I tend to be
