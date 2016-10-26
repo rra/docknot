@@ -11,48 +11,16 @@ use 5.018;
 use autodie;
 use warnings;
 
+use lib 't/lib';
+
 use File::Spec;
 use IPC::System::Simple qw(capturex);
-use Perl6::Slurp;
+use Test::RRA qw(is_file_contents);
+
 use Test::More tests => 5;
 
 # Load the module.
 BEGIN { use_ok('App::DocKnot') }
-
-# Helper function to compare a string to the contents of a file, similar to
-# the standard is() function, but to show the line-based unified diff between
-# them if they differ.
-#
-# $got      - The output that we received
-# $expected - The path to the file containing the expected output
-# $message  - The message to use when reporting the test results
-#
-# Returns: undef
-#  Throws: Exception on failure to read or write files or run diff
-sub is_file_contents {
-    my ($got, $expected, $message) = @_;
-
-    # If they're equal, this is simple.
-    my $data = slurp($expected);
-    if ($got eq $data) {
-        is($got, $data, $message);
-        return;
-    }
-
-    # They're not equal.  Write out what we got so that we can run diff.
-    open(my $tmp, q{>}, 'tmp');
-    print {$tmp} $got or die "Cannot write to tmp: $!\n";
-    close($tmp);
-
-    # Run diff and report the results.
-    my $diff = capturex([0 .. 1], 'diff', '-u', $expected, 'tmp');
-    diag($diff);
-
-    # Remove the temporary file and report failure.
-    unlink('tmp');
-    ok(0, $message);
-    return;
-}
 
 # We have a set of test cases in the data directory.  Each of them contains
 # metadata and output directories.
