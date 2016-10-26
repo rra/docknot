@@ -14,7 +14,6 @@ use warnings;
 use lib 't/lib';
 
 use File::Spec;
-use IPC::System::Simple qw(capturex);
 use Test::RRA qw(is_file_contents);
 
 use Test::More tests => 5;
