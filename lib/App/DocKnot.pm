@@ -508,6 +508,11 @@ sub generate {
         $data_ref->{orphaned} = $self->_load_metadata('orphaned');
     }
 
+    # If the package has a quote, load the text of the quote.
+    if ($data_ref->{quote}) {
+        $data_ref->{quote}{text} = $self->_load_metadata('quote');
+    }
+
     # Expand the package license into license text.
     my $license      = $data_ref->{license};
     my $licenses_ref = $self->_load_appdata_json('licenses.json');

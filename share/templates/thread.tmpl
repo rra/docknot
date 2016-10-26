@@ -20,7 +20,13 @@
 \heading[[% name %]][software]
 
 \h1[[% name %]]
+[% IF quote %]
+\quote[
 
+[% indent(quote.text, 4) %]
+
+][[% quote.author %]][[% quote.work %]]
+[% END %]
 \div(sidebar)[
     \h2[Download]
 
