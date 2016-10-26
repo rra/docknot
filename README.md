@@ -81,16 +81,12 @@ value.
 
 ## Support
 
-The DocKnot web page at:
-
-    https://www.eyrie.org/~eagle/software/docknot/
-
+The [DocKnot web page](https://www.eyrie.org/~eagle/software/docknot/)
 will always have the current version of this package, the current
 documentation, and pointers to any additional resources.
 
-For bug tracking, this package uses the CPAN bug tracker at:
-
-    https://rt.cpan.org/Dist/Display.html?Name=App-Docknot
+For bug tracking, this package uses the [CPAN bug
+tracker](https://rt.cpan.org/Dist/Display.html?Name=App-Docknot)
 
 I welcome bug reports and patches for this package at rra@cpan.org or via
 the CPAN bug tracker.  However, please be aware that I tend to be
@@ -102,16 +98,12 @@ and get to it as soon as I can, but it may take me a couple of months.
 DocKnot is maintained using Git.  You can access the current source by
 cloning the repository at:
 
-    https://git.eyrie.org/git/devel/docknot.git
+https://git.eyrie.org/git/devel/docknot.git
 
-or view the repository via the web at:
+or [view the repository on the
+web](https://git.eyrie.org/?p=devel/docknot.git).
 
-    https://git.eyrie.org/?p=devel/docknot.git
-
-You can also use GitHub via:
-
-    https://github.com/rra/docknot
-
+You can also use [GitHub](https://github.com/rra/docknot) if you prefer.
 The eyrie.org repository is the canonical one, maintained by the author,
 but using GitHub is probably more convenient for most purposes.  Pull
 requests are gratefully reviewed and normally accepted.  It's probably
