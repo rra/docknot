@@ -157,8 +157,10 @@ The [% name %] package as a whole is covered by the following copyright
 and license:
 
 \block[
-
-[% copyright(4) %]
+[% FOREACH copr IN copyrights %]
+    Copyright [% copr.years %]
+        [% copr.holder %]
+[% END %]
 
 [% indent(license.full, 4) %]
 
