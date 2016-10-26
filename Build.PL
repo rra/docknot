@@ -31,7 +31,7 @@ use Module::Build;
 
 # Basic package configuration.
 my $build = Module::Build->new(
-    dist_name            => 'docknot',
+    dist_name            => 'App-DocKnot',
     dist_abstract        => 'Package documentation generator',
     dist_author          => 'Russ Allbery <eagle@eyrie.org>',
     dist_version         => '1.00',
