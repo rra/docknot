@@ -29,6 +29,7 @@
         "type": "Git",
         "url": "git://git.eyrie.org/system/lbcd.git",
         "browse": "http://git.eyrie.org/?p=system/lbcd.git",
+        "github": "rra/lbcd",
     },
     "readme": {
         "sections": [

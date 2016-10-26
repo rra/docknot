@@ -40,7 +40,9 @@
 
     \h2[Development]
 
-    \link[todo.html][To-do list][% IF vcs.type == 'Git' %] \break
+    \link[todo.html][To-do list][% IF vcs.github %] \break
+    \link[https://github.com/[% vcs.github %]]
+         [GitHub][% END %][% IF vcs.type == 'Git' %] \break
     \link[[% vcs.browse %]]
          [Git repository][% END %][% IF packaging.debian %] \break
     \link[https://tracker.debian.org/pkg/[% packaging.debian %]]
@@ -84,12 +86,13 @@ of older releases] is also available.
 [% debian.summary %]
 
 lbcd is maintained using the [% vcs.type %] version control system.  To
-check out the current development tree, clone:
+check out the current development tree, [% IF vcs.github %]see
+\link[https://github.com/[% vcs.github %]][GitHub] or [% END %]clone:
 
 \pre[    [% vcs.url %]]
 
-You can also \link[[% vcs.browse %]][browse the current development
-source].
+[% IF vcs.github %]Pull requests on GitHub are welcome.  [% END %]You can
+also \link[[% vcs.browse %]][browse the current development source].
 
 \h2[Documentation]
 

@@ -42,6 +42,8 @@
     \h2[Development]
 
     \link[todo.html][To-do list] \break
+    \link[https://github.com/rra/lbcd]
+         [GitHub] \break
     \link[http://git.eyrie.org/?p=system/lbcd.git]
          [Git repository] \break
     \link[https://tracker.debian.org/pkg/lbcd]
@@ -116,12 +118,14 @@ A Debian package is included in Debian 5.0 (lenny) and later releases.
 Thanks to Guido Guenther for doing the initial upload to Debian.
 
 lbcd is maintained using the Git version control system.  To check out the
-current development tree, clone:
+current development tree, see \link[https://github.com/rra/lbcd][GitHub]
+or clone:
 
 \pre[    git://git.eyrie.org/system/lbcd.git]
 
-You can also \link[http://git.eyrie.org/?p=system/lbcd.git][browse the
-current development source].
+Pull requests on GitHub are welcome.  You can also
+\link[http://git.eyrie.org/?p=system/lbcd.git][browse the current
+development source].
 
 \h2[Documentation]
 
