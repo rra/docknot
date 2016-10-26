@@ -140,6 +140,9 @@ sub _code_for_to_text {
     my $to_text = sub {
         my ($text) = @_;
 
+        # Remove backticks.
+        $text =~ s{ [`] ([^\`]+) [`] }{$1}xmsg;
+
         # Remove URLs from all links, replacing them with numeric references,
         # and accumulate the mapping of numbers to URLs in %urls.
         my %urls;
@@ -176,6 +179,9 @@ sub _code_for_to_thread {
     my ($self) = @_;
     my $to_thread = sub {
         my ($text) = @_;
+
+        # Rewrite backticks to \code blocks.
+        $text =~ s{ [`] ([^\`]+) [`] }{\\code[$1]}xmsg;
 
         # Rewrite all Markdown links into thread syntax.
         $text =~ s{ \[ ([^\]]+) \] [(] (\S+) [)] }{\\link[$2][$1]}xmsg;

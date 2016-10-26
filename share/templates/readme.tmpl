@@ -9,7 +9,7 @@
 
 BLURB
 
-[% indent(blurb, 2) %]
+[% indent(to_text(blurb), 2) %]
 
 DESCRIPTION
 
@@ -17,8 +17,8 @@ DESCRIPTION
 
 REQUIREMENTS
 
-[% indent(requirements, 2) %]
-[% IF requirements.lancaster %]
+[% indent(to_text(requirements), 2) %]
+[% IF build.lancaster %]
   To enable tests that don't detect functionality problems but are used to
   sanity-check the release, set the environment variable RELEASE_TESTING
   to a true value.  To enable tests that may be sensitive to the local
@@ -36,7 +36,7 @@ REQUIREMENTS
 [% END %]
 [% FOREACH section IN readme.sections %][% section.title FILTER upper %]
 
-[% indent(section.body, 2) %]
+[% indent(to_text(section.body), 2) %]
 
 [% END %]SUPPORT
 

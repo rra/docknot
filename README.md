@@ -10,7 +10,7 @@ DocKnot is a system for generating consistent human-readable software
 package documentation from metadata files and templates.  The metadata is
 primarily JSON files, but can include files of documentation snippets.
 The goal is to generate both web pages and distributed documentation files
-(such as README) from the same source, using templates for consistency
+(such as `README`) from the same source, using templates for consistency
 across multiple packages.
 
 ## Description
@@ -19,10 +19,10 @@ After years of maintaining a variety of small free software packages, I
 found the most tedious part of making a new release was updating the
 documentation in multiple locations.  Copyright dates would change,
 prerequisites and package descriptions would change, and I had to update
-at least the package README file and its web pages separately.  The last
+at least the package `README` file and its web pages separately.  The last
 straw was when GitHub became popular and I wanted to provide a Markdown
-version of README as well, avoiding the ugly text rendering on the GitHub
-page for a package.
+version of `README` as well, avoiding the ugly text rendering on the
+GitHub page for a package.
 
 This package uses one metadata directory as its source information and
 generates all the various bits of documentation for a package.  This
@@ -73,10 +73,10 @@ All are available on CPAN.  Those tests will be skipped if the modules are
 not available.
 
 To enable tests that don't detect functionality problems but are used to
-sanity-check the release, set the environment variable RELEASE_TESTING to
-a true value.  To enable tests that may be sensitive to the local
+sanity-check the release, set the environment variable `RELEASE_TESTING`
+to a true value.  To enable tests that may be sensitive to the local
 environment or that produce a lot of false positives without uncovering
-many problems, set the environment variable AUTHOR_TESTING to a true
+many problems, set the environment variable `AUTHOR_TESTING` to a true
 value.
 
 ## Support

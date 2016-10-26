@@ -16,12 +16,12 @@ for more information.
 ## Requirements
 
 [% requirements %]
-[% IF requirements.lancaster %]
+[% IF build.lancaster %]
 To enable tests that don't detect functionality problems but are used to
-sanity-check the release, set the environment variable RELEASE_TESTING
+sanity-check the release, set the environment variable `RELEASE_TESTING`
 to a true value.  To enable tests that may be sensitive to the local
 environment or that produce a lot of false positives without uncovering
-many problems, set the environment variable AUTHOR_TESTING to a true
+many problems, set the environment variable `AUTHOR_TESTING` to a true
 value.
 [% END %][% IF build.autotools %]
 To bootstrap from a Git checkout, or if you change the Automake files
