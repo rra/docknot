@@ -1,0 +1,8 @@
+                       User-Visible DocKnot Changes
+
+DocKnot 1.00 (2016-10-26)
+
+    Initial public release.  Supports generating text and Markdown README
+    files and a thread index page.  There is some automation of the
+    requirements section, but only automation for the build and test
+    section for Module::Build Perl modules.
