@@ -1,0 +1,43 @@
+Source: docknot
+Section: text
+Priority: extra
+Build-Depends:
+ debhelper (>= 10),
+ libdevel-cover-perl,
+ libfile-basedir-perl,
+ libfile-sharedir-perl,
+ libipc-system-simple-perl,
+ libjson-perl,
+ libmodule-build-perl,
+ libperl6-slurp-perl,
+ libtemplate-perl,
+ libtest-minimumversion-perl,
+ libtest-perl-critic-perl,
+ libtest-pod-coverage-perl,
+ libtest-pod-perl,
+ libtest-strict-perl,
+ libtest-synopsis-perl,
+Maintainer: Russ Allbery <rra@debian.org>
+Bugs: mailto:rra@debian.org
+Standards-Version: 3.9.8
+Homepage: https://www.eyrie.org/~eagle/software/docknot/
+Vcs-Git: https://git.eyrie.org/git/devel/docknot.git
+Vcs-Browser: https://git.eyrie.org/?p=devel/docknot.git
+
+Package: docknot
+Architecture: all
+Depends:
+ libfile-basedir-perl,
+ libfile-sharedir-perl,
+ libjson-perl,
+ libperl6-slurp-perl,
+ libtemplate-perl,
+ ${misc:Depends},
+ ${perl:Depends},
+Description: Generate package documentation from metadata
+ DocKnot is a system for generating consistent human-readable software
+ package documentation from metadata files and templates.  The metadata is
+ primarily JSON files, but can include files of documentation snippets.
+ The goal is to generate both web pages and distributed documentation
+ files (such as README) from the same source, using templates for
+ consistency across multiple packages.
