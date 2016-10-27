@@ -158,7 +158,7 @@ sub _code_for_to_text {
         # and accumulate the mapping of numbers to URLs in %urls.
         my %urls;
         my $ref = 1;
-        while ($text =~ s{ \[ ([^\]]+) \] [(] (\S+) [)] }{$1 [$ref]}xmsg) {
+        while ($text =~ s{ \[ ([^\]]+) \] [(] (\S+) [)] }{$1 [$ref]}xms) {
             $urls{$ref} = $2;
             $ref++;
         }
@@ -166,8 +166,8 @@ sub _code_for_to_text {
         # If there are any URLs, add an additional paragraph with all the
         # references and URLs.
         if (%urls) {
-            $text .= "\n";
-            $text .= join("\n", map { "[$_] $urls{$_}" } keys(%urls)) . "\n";
+            my @refs = map { "[$_] $urls{$_}" } sort { $a <=> $b } keys(%urls);
+            $text .= join("\n", q{}, @refs, q{});
         }
         return $text;
     };
@@ -359,8 +359,8 @@ sub _wrap_paragraph {
         return $paragraph;
     }
 
-    # If this looks like thread commands leave it alone.
-    if ($paragraph =~ m{ \A \s* \\ }xms) {
+    # If this looks like thread commands or URLs, leave it alone.
+    if ($paragraph =~ m{ \A \s* (?: \\ | \[\d+\] ) }xms) {
         return $paragraph;
     }
 
