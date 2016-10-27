@@ -51,7 +51,7 @@
     \h2[Development]
 
     \link[todo.html][To-do list] \break
-    \link[https://github.com/rra/c-tap-harness]
+    \link[https://github.com/rra/rra-c-util]
          [GitHub] \break
     \link[https://github.com/rra/rra-c-util/issues]
          [Bug tracker] \break
@@ -161,7 +161,7 @@ of older releases] is also available.
 
 rra-c-util is maintained using the Git version control system.  To check
 out the current development tree, see
-\link[https://github.com/rra/c-tap-harness][GitHub] or clone:
+\link[https://github.com/rra/rra-c-util][GitHub] or clone:
 
 \pre[    https://git.eyrie.org/git/devel/rra-c-util.git]
 
@@ -186,7 +186,7 @@ development source].
     Developer documentation:
 
     \doc[todo.html][To-do list]
-    \doc[https://github.com/rra/c-tap-harness]
+    \doc[https://github.com/rra/rra-c-util]
         [GitHub]
     \doc[https://github.com/rra/rra-c-util/issues]
         [Bug tracker]
