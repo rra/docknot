@@ -43,6 +43,23 @@ my $build = Module::Build->new(
     # Module static data files.
     share_dir => { module => { 'App::DocKnot' => 'share' } },
 
+    # Add additional package metadata.
+    meta_merge => {
+        resources => {
+            bugtracker => {
+                mailto => 'bug-App-DocKnot@rt.cpan.org',
+                web =>
+                  'https://rt.cpan.org/Dist/Display.html?Name=App-DocKnot',
+            },
+            homepage   => 'https://www.eyrie.org/~eagle/software/docknot',
+            repository => {
+                url  => 'git://github.com/rra/docknot.git',
+                web  => 'https://github.com/rra/docknot',
+                type => 'git',
+            },
+        },
+    },
+
     # Other package relationships.
     configure_requires => { 'Module::Build'       => 0.36 },
     test_requires      => { 'IPC::System::Simple' => 0 },
