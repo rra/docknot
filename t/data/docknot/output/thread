@@ -128,6 +128,9 @@ The distribution:
 An \link[https://archives.eyrie.org/software/ARCHIVE/App-DocKnot/]
 [archive of older releases] is also available.
 
+A Debian package is available from my \link[../debian.html][personal
+repository].
+
 DocKnot is maintained using the Git version control system.  To check out
 the current development tree, see
 \link[https://github.com/rra/docknot][GitHub] or clone:

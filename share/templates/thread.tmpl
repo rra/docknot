@@ -98,9 +98,12 @@ The distribution:
 An \link[https://archives.eyrie.org/software/ARCHIVE/[% distribution.tarname %]/]
 [archive of older releases] is also available.
 [% IF debian.summary %]
-[% debian.summary | trim %]  See the
+[% to_thread(debian.summary) | trim %]  See the
 \link[https://tracker.debian.org/pkg/[% packaging.debian %]][Debian
 package tracker] for more information.
+[% ELSIF debian.personal %]
+A Debian package is available from my \link[../debian.html][personal
+repository].
 [% END %]
 [% name %] is maintained using the [% vcs.type %] version control system.
 To check out the current development tree, [% IF vcs.github %]see

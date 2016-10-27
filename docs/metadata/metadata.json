@@ -29,6 +29,9 @@
         "section": "devel",
         "tarname": "App-DocKnot",
     },
+    "debian": {
+        "personal": true,
+    },
     "docs": {
         "user": [
             {
