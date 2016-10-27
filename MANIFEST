@@ -71,3 +71,5 @@ t/style/critic.t
 t/style/minimum-version.t
 t/style/module-version.t
 t/style/strict.t
+META.yml
+META.json
