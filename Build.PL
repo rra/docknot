@@ -38,6 +38,7 @@ my $build = Module::Build->new(
     license              => 'mit',
     module_name          => 'App::DocKnot',
     recursive_test_files => 1,
+    add_to_cleanup       => [qw(MANIFEST.bak cover_db)],
 
     # Module static data files.
     share_dir => { module => { 'App::DocKnot' => 'share' } },
