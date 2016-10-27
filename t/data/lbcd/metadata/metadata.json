@@ -28,8 +28,8 @@
     },
     "vcs": {
         "type": "Git",
-        "url": "git://git.eyrie.org/system/lbcd.git",
-        "browse": "http://git.eyrie.org/?p=system/lbcd.git",
+        "url": "https://git.eyrie.org/git/system/lbcd.git",
+        "browse": "https://git.eyrie.org/?p=system/lbcd.git",
         "github": "rra/lbcd",
     },
     "readme": {

@@ -135,10 +135,10 @@ as I can, but it may take me a couple of months.
 lbcd is maintained using Git.  You can access the current source on
 [GitHub](https://github.com/rra/lbcd) or by cloning the repository at:
 
-git://git.eyrie.org/system/lbcd.git
+https://git.eyrie.org/git/system/lbcd.git
 
 or [view the repository on the
-web](http://git.eyrie.org/?p=system/lbcd.git).
+web](https://git.eyrie.org/?p=system/lbcd.git).
 
 The eyrie.org repository is the canonical one, maintained by the author,
 but using GitHub is probably more convenient for most purposes.  Pull

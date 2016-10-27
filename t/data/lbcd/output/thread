@@ -44,7 +44,7 @@
     \link[todo.html][To-do list] \break
     \link[https://github.com/rra/lbcd]
          [GitHub] \break
-    \link[http://git.eyrie.org/?p=system/lbcd.git]
+    \link[https://git.eyrie.org/?p=system/lbcd.git]
          [Git repository] \break
     \link[https://tracker.debian.org/pkg/lbcd]
          [Debian package tracker]
@@ -135,10 +135,10 @@ lbcd is maintained using the Git version control system.  To check out the
 current development tree, see \link[https://github.com/rra/lbcd][GitHub]
 or clone:
 
-\pre[    git://git.eyrie.org/system/lbcd.git]
+\pre[    https://git.eyrie.org/git/system/lbcd.git]
 
 Pull requests on GitHub are welcome.  You can also
-\link[http://git.eyrie.org/?p=system/lbcd.git][browse the current
+\link[https://git.eyrie.org/?p=system/lbcd.git][browse the current
 development source].
 
 \h2[Documentation]

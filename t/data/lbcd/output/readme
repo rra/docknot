@@ -148,11 +148,11 @@ SOURCE REPOSITORY
 
   or by cloning the repository at:
 
-      git://git.eyrie.org/system/lbcd.git
+      https://git.eyrie.org/git/system/lbcd.git
 
   or view the repository via the web at:
 
-      http://git.eyrie.org/?p=system/lbcd.git
+      https://git.eyrie.org/?p=system/lbcd.git
 
   The eyrie.org repository is the canonical one, maintained by the author,
   but using GitHub is probably more convenient for most purposes.  Pull
