@@ -24,8 +24,8 @@
 \div(sidebar)[
     \h2[Download]
 
-    \download[DocKnot][App-DocKnot]
-        [devel/App-DocKnot-\version[App-DocKnot]]
+    \download[DocKnot][docknot]
+        [devel/App-DocKnot-\version[docknot]]
 
     \link[https://archives.eyrie.org/software/ARCHIVE/App-DocKnot/]
          [Archive]
@@ -121,8 +121,8 @@ not available.
 The distribution:
 
 \table[][
-    \program[DocKnot][App-DocKnot]
-        [devel/App-DocKnot-\version[App-DocKnot]]
+    \program[DocKnot][docknot]
+        [devel/App-DocKnot-\version[docknot]]
 ]
 
 An \link[https://archives.eyrie.org/software/ARCHIVE/App-DocKnot/]

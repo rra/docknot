@@ -41,6 +41,7 @@
     "distribution": {
         "section": "devel",
         "tarname": "c-tap-harness",
+        "version": "c-tap-harness",
     },
     "docs": {
         "user": [

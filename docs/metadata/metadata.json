@@ -28,6 +28,7 @@
     "distribution": {
         "section": "devel",
         "tarname": "App-DocKnot",
+        "version": "docknot",
     },
     "debian": {
         "personal": true,

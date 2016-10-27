@@ -30,8 +30,8 @@
 \div(sidebar)[
     \h2[Download]
 
-    \download[[% name %]][[% distribution.tarname %]]
-        [[% distribution.section %]/[% distribution.tarname %]-\version[[% distribution.tarname %]]]
+    \download[[% name %]][[% distribution.version %]]
+        [[% distribution.section %]/[% distribution.tarname %]-\version[[% distribution.version %]]]
 [% IF packaging.debian %]
     \link[https://packages.debian.org/source/sid/[% packaging.debian %]]
          [Debian packages] \break[% END %]
@@ -91,8 +91,8 @@ pages from a fresh Git checkout.[% END %]
 The distribution:
 
 \table[][
-    \program[[% name %]][[% distribution.tarname %]]
-        [[% distribution.section %]/[% distribution.tarname %]-\version[[% distribution.tarname %]]]
+    \program[[% name %]][[% distribution.version %]]
+        [[% distribution.section %]/[% distribution.tarname %]-\version[[% distribution.version %]]]
 ]
 
 An \link[https://archives.eyrie.org/software/ARCHIVE/[% distribution.tarname %]/]
