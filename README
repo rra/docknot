@@ -81,6 +81,19 @@ REQUIREMENTS
   many problems, set the environment variable AUTHOR_TESTING to a true
   value.
 
+BUILDING AND INSTALLATION
+
+  DocKnot uses Module::Build and can be installed using the same process
+  as any other Module::Build module:
+
+      perl Build.PL
+      ./Build
+      ./Build test
+      ./Build install
+
+  You will have to run the last command as root unless you're installing
+  into a local Perl module tree in your home directory.
+
 SUPPORT
 
   The DocKnot web page at:

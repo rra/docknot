@@ -84,6 +84,19 @@ REQUIREMENTS
   many problems, set the environment variable AUTHOR_TESTING to a true
   value.
 
+BUILDING AND INSTALLATION
+
+  Term::ANSIColor uses ExtUtils::MakeMaker and can be installed using the
+  same process as any other ExtUtils::MakeMaker module:
+
+      perl Makefile.PL
+      make
+      make test
+      make install
+
+  You'll probably need to do the last as root unless you're installing
+  into a local Perl module tree in your home directory.
+
 SUPPORT
 
   The Term::ANSIColor web page at:

@@ -34,6 +34,32 @@ REQUIREMENTS
   configure or config.h.in, you will need Autoconf [% build.autoconf %] or
   later.[% IF build.manpages %]  Perl is also required to generate manual
   pages from a fresh Git checkout.[% END %]
+[% END %][% IF build.type == 'Module::Build' %]
+BUILDING AND INSTALLATION
+
+  [% name %] uses Module::Build and can be installed using the same process
+  as any other Module::Build module:
+
+      perl Build.PL
+      ./Build
+      ./Build test
+      ./Build install
+
+  You will have to run the last command as root unless you're installing
+  into a local Perl module tree in your home directory.
+[% ELSIF build.type == 'ExtUtils::MakeMaker' %]
+BUILDING AND INSTALLATION
+
+  [% name %] uses ExtUtils::MakeMaker and can be installed using the same
+  process as any other ExtUtils::MakeMaker module:
+
+      perl Makefile.PL
+      make
+      make test
+      make install
+
+  You'll probably need to do the last as root unless you're installing
+  into a local Perl module tree in your home directory.
 [% END %]
 [% FOREACH section IN readme.sections %][% section.title FILTER upper %]
 

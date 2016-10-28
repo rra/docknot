@@ -79,6 +79,21 @@ environment or that produce a lot of false positives without uncovering
 many problems, set the environment variable `AUTHOR_TESTING` to a true
 value.
 
+## Building and Installation
+
+DocKnot uses Module::Build and can be installed using the same process as
+any other Module::Build module:
+
+```
+    perl Build.PL
+    ./Build
+    ./Build test
+    ./Build install
+```
+
+You will have to run the last command as root unless you're installing
+into a local Perl module tree in your home directory.
+
 ## Support
 
 The [DocKnot web page](https://www.eyrie.org/~eagle/software/docknot/)
