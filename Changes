@@ -9,6 +9,9 @@ DocKnot 1.01 (unreleased)
     Add support for stock building and installation sections for Perl
     module packages using either Module::Build or ExtUtils::MakeMaker.
 
+    Add thread template support for annotating quotes shorter than 80
+    characters with the "short" class.
+
 DocKnot 1.00 (2016-10-26)
 
     Initial public release.  Supports generating text and Markdown README
