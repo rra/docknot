@@ -1,5 +1,11 @@
                        User-Visible DocKnot Changes
 
+DocKnot 1.01 (unreleased)
+
+    Add support for license notices (the notices metadata file), which
+    should be appended to the end of the stock license statement wherever
+    it is generated.
+
 DocKnot 1.00 (2016-10-26)
 
     Initial public release.  Supports generating text and Markdown README

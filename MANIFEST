@@ -12,7 +12,6 @@ lib/App/DocKnot.pm
 LICENSE
 MANIFEST			This list of files
 MANIFEST.SKIP
-NOTES
 README
 README.md
 share/licenses.json
@@ -23,6 +22,11 @@ share/templates/readme.tmpl
 share/templates/thread.tmpl
 t/api/basic.t
 t/api/self.t
+t/data/ansicolor/metadata/blurb
+t/data/ansicolor/metadata/description
+t/data/ansicolor/metadata/metadata.json
+t/data/ansicolor/metadata/notices
+t/data/ansicolor/metadata/requirements
 t/data/c-tap-harness/metadata/blurb
 t/data/c-tap-harness/metadata/description
 t/data/c-tap-harness/metadata/metadata.json
@@ -71,3 +75,4 @@ t/style/critic.t
 t/style/minimum-version.t
 t/style/module-version.t
 t/style/strict.t
+TODO

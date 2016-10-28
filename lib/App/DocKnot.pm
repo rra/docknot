@@ -523,6 +523,9 @@ sub generate {
     $data_ref->{license} = { %{ $licenses_ref->{$license} } };
     $data_ref->{license}{full} = $license_text;
 
+    # Load additional license notices if they exist.
+    eval { $data_ref->{license}{notices} = $self->_load_metadata('notices') };
+
     # Create the variable information for the template.  Start with all
     # metadata as loaded above.
     my %vars = %{$data_ref};

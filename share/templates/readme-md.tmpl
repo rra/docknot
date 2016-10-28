@@ -84,7 +84,9 @@ statement and license:
 > Copyright [% copr.years %]
 >     [% copr.holder %]
 >[% END %]
-[% indent(license.full, 1, '>') %]
+[% indent(license.full, 1, '>') %][% IF license.notices %]
+>
+[% indent(license.notices, 1, '>') %][% END %]
 
 Some files in this distribution are individually released under different
 licenses, all of which are compatible with the above general package

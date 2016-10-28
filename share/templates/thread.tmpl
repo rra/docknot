@@ -176,7 +176,9 @@ and license:
 [% END %]
 
 [% indent(license.full, 4) %]
-
+[% IF license.notices %]
+[% indent(license.notices, 4) %]
+[% END %]
 ]
 
 Some individual source files are covered by other, compatible licenses.

@@ -103,7 +103,9 @@ LICENSE
 [% copyright(4) %]
 
 [% indent(license.full, 4) %]
-
+[% IF license.notices %]
+[% indent(license.notices 4) %]
+[% END %]
   Some files in this distribution are individually released under
   different licenses, all of which are compatible with the above general
   package license but which may require preservation of additional
