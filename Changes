@@ -12,6 +12,12 @@ DocKnot 1.01 (unreleased)
     Add thread template support for annotating quotes shorter than 80
     characters with the "short" class.
 
+    Add support for additional bootstrapping requirements in a separate
+    bootstrap metadata file, appended to the Autotools bootstrapping
+    section (at least for right now).
+
+    Allow markup in the license notices section.
+
 DocKnot 1.00 (2016-10-26)
 
     Initial public release.  Supports generating text and Markdown README
