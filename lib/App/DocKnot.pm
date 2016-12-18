@@ -541,6 +541,13 @@ sub generate {
         $vars{debian}{summary} = $self->_load_metadata('debian', 'summary');
     };
 
+    # Load build sections if they exist.
+    eval { $vars{build}{middle} = $self->_load_metadata('build', 'middle') };
+    eval { $vars{build}{suffix} = $self->_load_metadata('build', 'suffix') };
+
+    # Load testing sections if they exist.
+    eval { $vars{test}{suffix} = $self->_load_metadata('test', 'suffix') };
+
     # Add code references for our defined helper functions.
     $vars{center}    = $self->_code_for_center;
     $vars{copyright} = $self->_code_for_copyright($data_ref->{copyrights});
