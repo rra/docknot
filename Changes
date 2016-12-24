@@ -4,7 +4,9 @@ DocKnot 1.01 (unreleased)
 
     Add build and test instructions for Autoconf packages, including
     details about Kerberos configuration, to the README and README.md
-    templates.
+    templates.  Allow a testing section in the metadata to override the
+    added testing section.  Add a flag to indicate that the package is not
+    intended to be installed, which suppresses some of the template.
 
     Add support for license notices (the notices metadata file), which
     should be appended to the end of the stock license statement wherever

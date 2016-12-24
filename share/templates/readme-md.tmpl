@@ -62,7 +62,7 @@ process as any other ExtUtils::MakeMaker module:
 
 You'll probably need to do the last as root unless you're installing
 into a local Perl module tree in your home directory.
-[% ELSIF build.type == 'Autoconf' %]
+[% ELSIF build.type == 'Autoconf' %][% IF build.install %]
 ## Building and Installation
 
 You can build and install [% name %] with the standard commands:
@@ -72,12 +72,22 @@ You can build and install [% name %] with the standard commands:
     make
     make install
 ```
+[% ELSE %]
+## Building
 
+You can build [% name %] with the standard commands:
+
+```
+    ./configure
+    make
+```
+[% END %]
 If you are building from a Git clone, first run `./bootstrap` in the
-source directory to generate the build files.  `make install` will
-probably have to be done as root.  Building outside of the source
-directory is also supported, if you wish, by creating an empty directory
-and then running configure with the correct relative path.
+source directory to generate the build files.[% IF build.install %]
+`make install` will probably have to be done as root.[% END %]  Building
+outside of the source directory is also supported, if you wish, by
+creating an empty directory and then running configure with the correct
+relative path.
 [% IF build.middle %]
 [% build.middle %]
 [% END %][% IF build.kerberos %]
@@ -141,7 +151,7 @@ that make shared library migrations more difficult.  If none of the above
 made any sense to you, don't bother with this flag.
 [% END %][% IF build.suffix %]
 [% build.suffix %]
-[% END %]
+[% END %][% IF !readme.testing %]
 ## Testing
 
 [% name %] comes with a test suite, which you can run after building with:
@@ -158,7 +168,7 @@ If a test fails, you can run a single test with verbose output via:
 
 Do this instead of running the test program directly since it will ensure
 that necessary environment variables are set up.
-[% IF test.suffix %]
+[% END %][% IF test.suffix %]
 [% test.suffix %]
 [% END %][% END %]
 [% FOREACH section IN readme.sections %]## [% section.title %]

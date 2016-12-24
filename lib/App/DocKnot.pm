@@ -501,6 +501,12 @@ sub generate {
 
         # Load the section content.
         $section->{body} = $self->_load_metadata('sections', $file);
+
+        # If this contains a testing section, that overrides our default.  Set
+        # a flag so that the templates know this has happened.
+        if ($file eq 'testing') {
+            $data_ref->{readme}{testing} = 1;
+        }
     }
 
     # If the package is marked orphaned, load the explanation.
@@ -544,6 +550,11 @@ sub generate {
     # Load build sections if they exist.
     eval { $vars{build}{middle} = $self->_load_metadata('build', 'middle') };
     eval { $vars{build}{suffix} = $self->_load_metadata('build', 'suffix') };
+
+    # build.install defaults to true.
+    if (!exists($vars{build}{install})) {
+        $vars{build}{install} = 1;
+    }
 
     # Load testing sections if they exist.
     eval { $vars{test}{suffix} = $self->_load_metadata('test', 'suffix') };
