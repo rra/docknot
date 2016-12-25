@@ -16,7 +16,7 @@ name: App-DocKnot
 provides:
   App::DocKnot:
     file: lib/App/DocKnot.pm
-    version: '1.00'
+    version: '1.01'
 requires:
   File::BaseDir: '0'
   File::ShareDir: '1.00'
@@ -27,5 +27,5 @@ requires:
 resources:
   homepage: https://www.eyrie.org/~eagle/software/docknot
   license: http://opensource.org/licenses/mit-license.php
-version: '1.00'
+version: '1.01'
 x_serialization_backend: 'CPAN::Meta::YAML version 0.018'

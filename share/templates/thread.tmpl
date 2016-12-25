@@ -21,7 +21,7 @@
 
 \h1[[% name %]]
 [% IF quote %]
-\quote[
+\quote[% IF quote.text.length < 80 %](short)[% END %][
 
 [% indent(quote.text, 4) %]
 
@@ -84,7 +84,8 @@ need to regenerate Makefile.in, you will need Automake
 configure.ac or any of the m4 files it includes and need to regenerate
 configure or config.h.in, you will need Autoconf [% build.autoconf %] or
 later.[% IF build.manpages %]  Perl is also required to generate manual
-pages from a fresh Git checkout.[% END %]
+pages from a fresh Git checkout.[% END %][% IF bootstrap %]
+[% to_thread(bootstrap) %][% END %]
 [% END %]
 \h2[Download]
 
@@ -176,7 +177,9 @@ and license:
 [% END %]
 
 [% indent(license.full, 4) %]
-
+[% IF license.notices %]
+[% indent(to_thread(license.notices), 4) %]
+[% END %]
 ]
 
 Some individual source files are covered by other, compatible licenses.

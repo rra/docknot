@@ -16,7 +16,7 @@ use lib 't/lib';
 use File::Spec;
 use Test::RRA qw(is_file_contents);
 
-use Test::More tests => 13;
+use Test::More tests => 17;
 
 # Load the module.
 BEGIN { use_ok('App::DocKnot') }

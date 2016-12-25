@@ -16,6 +16,7 @@
         "autotools": true,
         "automake": "1.11",
         "autoconf": "2.64",
+        "type": "Autoconf"
     },
     "packaging": {
         "debian": "lbcd",
@@ -31,12 +32,6 @@
         "url": "https://git.eyrie.org/git/system/lbcd.git",
         "browse": "https://git.eyrie.org/?p=system/lbcd.git",
         "github": "rra/lbcd",
-    },
-    "readme": {
-        "sections": [
-            { "title": "Installation" },
-            { "title": "Testing" },
-        ],
     },
     "distribution": {
         "section": "system",

@@ -1,4 +1,4 @@
-# DocKnot 1.00
+# DocKnot 1.01
 
 Copyright 2013-2016 Russ Allbery <rra@cpan.org>.  This software is
 distributed under a BSD-style license.  Please see the section
@@ -79,6 +79,21 @@ environment or that produce a lot of false positives without uncovering
 many problems, set the environment variable `AUTHOR_TESTING` to a true
 value.
 
+## Building and Installation
+
+DocKnot uses Module::Build and can be installed using the same process as
+any other Module::Build module:
+
+```
+    perl Build.PL
+    ./Build
+    ./Build test
+    ./Build install
+```
+
+You will have to run the last command as root unless you're installing
+into a local Perl module tree in your home directory.
+
 ## Support
 
 The [DocKnot web page](https://www.eyrie.org/~eagle/software/docknot/)
@@ -88,7 +103,7 @@ documentation, and pointers to any additional resources.
 For bug tracking, use the [CPAN bug
 tracker](https://rt.cpan.org/Dist/Display.html?Name=App-DocKnot).
 However, please be aware that I tend to be extremely busy and work
-projects often take priority.  I'll save your mail and get to it as soon
+projects often take priority.  I'll save your report and get to it as soon
 as I can, but it may take me a couple of months.
 
 ## Source Repository
