@@ -1,6 +1,6 @@
                        User-Visible DocKnot Changes
 
-DocKnot 1.01 (unreleased)
+DocKnot 1.01 (2016-12-25)
 
     Add build and test instructions for Autoconf packages, including
     details about Kerberos configuration, to the README and README.md

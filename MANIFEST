@@ -32,10 +32,11 @@ t/data/ansicolor/output/readme
 t/data/ansicolor/output/readme-md
 t/data/ansicolor/output/thread
 t/data/c-tap-harness/metadata/blurb
+t/data/c-tap-harness/metadata/build/suffix
 t/data/c-tap-harness/metadata/description
 t/data/c-tap-harness/metadata/metadata.json
 t/data/c-tap-harness/metadata/requirements
-t/data/c-tap-harness/metadata/sections/building-and-testing
+t/data/c-tap-harness/metadata/sections/testing
 t/data/c-tap-harness/metadata/sections/using-the-harness
 t/data/c-tap-harness/output/readme
 t/data/c-tap-harness/output/readme-md

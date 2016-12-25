@@ -8,7 +8,7 @@
 # Modules and declarations
 ##############################################################################
 
-package App::DocKnot 1.00;
+package App::DocKnot 1.01;
 
 use 5.018;
 use autodie;
