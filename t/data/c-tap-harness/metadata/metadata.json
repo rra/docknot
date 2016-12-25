@@ -18,7 +18,9 @@
         "autotools": true,
         "automake": "1.11",
         "autoconf": "2.64",
+        "install": false,
         "manpages": true,
+        "type": "Autoconf",
     },
     "support": {
         "email": "eagle@eyrie.org",
@@ -34,7 +36,7 @@
     },
     "readme": {
         "sections": [
-            { "title": "Building and Testing" },
+            { "title": "Testing" },
             { "title": "Using the Harness" },
         ],
     },

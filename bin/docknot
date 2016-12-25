@@ -131,6 +131,6 @@ L<App::DocKnot>
 
 This program is part of the DocKnot distribution.  DocKnot is available from
 CPAN as App::DocKnot, or directly from its web site at
-<https://www.eyrie.org/~eagle/software/docknot/>.
+L<https://www.eyrie.org/~eagle/software/docknot/>.
 
 =cut

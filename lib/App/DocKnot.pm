@@ -8,7 +8,7 @@
 # Modules and declarations
 ##############################################################################
 
-package App::DocKnot 1.00;
+package App::DocKnot 1.01;
 
 use 5.018;
 use autodie;
@@ -501,6 +501,12 @@ sub generate {
 
         # Load the section content.
         $section->{body} = $self->_load_metadata('sections', $file);
+
+        # If this contains a testing section, that overrides our default.  Set
+        # a flag so that the templates know this has happened.
+        if ($file eq 'testing') {
+            $data_ref->{readme}{testing} = 1;
+        }
     }
 
     # If the package is marked orphaned, load the explanation.
@@ -523,6 +529,9 @@ sub generate {
     $data_ref->{license} = { %{ $licenses_ref->{$license} } };
     $data_ref->{license}{full} = $license_text;
 
+    # Load additional license notices if they exist.
+    eval { $data_ref->{license}{notices} = $self->_load_metadata('notices') };
+
     # Create the variable information for the template.  Start with all
     # metadata as loaded above.
     my %vars = %{$data_ref};
@@ -532,10 +541,23 @@ sub generate {
     $vars{description}  = $self->_load_metadata('description');
     $vars{requirements} = $self->_load_metadata('requirements');
 
-    # Load Debian summary information if it exists.
+    # Load bootstrap and Debian summary information if it exists.
+    eval { $vars{bootstrap} = $self->_load_metadata('bootstrap') };
     eval {
         $vars{debian}{summary} = $self->_load_metadata('debian', 'summary');
     };
+
+    # Load build sections if they exist.
+    eval { $vars{build}{middle} = $self->_load_metadata('build', 'middle') };
+    eval { $vars{build}{suffix} = $self->_load_metadata('build', 'suffix') };
+
+    # build.install defaults to true.
+    if (!exists($vars{build}{install})) {
+        $vars{build}{install} = 1;
+    }
+
+    # Load testing sections if they exist.
+    eval { $vars{test}{suffix} = $self->_load_metadata('test', 'suffix') };
 
     # Add code references for our defined helper functions.
     $vars{center}    = $self->_code_for_center;
@@ -688,6 +710,6 @@ L<docknot(1)>
 
 This module is part of the DocKnot distribution.  The current version of
 App::DocKnot is available from CPAN, or directly from its web site at
-<https://www.eyrie.org/~eagle/software/docknot/>.
+L<https://www.eyrie.org/~eagle/software/docknot/>.
 
 =cut
