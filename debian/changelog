@@ -1,3 +1,18 @@
+docknot (1.01-1) unstable; urgency=medium
+
+  * New upstream release.
+    - Add build and test instructions for Autoconf packages, including
+      details for Kerberos configuration.  Allow a testing section to
+      override.  Add a flag for packages not meant to be installed.
+    - Add support for license notices.
+    - Add support for stock building and installation sections for Perl
+      module packages using ExtUtils::MakeMaker or Module::Build.
+    - Add thread support for short quotes.
+    - Add support for additional bootstrapping requirements.
+    - Allow markup in license notices.
+
+ -- Russ Allbery <rra@debian.org>  Sun, 25 Dec 2016 09:27:06 -0800
+
 docknot (1.00-1) unstable; urgency=medium
 
   * Initial version.
