@@ -1,5 +1,9 @@
                        User-Visible DocKnot Changes
 
+DocKnot 1.02 (unreleased)
+
+    Add new license text BSD-3-clause-or-GPL-1+ to support pam-krb5.
+
 DocKnot 1.01 (2016-12-25)
 
     Add build and test instructions for Autoconf packages, including
