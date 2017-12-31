@@ -10,6 +10,7 @@ docknot (1.02-1) UNRELEASED; urgency=medium
     - Add new BSD-3-clause-or-GPL-1+ license.
     - Support more complex quote attributions in thread output.
     - Add security advisory support to the thread template.
+  * Update to debhelper compatibility level V11.
 
  -- Russ Allbery <rra@debian.org>  Sat, 30 Dec 2017 22:14:47 -0800
 
