@@ -252,6 +252,30 @@ sub _code_for_to_thread {
             "\\bullet[\n\n" . $text . "\n]\n";
         }xmsge;
 
+        # Do the same thing, but with numbered lists.  This doesn't handle
+        # numbers larger than 9 currently, since that requires massaging the
+        # spacing.
+        $text =~ s{
+            (                   # capture whole contents
+                ^ (\s*)         #   indent before number
+                \d [.] (\s+)    #   number and following indent
+                [^\n]+ \n       #   rest of line
+                (?: \s* \n )*   #   optional blank lines
+                (\2 [ ][ ] \3)  #   matching indent
+                [^\n]+ \n       #   rest of line
+                (?:             #   one or more of
+                    \4          #       matching indent
+                    [^\n]+ \n   #       rest of line
+                |               #   or
+                    \s* \n      #       blank lines
+                )+              #   end of indented block
+            )                   # full bullet with leading bullet
+        }{
+            my $text = $1;
+            $text =~ s{ \A (\s*) \d [.] }{$1  }xms;
+            "\\number[\n\n" . $text . "\n]\n\n";
+        }xmsge;
+
         # Rewrite compact bulleted lists.
         $text =~ s{ \n ( (?: \s* [*] \s+ [^\n]+ \s* \n ){2,} ) }{
             my $list = $1;

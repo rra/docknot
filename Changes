@@ -5,6 +5,8 @@ DocKnot 1.02 (unreleased)
     Support quoted paragraphs (each line starting with ">") and turn them
     into indentation when turning markup into plain text.
 
+    Support numbered lists when converting to thread.
+
     When wrapping paragraphs, preserve two spaces after periods even when
     the period comes before a closing parenthesis or quote mark.
 
@@ -12,6 +14,8 @@ DocKnot 1.02 (unreleased)
     test instructions.
 
     Add new license text BSD-3-clause-or-GPL-1+ to support pam-krb5.
+    Support markdown formatting in license texts when converting to
+    thread to handle the numbered clauses.
 
 DocKnot 1.01 (2016-12-25)
 
