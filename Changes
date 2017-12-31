@@ -2,6 +2,9 @@
 
 DocKnot 1.02 (unreleased)
 
+    When wrapping paragraphs, preserve two spaces after periods even when
+    the period comes before a closing parenthesis or quote mark.
+
     Support test/prefix metadata, which replaces the introduction to the
     test instructions.
 
