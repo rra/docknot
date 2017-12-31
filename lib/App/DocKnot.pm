@@ -154,6 +154,23 @@ sub _code_for_to_text {
         # Undo backtick escaping.
         $text =~ s{ `` }{\`}xmsg;
 
+        # Rewrite quoted paragraphs to have four spaces of additional
+        # indentation.
+        $text =~ s{
+            \n \n               # start of paragraph
+            (                   # start of the text
+              (> \s+)           #   quote mark on first line
+              \S [^\n]* \n      #   first line
+              (?:               #   all subsequent lines
+                \2 \S [^\n]* \n #     start with the same prefix
+              )*                #   any number of subsequent lines
+            )                   # end of the text
+        }{
+            my ($text, $prefix) = ($1, $2);
+            $text =~ s{ ^ \Q$prefix\E }{  }xmsg;
+            "\n\n" . $text;
+        }xmsge;
+
         # Remove URLs from all links, replacing them with numeric references,
         # and accumulate the mapping of numbers to URLs in %urls.
         my %urls;

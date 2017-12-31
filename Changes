@@ -2,6 +2,9 @@
 
 DocKnot 1.02 (unreleased)
 
+    Support quoted paragraphs (each line starting with ">") and turn them
+    into indentation when turning markup into plain text.
+
     When wrapping paragraphs, preserve two spaces after periods even when
     the period comes before a closing parenthesis or quote mark.
 
