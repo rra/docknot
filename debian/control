@@ -1,6 +1,6 @@
 Source: docknot
 Section: text
-Priority: extra
+Priority: optional
 Build-Depends:
  debhelper (>= 11),
  libdevel-cover-perl,
@@ -19,7 +19,7 @@ Build-Depends:
  libtest-synopsis-perl,
 Maintainer: Russ Allbery <rra@debian.org>
 Bugs: mailto:rra@debian.org
-Standards-Version: 3.9.8
+Standards-Version: 4.1.3
 Homepage: https://www.eyrie.org/~eagle/software/docknot/
 Vcs-Git: https://git.eyrie.org/git/devel/docknot.git
 Vcs-Browser: https://git.eyrie.org/?p=devel/docknot.git
