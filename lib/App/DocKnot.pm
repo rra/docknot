@@ -436,6 +436,7 @@ sub _wrap_paragraph {
     # Force locally correct configuration of Text::Wrap.
     local $Text::Wrap::break    = qr{\s+}xms;
     local $Text::Wrap::columns  = $self->{width} + 1;
+    local $Text::Wrap::huge     = 'overflow';
     local $Text::Wrap::unexpand = 0;
 
     # Do the wrapping.  This modifies @paragraphs in place.

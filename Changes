@@ -7,6 +7,8 @@ DocKnot 1.02 (unreleased)
 
     Support numbered lists when converting to thread.
 
+    Force long, unbreakable lines to be left intact when wrapping.
+
     When wrapping paragraphs, preserve two spaces after periods even when
     the period comes before a closing parenthesis or quote mark.
 
