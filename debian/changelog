@@ -1,3 +1,18 @@
+docknot (1.02-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+    - Support quoted paragraphs and turn them into indentation when
+      converting markup to plain text.
+    - Support numbered lists when converting to thread.
+    - Force long, unbreakable lines to be left intact when wrapping.
+    - Preserve two spaces after periods in more wrapping situations.
+    - Support test/prefix metadata, replacing test introduction.
+    - Add new BSD-3-clause-or-GPL-1+ license.
+    - Support more complex quote attributions in thread output.
+    - Add security advisory support to the thread template.
+
+ -- Russ Allbery <rra@debian.org>  Sat, 30 Dec 2017 22:14:47 -0800
+
 docknot (1.01-1) unstable; urgency=medium
 
   * New upstream release.
