@@ -1,6 +1,6 @@
                        User-Visible DocKnot Changes
 
-DocKnot 1.02 (unreleased)
+DocKnot 1.02 (2017-12-31)
 
     Support quoted paragraphs (each line starting with ">") and turn them
     into indentation when turning markup into plain text.
