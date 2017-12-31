@@ -17,6 +17,10 @@ DocKnot 1.02 (unreleased)
     Support markdown formatting in license texts when converting to
     thread to handle the numbered clauses.
 
+    Support more complex quote attributions in thread output, and
+    automatically add \cite[] around work names if they don't contain
+    double quotes.
+
 DocKnot 1.01 (2016-12-25)
 
     Add build and test instructions for Autoconf packages, including

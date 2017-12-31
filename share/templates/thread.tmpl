@@ -25,7 +25,7 @@
 
 [% indent(quote.text, 4) %]
 
-][[% quote.author %]][[% quote.work %]]
+][[% quote.author %]][[% IF quote.title %][% quote.title %], [% END %][% IF !quote.work || quote.work.match('"') %][% quote.work %][% ELSE %]\cite[[% quote.work %]][% END %][% IF quote.date %], [% quote.date %][% END %]]
 [% END %]
 \div(sidebar)[
     \h2[Download]
