@@ -14,6 +14,7 @@ docknot (1.02-1) UNRELEASED; urgency=medium
   * Update standards version to 4.1.3.
     - Change priority to optional.
     - Use https URL for debian/copyright Format.
+  * Refresh upstream signing key.
 
  -- Russ Allbery <rra@debian.org>  Sat, 30 Dec 2017 22:14:47 -0800
 
