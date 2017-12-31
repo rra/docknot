@@ -557,6 +557,7 @@ sub generate {
     }
 
     # Load testing sections if they exist.
+    eval { $vars{test}{prefix} = $self->_load_metadata('test', 'prefix') };
     eval { $vars{test}{suffix} = $self->_load_metadata('test', 'suffix') };
 
     # Add code references for our defined helper functions.
