@@ -1,4 +1,4 @@
-docknot (1.02-1) UNRELEASED; urgency=medium
+docknot (1.02-1) unstable; urgency=medium
 
   * New upstream release.
     - Support quoted paragraphs and turn them into indentation when
@@ -16,7 +16,7 @@ docknot (1.02-1) UNRELEASED; urgency=medium
     - Use https URL for debian/copyright Format.
   * Refresh upstream signing key.
 
- -- Russ Allbery <rra@debian.org>  Sat, 30 Dec 2017 22:14:47 -0800
+ -- Russ Allbery <rra@debian.org>  Sun, 31 Dec 2017 11:15:56 -0800
 
 docknot (1.01-1) unstable; urgency=medium
 
