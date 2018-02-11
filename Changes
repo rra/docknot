@@ -1,5 +1,11 @@
                        User-Visible DocKnot Changes
 
+DocKnot 1.03 (unreleased)
+
+    Add a paragraph to the license section of README and README.md saying
+    that SPDX license identifiers are in use and providing a pointer to
+    the SPDX license list.
+
 DocKnot 1.02 (2017-12-31)
 
     Support quoted paragraphs (each line starting with ">") and turn them
