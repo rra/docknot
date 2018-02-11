@@ -3,6 +3,8 @@
 # This is the primary class for the DocKnot application, which supports
 # generation of various documentation files based on package metadata and
 # general templates.
+#
+# SPDX-License-Identifier: MIT
 
 ##############################################################################
 # Modules and declarations
@@ -727,7 +729,7 @@ Russ Allbery <rra@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2013, 2014, 2015, 2016, 2017 Russ Allbery <rra@cpan.org>
+Copyright 2013-2017 Russ Allbery <rra@cpan.org>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -756,3 +758,7 @@ App::DocKnot is available from CPAN, or directly from its web site at
 L<https://www.eyrie.org/~eagle/software/docknot/>.
 
 =cut
+
+# Local Variables:
+# copyright-at-end-flag: t
+# End:
