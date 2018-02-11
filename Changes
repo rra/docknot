@@ -6,6 +6,10 @@ DocKnot 1.03 (unreleased)
     that SPDX license identifiers are in use and providing a pointer to
     the SPDX license list.
 
+    Update to rra-c-util 7.1:
+
+    * Add SPDX-License-Identifier headers to all substantial source files.
+
 DocKnot 1.02 (2017-12-31)
 
     Support quoted paragraphs (each line starting with ">") and turn them
