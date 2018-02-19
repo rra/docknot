@@ -604,6 +604,9 @@ sub generate {
     eval { $vars{test}{prefix} = $self->_load_metadata('test', 'prefix') };
     eval { $vars{test}{suffix} = $self->_load_metadata('test', 'suffix') };
 
+    # Load support sections if they exist.
+    eval { $vars{support}{extra} = $self->_load_metadata('support', 'extra') };
+
     # Add code references for our defined helper functions.
     $vars{center}    = $self->_code_for_center;
     $vars{copyright} = $self->_code_for_copyright($data_ref->{copyrights});
@@ -729,7 +732,7 @@ Russ Allbery <rra@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2013-2017 Russ Allbery <rra@cpan.org>
+Copyright 2013-2018 Russ Allbery <rra@cpan.org>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -176,6 +176,8 @@ TESTING
   mailing list.  To subscribe or see the list archives, go to:
 
       [% support.listurl %]
+[% END %][% IF support.extra %]
+[% indent(to_text(support.extra), 2) %]
 [% END %]
 [% IF support.cpan %]
   For bug tracking, use the CPAN bug tracker at:
