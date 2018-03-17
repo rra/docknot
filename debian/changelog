@@ -1,5 +1,8 @@
-docknot (1.02-2) UNRELEASED; urgency=medium
+docknot (1.03-1) UNRELEASED; urgency=medium
 
+  * New upstream release.
+    - Add support for the support/extra metadata file.
+    - Add SPDX explanation paragraph to README and README.md.
   * Add upstream-vcs-tag pattern to debian/gbp.conf.
 
  -- Russ Allbery <rra@debian.org>  Sat, 17 Mar 2018 15:53:33 -0700
