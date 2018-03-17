@@ -4,6 +4,7 @@ docknot (1.03-1) UNRELEASED; urgency=medium
     - Add support for the support/extra metadata file.
     - Add SPDX explanation paragraph to README and README.md.
   * Add upstream-vcs-tag pattern to debian/gbp.conf.
+  * Refresh upstream signing key.
 
  -- Russ Allbery <rra@debian.org>  Sat, 17 Mar 2018 15:53:33 -0700
 
