@@ -1,6 +1,6 @@
                        User-Visible DocKnot Changes
 
-DocKnot 1.03 (unreleased)
+DocKnot 1.03 (2018-03-17)
 
     Add support for a new metadata file, support/extra, that includes
     information that should be added into the middle of the normal SUPPORT
