@@ -1,4 +1,4 @@
-docknot (1.03-1) UNRELEASED; urgency=medium
+docknot (1.03-1) unstable; urgency=medium
 
   * New upstream release.
     - Add support for the support/extra metadata file.
@@ -6,7 +6,7 @@ docknot (1.03-1) UNRELEASED; urgency=medium
   * Add upstream-vcs-tag pattern to debian/gbp.conf.
   * Refresh upstream signing key.
 
- -- Russ Allbery <rra@debian.org>  Sat, 17 Mar 2018 15:53:33 -0700
+ -- Russ Allbery <rra@debian.org>  Sat, 17 Mar 2018 17:01:47 -0700
 
 docknot (1.02-1) unstable; urgency=medium
 
