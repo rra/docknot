@@ -1,5 +1,11 @@
                        User-Visible DocKnot Changes
 
+DocKnot 1.05 (unreleased)
+
+    Add the Travis-CI badge to README.md and a link to Travis-CI to the
+    thread development links if the vcs.travis key is set in
+    metadata.json.
+
 DocKnot 1.04 (2018-03-24)
 
     Fix SPDX test failure on Windows.

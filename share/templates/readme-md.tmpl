@@ -1,5 +1,7 @@
 # [% name %] [% version %]
-
+[% IF vcs.travis %]
+[![Build Status](https://travis-ci.org/[% vcs.travis %].svg?branch=master)](https://travis-ci.org/[% vcs.travis %])
+[% END %]
 [% FOREACH copr IN copyrights %]Copyright [% copr.years %]
 [% copr.holder %].  [% END %]This software is distributed under
 [% license.summary %].  Please see the section [License](#license) below

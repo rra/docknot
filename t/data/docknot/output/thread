@@ -45,7 +45,9 @@
     \link[https://rt.cpan.org/Dist/Display.html?Name=App-DocKnot]
          [Bug tracker] \break
     \link[https://git.eyrie.org/?p=devel/docknot.git]
-         [Git repository]
+         [Git repository] \break
+    \link[https://travis-ci.org/rra/docknot]
+         [Travis-CI]
 ]
 
 \h2[Blurb]
@@ -156,6 +158,8 @@ Developer documentation:
 \doc[todo.html][To-do list]
 \doc[https://github.com/rra/docknot]
     [GitHub]
+\doc[https://travis-ci.org/rra/docknot]
+    [Travis-CI]
 
 \h2[License]
 

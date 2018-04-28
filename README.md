@@ -1,5 +1,8 @@
 # DocKnot 1.04
 
+[![Build
+Status](https://travis-ci.org/rra/docknot.svg?branch=master)](https://travis-ci.org/rra/docknot)
+
 Copyright 2013-2018 Russ Allbery <rra@cpan.org>.  This software is
 distributed under a BSD-style license.  Please see the section
 [License](#license) below for more information.

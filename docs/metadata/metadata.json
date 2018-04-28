@@ -24,6 +24,7 @@
         "url": "https://git.eyrie.org/git/devel/docknot.git",
         "browse": "https://git.eyrie.org/?p=devel/docknot.git",
         "github": "rra/docknot",
+        "travis": "rra/docknot",
     },
     "distribution": {
         "section": "devel",

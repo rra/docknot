@@ -59,7 +59,9 @@
     \link[https://rt.cpan.org/Dist/Display.html?Name=[% support.cpan %]]
          [Bug tracker][% END %][% IF vcs.type == 'Git' %] \break
     \link[[% vcs.browse %]]
-         [Git repository][% END %][% IF vcs.openhub %] \break
+         [Git repository][% END %][% IF vcs.travis %] \break
+    \link[https://travis-ci.org/[% vcs.travis %]]
+         [Travis-CI][% END %][% IF vcs.openhub %] \break
     \link[[% vcs.openhub %]]
          [Open HUB code analysis][% END %][% IF packaging.debian %] \break
     \link[https://tracker.debian.org/pkg/[% packaging.debian %]]
@@ -143,7 +145,9 @@ also \link[[% vcs.browse %]][browse the current development source].
     \doc[https://github.com/[% vcs.github %]]
         [GitHub][% END %][% IF support.github %]
     \doc[https://github.com/[% support.github %]/issues]
-        [Bug tracker][% END %][% IF vcs.openhub %]
+        [Bug tracker][% END %][% IF vcs.travis %]
+    \doc[https://travis-ci.org/[% vcs.travis %]]
+        [Travis-CI][% END %][% IF vcs.openhub %]
     \doc[[% vcs.openhub %]]
         [Open HUB code analysis][% END %]
 ]
@@ -178,7 +182,9 @@ Developer documentation:
 \doc[https://github.com/[% vcs.github %]]
     [GitHub][% END %][% IF support.github %]
 \doc[https://github.com/[% support.github %]/issues]
-    [Bug tracker][% END %][% IF vcs.openhub %]
+    [Bug tracker][% END %][% IF vcs.travis %]
+\doc[https://travis-ci.org/[% vcs.travis %]]
+    [Travis-CI][% END %][% IF vcs.openhub %]
 \doc[[% vcs.openhub %]]
     [Open HUB code analysis][% END %]
 
