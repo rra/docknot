@@ -44,7 +44,8 @@ my $build = Module::Build->new(
 
     # Add additional package metadata.
     meta_merge => {
-        resources => {
+        'meta-spec' => { version => '2' },
+        resources   => {
             bugtracker => {
                 mailto => 'bug-App-DocKnot@rt.cpan.org',
                 web =>
