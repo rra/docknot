@@ -1,6 +1,8 @@
 # [% name %] [% version %]
-[% IF vcs.travis %]
-[![Build Status](https://travis-ci.org/[% vcs.travis %].svg?branch=master)](https://travis-ci.org/[% vcs.travis %])
+[% IF vcs.travis || distribution.cpan %]
+[% IF vcs.travis %][![Build status](https://travis-ci.org/[% vcs.travis %].svg?branch=master)](https://travis-ci.org/[% vcs.travis %])[% END -%]
+[% IF distribution.cpan %] [![CPAN version](https://img.shields.io/cpan/v/[% distribution.cpan %].svg)](https://metacpan.org/release/[% distribution.cpan %])[% END -%]
+
 [% END %]
 [% FOREACH copr IN copyrights %]Copyright [% copr.years %]
 [% copr.holder %].  [% END %]This software is distributed under

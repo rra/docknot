@@ -47,7 +47,9 @@
     \link[https://git.eyrie.org/?p=devel/docknot.git]
          [Git repository] \break
     \link[https://travis-ci.org/rra/docknot]
-         [Travis-CI]
+         [Travis-CI] \break
+    \link[https://metacpan.org/release/App-DocKnot]
+         [MetaCPAN]
 ]
 
 \h2[Blurb]
@@ -132,6 +134,10 @@ An \link[https://archives.eyrie.org/software/ARCHIVE/App-DocKnot/]
 
 A Debian package is available from my \link[../debian.html][personal
 repository].
+
+DocKnot is available from CPAN as the
+\link[https://metacpan.org/release/App-DocKnot] [App-DocKnot
+distribution].
 
 DocKnot is maintained using the Git version control system.  To check out
 the current development tree, see

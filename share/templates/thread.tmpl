@@ -61,7 +61,9 @@
     \link[[% vcs.browse %]]
          [Git repository][% END %][% IF vcs.travis %] \break
     \link[https://travis-ci.org/[% vcs.travis %]]
-         [Travis-CI][% END %][% IF vcs.openhub %] \break
+         [Travis-CI][% END %][% IF distribution.cpan %] \break
+    \link[https://metacpan.org/release/[% distribution.cpan %]]
+         [MetaCPAN][% END %][% IF vcs.openhub %] \break
     \link[[% vcs.openhub %]]
          [Open HUB code analysis][% END %][% IF packaging.debian %] \break
     \link[https://tracker.debian.org/pkg/[% packaging.debian %]]
@@ -114,6 +116,10 @@ package tracker] for more information.
 [% ELSIF debian.personal %]
 A Debian package is available from my \link[../debian.html][personal
 repository].
+[% END %][% IF distribution.cpan %]
+[% name %] is available from CPAN as the
+\link[https://metacpan.org/release/[% distribution.cpan %]]
+[[% distribution.cpan %] distribution].
 [% END %]
 [% name %] is maintained using the [% vcs.type %] version control system.
 To check out the current development tree, [% IF vcs.github %]see

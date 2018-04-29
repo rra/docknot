@@ -30,6 +30,7 @@
         "section": "devel",
         "tarname": "App-DocKnot",
         "version": "docknot",
+        "cpan": "App-DocKnot",
     },
     "debian": {
         "personal": true,
