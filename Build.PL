@@ -52,7 +52,7 @@ my $build = Module::Build->new(
             },
             homepage   => 'https://www.eyrie.org/~eagle/software/docknot',
             repository => {
-                url  => 'git://github.com/rra/docknot.git',
+                url  => 'https://github.com/rra/docknot.git',
                 web  => 'https://github.com/rra/docknot',
                 type => 'git',
             },
