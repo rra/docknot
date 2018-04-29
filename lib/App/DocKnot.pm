@@ -649,7 +649,7 @@ App::DocKnot - Generate human-readable documentation from package metadata
 
 =head1 REQUIREMENTS
 
-Perl 5.18 or later and the modules File::BaseDir, File::ShareDir, JSON,
+Perl 5.24 or later and the modules File::BaseDir, File::ShareDir, JSON,
 Perl6::Slurp, and Template (part of Template Toolkit), all of which are
 available from CPAN.
 
