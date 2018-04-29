@@ -6,6 +6,8 @@ DocKnot 1.05 (unreleased)
     thread development links if the vcs.travis key is set in
     metadata.json.
 
+    DocKnot now requires Perl 5.24 or later.
+
 DocKnot 1.04 (2018-03-24)
 
     Fix SPDX test failure on Windows.

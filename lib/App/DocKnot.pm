@@ -12,7 +12,7 @@
 
 package App::DocKnot 1.04;
 
-use 5.018;
+use 5.024;
 use autodie;
 use warnings;
 
@@ -74,7 +74,7 @@ sub _code_for_copyright {
         my ($indent, $lead) = @_;
         my $prefix = ($lead // q{}) . q{ } x $indent;
         my $notice;
-        for my $copyright (@{$copyrights_ref}) {
+        for my $copyright ($copyrights_ref->@*) {
             my $holder = $copyright->{holder};
             my $years  = $copyright->{years};
 
@@ -535,7 +535,7 @@ sub generate {
 
     # Load supplemental README sections.  readme.sections will contain a list
     # of sections to add to the README file.
-    for my $section (@{ $data_ref->{readme}{sections} }) {
+    for my $section ($data_ref->{readme}{sections}->@*) {
         my $title = $section->{title};
 
         # The file containing the section data will match the title, converted
@@ -570,7 +570,7 @@ sub generate {
         die "Unknown license $license\n";
     }
     my $license_text = slurp($self->_appdata_path('licenses', $license));
-    $data_ref->{license} = { %{ $licenses_ref->{$license} } };
+    $data_ref->{license} = { $licenses_ref->{$license}->%* };
     $data_ref->{license}{full} = $license_text;
 
     # Load additional license notices if they exist.

@@ -51,7 +51,7 @@ web publishing framework, time permitting.
 
 ## Requirements
 
-Perl 5.18 or later and Module::Build are required to build this module.
+Perl 5.24 or later and Module::Build are required to build this module.
 The following additional Perl modules are required to use it:
 
 * File::BaseDir

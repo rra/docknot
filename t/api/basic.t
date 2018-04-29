@@ -6,7 +6,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-use 5.018;
+use 5.024;
 use autodie;
 use warnings;
 
