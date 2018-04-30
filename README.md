@@ -77,13 +77,6 @@ additional Perl modules will be used by the test suite if present:
 All are available on CPAN.  Those tests will be skipped if the modules are
 not available.
 
-To enable tests that don't detect functionality problems but are used to
-sanity-check the release, set the environment variable `RELEASE_TESTING`
-to a true value.  To enable tests that may be sensitive to the local
-environment or that produce a lot of false positives without uncovering
-many problems, set the environment variable `AUTHOR_TESTING` to a true
-value.
-
 ## Building and Installation
 
 DocKnot uses Module::Build and can be installed using the same process as
@@ -98,6 +91,13 @@ any other Module::Build module:
 
 You will have to run the last command as root unless you're installing
 into a local Perl module tree in your home directory.
+
+To enable tests that don't detect functionality problems but are used to
+sanity-check the release, set the environment variable `RELEASE_TESTING`
+to a true value.  To enable tests that may be sensitive to the local
+environment or that produce a lot of false positives without uncovering
+many problems, set the environment variable `AUTHOR_TESTING` to a true
+value.
 
 ## Support
 

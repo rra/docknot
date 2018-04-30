@@ -10,6 +10,11 @@ DocKnot 1.05 (unreleased)
     metacpan.org in the thread output if the distribution.cpan key is set
     in metadata.json.
 
+    Move the description of Lancaster Consensus environment variables into
+    the testing section of README and README.md instead of the
+    requirements section, since they're more about running the tests and
+    less about package requirements in general.
+
     DocKnot now requires Perl 5.24 or later.
 
 DocKnot 1.04 (2018-03-24)
