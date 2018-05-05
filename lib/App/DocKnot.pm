@@ -585,10 +585,14 @@ sub generate {
     $vars{description}  = $self->_load_metadata('description');
     $vars{requirements} = $self->_load_metadata('requirements');
 
-    # Load bootstrap and Debian summary information if it exists.
+    # Load bootstrap, Debian summary information, and extra packaging
+    # information if they exist.
     eval { $vars{bootstrap} = $self->_load_metadata('bootstrap') };
     eval {
         $vars{debian}{summary} = $self->_load_metadata('debian', 'summary');
+    };
+    eval {
+        $vars{packaging}{extra} = $self->_load_metadata('packaging', 'extra');
     };
 
     # Load build sections if they exist.

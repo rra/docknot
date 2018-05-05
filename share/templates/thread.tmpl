@@ -110,9 +110,11 @@ An \link[https://archives.eyrie.org/software/ARCHIVE/[% distribution.tarname %]/
 \class(alert)[Versions older than [% advisories.0.threshold %] have known
 security vulnerabilities and should not be used.][% END %]
 [% IF debian.summary %]
-[% to_thread(debian.summary) | trim %]  See the
-\link[https://tracker.debian.org/pkg/[% packaging.debian %]][Debian
-package tracker] for more information.
+[% to_thread(debian.summary) | trim %][% IF debian.summary.match('\n\n') %]
+
+[% ELSE %]  [% END %]See the \link[https://tracker.debian.org/pkg/[%
+packaging.debian %]][Debian package tracker] for more information.
+
 [% ELSIF debian.personal %]
 A Debian package is available from my \link[../debian.html][personal
 repository].
@@ -121,8 +123,10 @@ repository].
 \link[https://metacpan.org/release/[% distribution.cpan %]]
 [[% distribution.cpan %] distribution].
 [% END %]
-[% name %] is maintained using the [% vcs.type %] version control system.
-To check out the current development tree, [% IF vcs.github %]see
+[% IF packaging.extra %]
+[% to_thread(packaging.extra) %]
+[% END %][% name %] is maintained using the [% vcs.type %] version control
+system.  To check out the current development tree, [% IF vcs.github %]see
 \link[https://github.com/[% vcs.github %]][GitHub] or [% END %]clone:
 
 \pre[    [% vcs.url %]]

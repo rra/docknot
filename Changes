@@ -15,6 +15,12 @@ DocKnot 1.05 (unreleased)
     requirements section, since they're more about running the tests and
     less about package requirements in general.
 
+    Add support for a new packaging/extra metadata file (setting the
+    packaging.extra key in templates) and use it in the thread template.
+
+    Correctly handle multi-paragraph debian.summary metadata in the thread
+    template.
+
     Fix formatting bug in the README template when additional bootstrap
     documentation is provided.
 
