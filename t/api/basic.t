@@ -15,7 +15,7 @@ use lib 't/lib';
 use File::Spec;
 use Test::RRA qw(is_file_contents);
 
-use Test::More tests => 25;
+use Test::More;
 
 # Load the module.
 BEGIN { use_ok('App::DocKnot') }
@@ -43,3 +43,6 @@ for my $test (@tests) {
         is_file_contents($got, $path, "$template for $test");
     }
 }
+
+# Check that we ran the correct number of tests.
+done_testing(1 + scalar(@tests) * 4);
