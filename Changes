@@ -6,7 +6,7 @@ DocKnot 1.05 (2018-05-05)
     thread development links if the vcs.travis key is set in
     metadata.json.
 
-    Add a Status.io badge for the CPAN version to README.md and a link to
+    Add a Shields.io badge for the CPAN version to README.md and a link to
     metacpan.org in the thread output if the distribution.cpan key is set
     in metadata.json.
 
