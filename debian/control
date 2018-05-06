@@ -18,6 +18,7 @@ Build-Depends:
  libtest-strict-perl,
  libtest-synopsis-perl,
 Rules-Requires-Root: no
+Testsuite: autopkgtest-pkg-perl
 Maintainer: Russ Allbery <rra@debian.org>
 Bugs: mailto:rra@debian.org
 Standards-Version: 4.1.4

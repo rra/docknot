@@ -12,6 +12,7 @@ docknot (1.05-1) UNRELEASED; urgency=medium
     - Require Perl 5.24 or later.
   * Mark as Multi-Arch: foreign.
   * Set Rules-Requires-Root: no.
+  * Enable autopkgtest-pkg-perl tests.
   * Add upstream/metadata file.
   * Update standards version to 4.1.4 (no changes required).
 
