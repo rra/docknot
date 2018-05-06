@@ -17,6 +17,7 @@ Build-Depends:
  libtest-pod-perl,
  libtest-strict-perl,
  libtest-synopsis-perl,
+Rules-Requires-Root: no
 Maintainer: Russ Allbery <rra@debian.org>
 Bugs: mailto:rra@debian.org
 Standards-Version: 4.1.4
