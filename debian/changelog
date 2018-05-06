@@ -10,6 +10,7 @@ docknot (1.05-1) UNRELEASED; urgency=medium
     - Correctly handle multi-paragraph debian/summary metadata.
     - Fix README formatting when bootstrap documentation is provided.
     - Require Perl 5.24 or later.
+  * Update standards version to 4.1.4 (no changes required).
 
  -- Russ Allbery <rra@debian.org>  Sat, 05 May 2018 18:34:23 -0700
 
