@@ -1,4 +1,4 @@
-docknot (1.05-1) UNRELEASED; urgency=medium
+docknot (1.05-1) unstable; urgency=medium
 
   * New upstream release.
     - Add Travis-CI badge to README.md and to thread development links.
@@ -16,7 +16,7 @@ docknot (1.05-1) UNRELEASED; urgency=medium
   * Add upstream/metadata file.
   * Update standards version to 4.1.4 (no changes required).
 
- -- Russ Allbery <rra@debian.org>  Sat, 05 May 2018 18:34:23 -0700
+ -- Russ Allbery <rra@debian.org>  Sat, 05 May 2018 18:58:28 -0700
 
 docknot (1.04-1) unstable; urgency=medium
 
