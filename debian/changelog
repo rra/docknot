@@ -1,3 +1,18 @@
+docknot (1.05-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+    - Add Travis-CI badge to README.md and to thread development links.
+    - Add Status.io badge for CPAN version to README.md with a link to
+      metacpan.org.
+    - Move the description of the Lancaster Consensus environment
+      variables to the testing section of README.
+    - Support new packaging/extra metadata file for thread output.
+    - Correctly handle multi-paragraph debian/summary metadata.
+    - Fix README formatting when bootstrap documentation is provided.
+    - Require Perl 5.24 or later.
+
+ -- Russ Allbery <rra@debian.org>  Sat, 05 May 2018 18:34:23 -0700
+
 docknot (1.04-1) unstable; urgency=medium
 
   * New upstream release.
