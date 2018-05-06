@@ -2,7 +2,7 @@ docknot (1.05-1) unstable; urgency=medium
 
   * New upstream release.
     - Add Travis-CI badge to README.md and to thread development links.
-    - Add Status.io badge for CPAN version to README.md with a link to
+    - Add Shields.io badge for CPAN version to README.md with a link to
       metacpan.org.
     - Move the description of the Lancaster Consensus environment
       variables to the testing section of README.
