@@ -26,6 +26,7 @@ Vcs-Browser: https://git.eyrie.org/?p=devel/docknot.git
 
 Package: docknot
 Architecture: all
+Multi-Arch: foreign
 Depends:
  libfile-basedir-perl,
  libfile-sharedir-perl,
