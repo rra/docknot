@@ -18,3 +18,9 @@ before_install:
 # Fails with 5.22, 5.20, 5.12, 5.10
 #  - cpanm Test::Perl::Critic
 #  - cpanm Test::MinimumVersion
+
+branches:
+  except:
+    - /^debian\/.*/
+    - pristine-tar
+    - /^upstream\/.*/
