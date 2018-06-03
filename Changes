@@ -1,5 +1,10 @@
                        User-Visible DocKnot Changes
 
+DocKnot 1.06 (unreleased)
+
+    Adjust the README and README.md template to say that make warnings
+    requires either GCC or Clang, instead of only mentioning GCC.
+
 DocKnot 1.05 (2018-05-05)
 
     Add the Travis-CI badge to README.md and a link to Travis-CI to the
