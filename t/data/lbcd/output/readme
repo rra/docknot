@@ -27,6 +27,8 @@ DESCRIPTION
   the returned weights based on whether those services are reachable, or
   to return a static weight for round-robin load balancing.
 
+  [1] https://www.stanford.edu/~riepel/lbnamed/
+
   The information provided isn't particularly sophisticated, and a good
   hardware load balancer will be able to consider such things as
   connection latency and responsiveness to make better decisions.
@@ -43,8 +45,6 @@ DESCRIPTION
   it to add protocol version 3 with some additional features and service
   probing, and then I rewrote it again to update the coding style and use
   my standard portability layer.
-
-  [1] https://www.stanford.edu/~riepel/lbnamed/
 
 REQUIREMENTS
 

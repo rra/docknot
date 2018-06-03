@@ -173,22 +173,27 @@ sub _code_for_to_text {
             "\n\n" . $text;
         }xmsge;
 
-        # Remove URLs from all links, replacing them with numeric references,
-        # and accumulate the mapping of numbers to URLs in %urls.
-        my %urls;
+        # For each paragraph, remove URLs from all links, replacing them with
+        # numeric references, and accumulate the mapping of numbers to URLs in
+        # %urls.  Then, add to the end of the paragraph the references and
+        # URLs.
+        my @paragraphs = split(m{ \n\n }xms, $text);
         my $ref = 1;
-        while ($text =~ s{ \[ ([^\]]+) \] [(] (\S+) [)] }{$1 [$ref]}xms) {
-            $urls{$ref} = $2;
-            $ref++;
+        for my $para (@paragraphs) {
+            my %urls;
+            while ($para =~ s{ \[ ([^\]]+) \] [(] (\S+) [)] }{$1 [$ref]}xms) {
+                $urls{$ref} = $2;
+                $ref++;
+            }
+            if (%urls) {
+                my @refs = map { "[$_] $urls{$_}" } sort { $a <=> $b }
+                  keys(%urls);
+                $para .= "\n\n" . join("\n", q{}, @refs, q{});
+            }
         }
 
-        # If there are any URLs, add an additional paragraph with all the
-        # references and URLs.
-        if (%urls) {
-            my @refs = map { "[$_] $urls{$_}" } sort { $a <=> $b } keys(%urls);
-            $text .= join("\n", q{}, @refs, q{});
-        }
-        return $text;
+        # Rejoin the paragraphs and return the result.
+        return join("\n\n", @paragraphs);
     };
     return $to_text;
 }

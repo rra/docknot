@@ -2,6 +2,12 @@
 
 DocKnot 1.06 (unreleased)
 
+    When generating text output, put the footnotes containing URLs for
+    links immediately following the containing paragraph rather than the
+    end of the text block.  This is both more readable and avoids odd
+    placement of the footnotes when a template adds further paragraphs to
+    the end of a text block containing footnotes.
+
     Adjust the README and README.md template to say that make warnings
     requires either GCC or Clang, instead of only mentioning GCC.
 
