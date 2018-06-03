@@ -11,6 +11,9 @@ DocKnot 1.06 (unreleased)
     Adjust the README and README.md template to say that make warnings
     requires either GCC or Clang, instead of only mentioning GCC.
 
+    Adjust the README.md wording for the list information URL when package
+    releases are announced on a mailing list.
+
 DocKnot 1.05 (2018-05-05)
 
     Add the Travis-CI badge to README.md and a link to Travis-CI to the
