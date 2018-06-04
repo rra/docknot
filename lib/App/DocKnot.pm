@@ -428,6 +428,11 @@ sub _wrap_paragraph {
         return $paragraph;
     }
 
+    # If this looks like a bunch of short lines, leave it alone.
+    if ($paragraph =~ m{ \A [^\n]{1,40} \n [^\n]{1,40} \n }xms) {
+        return $paragraph;
+    }
+
     # If this paragraph is not consistently indented, leave it alone.
     if ($paragraph !~ m{ \A (?: \Q$indent\E \S[^\n]+ \n )+ \z }xms) {
         return $paragraph;

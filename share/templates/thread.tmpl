@@ -21,7 +21,7 @@
 
 \h1[[% name %]]
 [% IF quote %]
-\quote[% IF quote.text.length < 80 %](short)[% END %][
+\quote[% IF quote.text.length < 80 %](short)[% ELSIF quote.broken %](broken)[% END %][
 
 [% indent(quote.text, 4) %]
 

@@ -8,6 +8,10 @@ DocKnot 1.06 (unreleased)
     placement of the footnotes when a template adds further paragraphs to
     the end of a text block containing footnotes.
 
+    Do not wrap paragraphs in output that seem to be a bunch of short
+    lines, and add support for broken quotes (multiple short lines, such
+    as poetry) in quotes in the thread template.
+
     Adjust the README and README.md template to say that make warnings
     requires either GCC or Clang, instead of only mentioning GCC.
 
