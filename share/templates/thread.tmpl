@@ -52,7 +52,7 @@
     \h2[Development]
 
     \link[todo.html][To-do list][% FOREACH doc IN docs.developer %] \break
-    \doc[[% doc.name %].html][[% doc.title %]][% END %][% IF vcs.github %] \break
+    \link[[% doc.name %].html][[% doc.title %]][% END %][% IF vcs.github %] \break
     \link[https://github.com/[% vcs.github %]]
          [GitHub][% END %][% IF support.github %] \break
     \link[https://github.com/[% support.github %]/issues]

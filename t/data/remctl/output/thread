@@ -59,9 +59,9 @@
     \h2[Development]
 
     \link[todo.html][To-do list] \break
-    \doc[extending.html][Extending remctl] \break
-    \doc[protocol.html][Protocol specification] \break
-    \doc[protocol-v4.html][Protocol v4 draft] \break
+    \link[extending.html][Extending remctl] \break
+    \link[protocol.html][Protocol specification] \break
+    \link[protocol-v4.html][Protocol v4 draft] \break
     \link[https://github.com/rra/remctl]
          [GitHub] \break
     \link[https://github.com/rra/remctl/issues]
