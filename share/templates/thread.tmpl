@@ -51,7 +51,8 @@
 [% END %][% END %]
     \h2[Development]
 
-    \link[todo.html][To-do list][% IF vcs.github %] \break
+    \link[todo.html][To-do list][% FOREACH doc IN docs.developer %] \break
+    \doc[[% doc.name %].html][[% doc.title %]][% END %][% IF vcs.github %] \break
     \link[https://github.com/[% vcs.github %]]
          [GitHub][% END %][% IF support.github %] \break
     \link[https://github.com/[% support.github %]/issues]
@@ -151,7 +152,8 @@ also \link[[% vcs.browse %]][browse the current development source].
 [% END %][% END %]
     Developer documentation:
 
-    \doc[todo.html][To-do list][% IF vcs.github %]
+    \doc[todo.html][To-do list][% FOREACH doc IN docs.developer %]
+    \doc[[% doc.name %].html][[% doc.title %]][% END %][% IF vcs.github %]
     \doc[https://github.com/[% vcs.github %]]
         [GitHub][% END %][% IF support.github %]
     \doc[https://github.com/[% support.github %]/issues]
@@ -188,7 +190,8 @@ Security advisories:
 [% END %][% END %]
 Developer documentation:
 
-\doc[todo.html][To-do list][% IF vcs.github %]
+\doc[todo.html][To-do list][% FOREACH doc IN docs.developer %]
+    \doc[[% doc.name %].html][[% doc.title %]][% END %][% IF vcs.github %]
 \doc[https://github.com/[% vcs.github %]]
     [GitHub][% END %][% IF support.github %]
 \doc[https://github.com/[% support.github %]/issues]
