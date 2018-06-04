@@ -162,6 +162,11 @@ also \link[[% vcs.browse %]][browse the current development source].
         [Travis-CI][% END %][% IF vcs.openhub %]
     \doc[[% vcs.openhub %]]
         [Open HUB code analysis][% END %]
+    [% IF docs.contrib %]
+    Contributed programs:
+    [% FOREACH doc IN docs.contrib %]
+    \doc[[% doc.name %].html][[% doc.title %]][% END %]
+[% END %]
 ]
 
 \div(right)[
@@ -200,7 +205,11 @@ Developer documentation:
     [Travis-CI][% END %][% IF vcs.openhub %]
 \doc[[% vcs.openhub %]]
     [Open HUB code analysis][% END %]
-
+[% IF docs.contrib %]
+Contributed programs:
+[% FOREACH doc IN docs.contrib %]
+\doc[[% doc.name %].html][[% doc.title %]]
+[% END %][% END %]
 \h2[License]
 [% END %]
 The [% name %] package as a whole is covered by the following copyright

@@ -21,6 +21,9 @@ DocKnot 1.06 (unreleased)
     Add support for additional developer documentation links in the thread
     output template.
 
+    Add support for contributed program documentation links in the thread
+    output template.
+
 DocKnot 1.05 (2018-05-05)
 
     Add the Travis-CI badge to README.md and a link to Travis-CI to the
