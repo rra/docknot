@@ -1,6 +1,6 @@
                        User-Visible DocKnot Changes
 
-DocKnot 1.06 (unreleased)
+DocKnot 1.06 (2018-08-31)
 
     When generating text output, put the footnotes containing URLs for
     links immediately following the containing paragraph rather than the
