@@ -1,3 +1,18 @@
+docknot (1.06-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+    - Put footnotes in text output immediately after the paragraph
+      containing the reference, rather than moving them to the bottom of
+      the formatted text.
+    - Do not wrap paragraphs that look like a bunch of short lines.
+    - Adjust README templates to mention Clang with make warnings.
+    - Adjust README.md wording for the announce list information URL.
+    - Add support for broken quotes in the thread template.
+    - Add thread template support for additional developer documentation.
+    - Add thread template support for contributed program documentation.
+
+ -- Russ Allbery <rra@debian.org>  Fri, 31 Aug 2018 19:32:50 -0700
+
 docknot (1.05-1) unstable; urgency=medium
 
   * New upstream release.
