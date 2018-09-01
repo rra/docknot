@@ -10,6 +10,7 @@ docknot (1.06-1) UNRELEASED; urgency=medium
     - Add support for broken quotes in the thread template.
     - Add thread template support for additional developer documentation.
     - Add thread template support for contributed program documentation.
+  * Update standards version to 4.2.1 (no changes required).
 
  -- Russ Allbery <rra@debian.org>  Fri, 31 Aug 2018 19:32:50 -0700
 
