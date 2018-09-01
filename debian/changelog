@@ -1,4 +1,4 @@
-docknot (1.06-1) UNRELEASED; urgency=medium
+docknot (1.06-1) unstable; urgency=medium
 
   * New upstream release.
     - Put footnotes in text output immediately after the paragraph
@@ -12,7 +12,7 @@ docknot (1.06-1) UNRELEASED; urgency=medium
     - Add thread template support for contributed program documentation.
   * Update standards version to 4.2.1 (no changes required).
 
- -- Russ Allbery <rra@debian.org>  Fri, 31 Aug 2018 19:32:50 -0700
+ -- Russ Allbery <rra@debian.org>  Fri, 31 Aug 2018 19:53:49 -0700
 
 docknot (1.05-1) unstable; urgency=medium
 
