@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Tests for the App::DocKnot module API.
+# Tests for the App::DocKnot::Generate module API.
 #
 # Copyright 2013, 2016-2018 Russ Allbery <rra@cpan.org>
 #
@@ -17,8 +17,11 @@ use Test::RRA qw(is_file_contents);
 
 use Test::More;
 
-# Load the module.
-BEGIN { use_ok('App::DocKnot') }
+# Load the modules.
+BEGIN {
+    use_ok('App::DocKnot');
+    use_ok('App::DocKnot::Generate');
+}
 
 # We have a set of test cases in the data directory.  Each of them contains
 # metadata and output directories.
@@ -33,8 +36,8 @@ closedir($tests);
 # output file.
 for my $test (@tests) {
     my $metadata_path = File::Spec->catfile($dataroot, $test, 'metadata');
-    my $docknot = App::DocKnot->new({ metadata => $metadata_path });
-    isa_ok($docknot, 'App::DocKnot', "for $test");
+    my $docknot = App::DocKnot::Generate->new({ metadata => $metadata_path });
+    isa_ok($docknot, 'App::DocKnot::Generate', "for $test");
 
     # Loop through the possible templates.
     for my $template (qw(readme readme-md thread)) {
@@ -45,4 +48,4 @@ for my $test (@tests) {
 }
 
 # Check that we ran the correct number of tests.
-done_testing(1 + scalar(@tests) * 4);
+done_testing(2 + scalar(@tests) * 4);

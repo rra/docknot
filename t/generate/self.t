@@ -15,15 +15,18 @@ use lib 't/lib';
 use File::Spec;
 use Test::RRA qw(is_file_contents);
 
-use Test::More tests => 5;
+use Test::More tests => 6;
 
 # Load the module.
-BEGIN { use_ok('App::DocKnot') }
+BEGIN {
+    use_ok('App::DocKnot');
+    use_ok('App::DocKnot::Generate');
+}
 
 # Initialize the App::DocKnot object.
 my $metadata_path = File::Spec->catfile('docs', 'metadata');
-my $docknot = App::DocKnot->new({ metadata => $metadata_path });
-isa_ok($docknot, 'App::DocKnot');
+my $docknot = App::DocKnot::Generate->new({ metadata => $metadata_path });
+isa_ok($docknot, 'App::DocKnot::Generate');
 
 # Test each of the possible templates.
 my $output = $docknot->generate('readme');
