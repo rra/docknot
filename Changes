@@ -9,6 +9,11 @@ DocKnot 2.00 (unreleased)
     Rename App::DocKnot to App:DocKnot::Generate, with the same API as
     before.  App::DocKnot must be loaded as well to use the module API.
 
+    Update to rra-c-util 8.0:
+
+    * Fix t/style/strict.t to skip blib and .git directories.
+    * Update style for the latest perltidy.
+
 DocKnot 1.06 (2018-08-31)
 
     When generating text output, put the footnotes containing URLs for

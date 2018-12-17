@@ -41,7 +41,7 @@ for my $test (@tests) {
 
     # Loop through the possible templates.
     for my $template (qw(readme readme-md thread)) {
-        my $got = $docknot->generate($template);
+        my $got  = $docknot->generate($template);
         my $path = File::Spec->catfile($dataroot, $test, 'output', $template);
         is_file_contents($got, $path, "$template for $test");
     }

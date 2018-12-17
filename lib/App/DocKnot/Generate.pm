@@ -177,8 +177,8 @@ sub _code_for_to_text {
         # numeric references, and accumulate the mapping of numbers to URLs in
         # %urls.  Then, add to the end of the paragraph the references and
         # URLs.
+        my $ref        = 1;
         my @paragraphs = split(m{ \n\n }xms, $text);
-        my $ref = 1;
         for my $para (@paragraphs) {
             my %urls;
             while ($para =~ s{ \[ ([^\]]+) \] [(] (\S+) [)] }{$1 [$ref]}xms) {
