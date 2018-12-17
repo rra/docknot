@@ -75,7 +75,7 @@ our %COMMANDS = (
 # Parse command-line options and do any required error handling.
 #
 # $self        - The App::DocKnot object
-# $command     - The command being run, for error reporting
+# $command     - The command being run or undef for top-level options
 # $options_ref - A reference to the options specification
 # @args        - The arguments to the command
 #
@@ -161,7 +161,8 @@ sub run {
 
     # Parse the initial options and extract the subcommand to run, preserving
     # any options after the subcommand.
-    my ($opts_ref, $args_ref) = $self->_parse_options($0, ['help|h'], @args);
+    my $spec = ['help|h'];
+    my ($opts_ref, $args_ref) = $self->_parse_options(undef, $spec, @args);
     if ($opts_ref->{help}) {
         pod2usage(0);
     }

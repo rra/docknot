@@ -10,7 +10,7 @@ use 5.024;
 use autodie;
 use warnings;
 
-use Test::More tests => 8;
+use Test::More tests => 10;
 
 # Load the module.
 BEGIN { use_ok('App::DocKnot') }
@@ -39,6 +39,8 @@ isa_ok($docknot, 'App::DocKnot');
 # Test various errors.
 eval { $docknot->run('foo') };
 is_error($@, 'unknown command foo', 'Unknown command');
+eval { $docknot->run('--bogus', 'generate') };
+is_error($@, 'unknown option: bogus', 'Unknown top-level option');
 local @ARGV = ();
 eval { $docknot->run() };
 is_error($@, 'no subcommand given', 'No subcommand');
@@ -52,3 +54,9 @@ is_error($@, 'generate: too many arguments', 'Too many arguments');
 # Check that commands with no arguments are handled correctly.
 eval { $docknot->run('generate-all', 'readme') };
 is_error($@, 'generate-all: too many arguments', 'Too many arguments');
+
+# Trigger an error in a submodule to test error rewriting.
+eval { $docknot->run('generate', '-m', '/nonexistent', 'readme') };
+is_error($@,
+    'generate: metadata path /nonexistent does not exist or is not a directory'
+);
