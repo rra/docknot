@@ -32,7 +32,7 @@ docknot - Generate human-readable documentation from package metadata
 
 B<docknot> B<-h>
 
-B<docknot> generate B<-m> I<metadata> B<-o> I<output> B<-t> I<template>
+B<docknot> generate [B<-m> I<metadata>] I<template> [I<output>]
 
 =head1 DESCRIPTION
 
@@ -71,15 +71,26 @@ Print out usage information and exit.
 
 The path to the metadata files for the package whose documentation is being
 generated.  This should be a directory containing all the package metadata
-files required by App::DocKnot.  This option is required.
+files required by App::DocKnot.  Default: F<docs/metadata> relative to the
+current directory (which is the recommended metadata path for a project).
 
-=item B<-o> I<output>, B<--output>=I<output>
+=item B<-w> I<width>, B<--width>=I<width>
 
-The path to the output file to generate.  This option is required.
+Column width at which the generated output is wrapped.  Default: 74.
 
-=item B<-t> I<template>, B<--template>=I<template>
+=item I<template>
 
-The template to use when generating the output file.  This option is required.
+The template to use when generating the output file.
+
+=item I<output>
+
+The path to the output file to generate.  If this argument isn't given, the
+output file will be chosen based on the template as follows:
+
+    readme     ->  README
+    readme-md  ->  README.md
+
+If the template isn't listed above, this argument is required.
 
 =back
 

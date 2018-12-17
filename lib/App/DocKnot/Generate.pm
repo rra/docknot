@@ -25,6 +25,12 @@ use Perl6::Slurp;
 use Template;
 use Text::Wrap qw(wrap);
 
+# Default output files for specific templates.
+my %DEFAULT_OUTPUT = (
+    'readme'    => 'README',
+    'readme-md' => 'README.md',
+);
+
 ##############################################################################
 # Generator functions
 ##############################################################################
@@ -502,8 +508,8 @@ sub _wrap {
 #
 # $class - Class of object to create
 # $args  - Anonymous hash of arguments with the following keys:
-#   width    - Line length at which to wrap output files
 #   metadata - Path to the directory containing package metadata
+#   width    - Line length at which to wrap output files
 #
 # Returns: Newly created object
 #  Throws: Text exceptions on invalid metadata directory path
@@ -513,10 +519,10 @@ sub new {
     # Ensure we were given a valid metadata argument.
     my $metadata = $args_ref->{metadata};
     if (!defined($metadata)) {
-        croak('Missing metadata argument to new');
+        $metadata = 'docs/metadata';
     }
     if (!-d $metadata) {
-        croak("Metadata path $metadata does not exist or is not a directory");
+        croak("metadata path $metadata does not exist or is not a directory");
     }
 
     # Create and return the object.
@@ -528,8 +534,7 @@ sub new {
     return $self;
 }
 
-# Generate a documentation file from the package metadata.  Takes the template
-# to use and returns the generated documentation.
+# Generate a documentation file from the package metadata.
 #
 # $self     - The App::DocKnot::Generate object
 # $template - Name of the documentation template (using Template Toolkit)
@@ -629,16 +634,43 @@ sub generate {
     $vars{to_text}   = $self->_code_for_to_text;
     $vars{to_thread} = $self->_code_for_to_thread;
 
-    # Find the path to the relevant template.
+    # Ensure we were given a valid template.
     $template = $self->_appdata_path('templates', "${template}.tmpl");
 
     # Run Template Toolkit processing.
-    my $tt = Template->new({ ABSOLUTE => 1 }) or die Template->error . "\n";
+    my $tt = Template->new({ ABSOLUTE => 1 }) or croak(Template->error());
     my $result;
-    $tt->process($template, \%vars, \$result) or die $tt->error . "\n";
+    $tt->process($template, \%vars, \$result) or croak($tt->error);
 
     # Word-wrap the results to our width and return them.
     return $self->_wrap($result);
+}
+
+# Generate a documentation file from the package metadata.
+#
+# $self     - The App::DocKnot::Generate object
+# $template - Name of the documentation template
+# $output   - Output file name (undef to use the default)
+#
+# Returns: undef
+#  Throws: autodie exception on failure to read metadata or write the output
+#          Text exception on Template Toolkit failures
+#          Text exception on inconsistencies in the package data
+sub generate_output {
+    my ($self, $template, $output) = @_;
+    $output //= $DEFAULT_OUTPUT{$template};
+
+    # If the template doesn't have a default output file, $output is required.
+    if (!defined($output)) {
+        croak('missing required output argument');
+    }
+
+    # Generate the output.
+    open(my $outfh, '>', $output);
+    print {$outfh} $self->generate($template)
+      or croak("cannot write to $output: $!");
+    close($outfh);
+    return;
 }
 
 ##############################################################################
@@ -663,6 +695,8 @@ App::DocKnot::Generate - Generate documentation from package metadata
     my $docknot = App::DocKnot::Generate->new({ metadata => 'docs/metadata' });
     my $readme = $docknot->generate('readme');
     my $index = $docknot->generate('thread');
+    $docknot->generate_output('readme');
+    $docknot->generate_output('thread', 'www/index.th')
 
 =head1 REQUIREMENTS
 
@@ -700,9 +734,8 @@ Files included in the package.
 
 =back
 
-As noted above, default templates and license files are included with the
-App::DocKnot module and are used unless more specific configuration files
-exist.
+Default templates and license files are included with the App::DocKnot module
+and are used unless more specific configuration files exist.
 
 =head1 CLASS METHODS
 
@@ -718,12 +751,12 @@ following keys:
 
 =item metadata
 
-The path to the directory containing metadata for a package.  This argument is
-required.
+The path to the directory containing metadata for a package.  Default:
+F<docs/metadata> relative to the current directory.
 
 =item width
 
-The wrap width to use when generating documentation.  Default is 74.
+The wrap width to use when generating documentation.  Default: 74.
 
 =back
 
@@ -740,6 +773,19 @@ documentation file defined by TEMPLATE, which is the name of a template.  The
 template itself will be loaded from the App::DocKnot configuration path as
 described in L<DESCRIPTION>.  Returns the generated documentation file as a
 string.
+
+=item generate_output(TEMPLATE [, OUTPUT])
+
+The same as generate() except that rather than returning the generated
+documentation file as a string, it will be written to the file named by
+OUTPUT.  If that argument isn't given, a default based on the TEMPLATE
+argument is chosen as follows:
+
+    readme     ->  README
+    readme-md  ->  README.md
+
+If TEMPLATE isn't one of the templates listed above, the OUTPUT argument is
+required.
 
 =back
 

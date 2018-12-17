@@ -6,8 +6,23 @@ DocKnot 2.00 (unreleased)
     subcommand.  All docknot actions in the future will be added as
     subcommands.
 
-    Rename App::DocKnot to App:DocKnot::Generate, with the same API as
-    before.  App::DocKnot must be loaded as well to use the module API.
+    docknot generate now takes the name of the template as its first
+    positional argument instead of as the -t option.
+
+    generate() and therefore the generate subcommand now defaults to
+    looking for metadata in docs/metadata, and the -m option is now
+    optional.
+
+    The -o option to docknot generate and the output argument to
+    generate_output() is now optional if there is a default output file
+    defined for the template.  The two defaults are README for the readme
+    template and README.md for the readme-md template, both in the current
+    directory.
+
+    Rename App::DocKnot to App:DocKnot::Generate and add a new
+    generate_output() method that writes the generated output to a
+    specified file instead of returning it as a string.  App::DocKnot must
+    be loaded as well to use the module API.
 
     Update to rra-c-util 8.0:
 

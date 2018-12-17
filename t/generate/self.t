@@ -23,9 +23,8 @@ BEGIN {
     use_ok('App::DocKnot::Generate');
 }
 
-# Initialize the App::DocKnot object.
-my $metadata_path = File::Spec->catfile('docs', 'metadata');
-my $docknot = App::DocKnot::Generate->new({ metadata => $metadata_path });
+# Initialize the App::DocKnot object using the default metadata path.
+my $docknot = App::DocKnot::Generate->new();
 isa_ok($docknot, 'App::DocKnot::Generate');
 
 # Test each of the possible templates.

@@ -29,9 +29,15 @@ use Getopt::Long;
 #     the hash resulting from option parsing as its first argument and any
 #     other command-line arguments as its remaining arguments.
 #
+# maximum
+#     The maximum number of positional arguments this command takes.
+#
 # method
 #     The name of the method to run to implement this command.  It is passed
 #     as arguments any remaining command-line arguments after option parsing.
+#
+# minimum
+#     The minimum number of positional arguments this command takes.
 #
 # module
 #     The name of the module that implements this command.  Its constructor
@@ -48,9 +54,11 @@ use Getopt::Long;
 #     are not set, an error will be thrown.
 our %COMMANDS = (
     generate => {
-        'code'     => \&_generate,
-        'options'  => ['metadata|m=s', 'output|o=s', 'template|t=s'],
-        'required' => ['metadata', 'output', 'template'],
+        method  => 'generate_output',
+        module  => 'App::DocKnot::Generate',
+        options => ['metadata|m=s', 'width|w=i'],
+        maximum => 2,
+        minimum => 1,
     },
 );
 
@@ -116,29 +124,6 @@ sub _parse_command {
 }
 
 ##############################################################################
-# Local stubs
-##############################################################################
-
-# Dispatch the generate command.  This is a temporary stub to adapt the
-# current command-line interface to the API of App::DocKnot::Generate.
-#
-# $opts_ref - Reference to hash of command-line options
-# @args     - Any remaining command-line arguments
-#
-# Returns: undef
-#  Throws: A text error message on any error
-sub _generate {
-    my ($opts_ref, @args) = @_;
-    my %options = (metadata => $opts_ref->{metadata});
-    my $docknot = App::DocKnot::Generate->new(\%options);
-    open(my $outfh, '>', $opts_ref->{output});
-    print {$outfh} $docknot->generate($opts_ref->{template})
-      or die "$0: cannot write to $opts_ref->{output}: $!\n";
-    close($outfh);
-    return;
-}
-
-##############################################################################
 # Public interface
 ##############################################################################
 
@@ -192,13 +177,33 @@ sub run {
         }
     }
 
-    # Dispatch the command.
-    if ($COMMANDS{$command}{code}) {
-        $COMMANDS{$command}{code}->($opts_ref, $args_ref->@*);
-    } else {
-        my $object = $COMMANDS{$command}{module}->new($opts_ref);
-        my $method = $COMMANDS{$command}{method};
-        $object->$method($args_ref->@*);
+    # Check that we have the correct number of remaining arguments.
+    if (exists($COMMANDS{$command}{maximum})) {
+        if (scalar($args_ref->@*) > $COMMANDS{$command}{maximum}) {
+            die "$0 $command: too many arguments\n";
+        }
+    }
+    if (exists($COMMANDS{$command}{minimum})) {
+        if (scalar($args_ref->@*) < $COMMANDS{$command}{maximum}) {
+            die "$0 $command: too few arguments\n";
+        }
+    }
+
+    # Dispatch the command and turn exceptions into error messages.
+    eval {
+        if ($COMMANDS{$command}{code}) {
+            $COMMANDS{$command}{code}->($opts_ref, $args_ref->@*);
+        } else {
+            my $object = $COMMANDS{$command}{module}->new($opts_ref);
+            my $method = $COMMANDS{$command}{method};
+            $object->$method($args_ref->@*);
+        }
+    };
+    if ($@) {
+        my $error = $@;
+        chomp($error);
+        $error =~ s{ \s+ at \s+ \S+ \s+ line \s+ \d+ [.]? \z }{}xms;
+        die "$0 $command: $error\n";
     }
     return;
 }
