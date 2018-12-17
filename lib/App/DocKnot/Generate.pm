@@ -646,6 +646,23 @@ sub generate {
     return $self->_wrap($result);
 }
 
+# Generate all package documentation from the package metadata.  Only
+# generates the output for templates with a default output file.
+#
+# $self - The App::DocKnot::Generate object
+#
+# Returns: undef
+#  Throws: autodie exception on failure to read metadata or write the output
+#          Text exception on Template Toolkit failures
+#          Text exception on inconsistencies in the package data
+sub generate_all {
+    my ($self) = @_;
+    for my $template (keys(%DEFAULT_OUTPUT)) {
+        $self->generate_output($template);
+    }
+    return;
+}
+
 # Generate a documentation file from the package metadata.
 #
 # $self     - The App::DocKnot::Generate object
@@ -773,6 +790,12 @@ documentation file defined by TEMPLATE, which is the name of a template.  The
 template itself will be loaded from the App::DocKnot configuration path as
 described in L<DESCRIPTION>.  Returns the generated documentation file as a
 string.
+
+=item generate_all()
+
+Generate all of the documentation files for a package.  This is currently
+defined as the C<readme> and C<readme-md> templates.  The output will be
+written to the default output locations, as described under generate_output().
 
 =item generate_output(TEMPLATE [, OUTPUT])
 

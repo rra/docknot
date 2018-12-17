@@ -60,6 +60,12 @@ our %COMMANDS = (
         maximum => 2,
         minimum => 1,
     },
+    'generate-all' => {
+        method  => 'generate_all',
+        module  => 'App::DocKnot::Generate',
+        options => ['metadata|m=s', 'width|w=i'],
+        maximum => 0,
+    },
 );
 
 ##############################################################################

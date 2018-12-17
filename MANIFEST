@@ -22,6 +22,7 @@ share/licenses/Perl
 share/templates/readme-md.tmpl
 share/templates/readme.tmpl
 share/templates/thread.tmpl
+t/cli/errors.t
 t/cli/generate.t
 t/data/ansicolor/metadata/blurb
 t/data/ansicolor/metadata/description
@@ -123,6 +124,7 @@ t/docs/pod.t
 t/docs/spdx-license.t
 t/docs/synopsis.t
 t/generate/basic.t
+t/generate/output.t
 t/generate/self.t
 t/lib/Test/RRA.pm
 t/lib/Test/RRA/Config.pm

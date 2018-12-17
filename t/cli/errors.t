@@ -10,7 +10,7 @@ use 5.024;
 use autodie;
 use warnings;
 
-use Test::More tests => 7;
+use Test::More tests => 8;
 
 # Load the module.
 BEGIN { use_ok('App::DocKnot') }
@@ -48,3 +48,7 @@ eval { $docknot->run('generate') };
 is_error($@, 'generate: too few arguments', 'Too few arguments');
 eval { $docknot->run('generate', 'a', 'b', 'c') };
 is_error($@, 'generate: too many arguments', 'Too many arguments');
+
+# Check that commands with no arguments are handled correctly.
+eval { $docknot->run('generate-all', 'readme') };
+is_error($@, 'generate-all: too many arguments', 'Too many arguments');

@@ -24,6 +24,9 @@ DocKnot 2.00 (unreleased)
     specified file instead of returning it as a string.  App::DocKnot must
     be loaded as well to use the module API.
 
+    Add new generate-all command and generate_all() method that generates
+    all package documentation files with a default output file.
+
     Update to rra-c-util 8.0:
 
     * Fix t/style/strict.t to skip blib and .git directories.
