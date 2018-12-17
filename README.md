@@ -62,6 +62,34 @@ The following additional Perl modules are required to use it:
 * Perl6::Slurp
 * Template (part of Template Toolkit)
 
+## Building and Installation
+
+DocKnot uses Module::Build and can be installed using the same process as
+any other Module::Build module:
+
+```
+    perl Build.PL
+    ./Build
+    ./Build install
+```
+
+You will have to run the last command as root unless you're installing
+into a local Perl module tree in your home directory.
+
+## Testing
+
+DocKnot comes with a test suite, which you can run after building with:
+
+```
+    ./Build test
+```
+
+If a test fails, you can run a single test with verbose output via:
+
+```
+    ./Build test --test_files <path-to-test>
+```
+
 IPC::System::Simple is required to run the test suite.  The following
 additional Perl modules will be used by the test suite if present:
 
@@ -76,21 +104,6 @@ additional Perl modules will be used by the test suite if present:
 
 All are available on CPAN.  Those tests will be skipped if the modules are
 not available.
-
-## Building and Installation
-
-DocKnot uses Module::Build and can be installed using the same process as
-any other Module::Build module:
-
-```
-    perl Build.PL
-    ./Build
-    ./Build test
-    ./Build install
-```
-
-You will have to run the last command as root unless you're installing
-into a local Perl module tree in your home directory.
 
 To enable tests that don't detect functionality problems but are used to
 sanity-check the release, set the environment variable `RELEASE_TESTING`

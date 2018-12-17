@@ -27,6 +27,13 @@ DocKnot 2.00 (unreleased)
     Add new generate-all command and generate_all() method that generates
     all package documentation files with a default output file.
 
+    Separate the TESTING section from BUILD AND INSTALLATION for Perl
+    modules in both README and README.md, and move the Lancaster
+    instructions to that section.  Add instructions for how to run a
+    single test with Perl build systems.  Test dependencies for Perl
+    modules should now move into docs/metadata/test/suffix, the same as
+    for packages with an Autoconf build system.
+
     Update to rra-c-util 8.0:
 
     * Fix t/style/strict.t to skip blib and .git directories.

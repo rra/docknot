@@ -105,21 +105,6 @@ The following additional Perl modules are required to use it:
 \bullet(packed)[Perl6::Slurp]
 \bullet(packed)[Template (part of Template Toolkit)]
 
-IPC::System::Simple is required to run the test suite.  The following
-additional Perl modules will be used by the test suite if present:
-
-\bullet(packed)[Devel::Cover]
-\bullet(packed)[Test::MinimumVersion]
-\bullet(packed)[Test::Perl::Critic]
-\bullet(packed)[Test::Pod]
-\bullet(packed)[Test::Pod::Coverage]
-\bullet(packed)[Test::Spelling]
-\bullet(packed)[Test::Strict]
-\bullet(packed)[Test::Synopsis]
-
-All are available on CPAN.  Those tests will be skipped if the modules are
-not available.
-
 \h2[Download]
 
 The distribution:
