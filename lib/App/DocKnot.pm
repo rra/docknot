@@ -190,7 +190,7 @@ sub run {
         }
     }
     if (exists($COMMANDS{$command}{minimum})) {
-        if (scalar($args_ref->@*) < $COMMANDS{$command}{maximum}) {
+        if (scalar($args_ref->@*) < $COMMANDS{$command}{minimum}) {
             die "$0 $command: too few arguments\n";
         }
     }

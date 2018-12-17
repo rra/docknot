@@ -18,7 +18,7 @@ use File::Spec;
 use Perl6::Slurp;
 use Test::RRA qw(is_file_contents);
 
-use Test::More tests => 6;
+use Test::More tests => 7;
 
 # Load the module.
 BEGIN { use_ok('App::DocKnot') }
@@ -58,6 +58,11 @@ $output = slurp('README');
 is_file_contents($output, $readme_path, 'README from generate_all');
 $output = slurp('README.md');
 is_file_contents($output, $readme_md_path, 'README.md from generate_all');
+
+# Ensure that generate works with a default argument.
+$docknot->run('generate', '-m', $metadata_path, 'readme');
+$output = slurp('README');
+is_file_contents($output, $readme_path, 'README from generate default args');
 
 # Allow cleanup to delete our temporary directory.
 chdir(File::Spec->rootdir());
