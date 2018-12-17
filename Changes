@@ -34,6 +34,11 @@ DocKnot 2.00 (unreleased)
     modules should now move into docs/metadata/test/suffix, the same as
     for packages with an Autoconf build system.
 
+    If build.lancaster is set to true, add the standard section on
+    Lancaster consensus variables to the end of a TESTING section in
+    README and README.md even when a custom testing section is provided in
+    the metadata.
+
     Update to rra-c-util 8.0:
 
     * Fix t/style/strict.t to skip blib and .git directories.

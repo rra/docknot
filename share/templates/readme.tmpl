@@ -174,7 +174,15 @@ TESTING
 
 [% indent(to_text(section.body), 2) %]
 
-[% END %]SUPPORT
+[% IF section.title == 'Testing' && build.lancaster %]
+  To enable tests that don't detect functionality problems but are used to
+  sanity-check the release, set the environment variable RELEASE_TESTING
+  to a true value.  To enable tests that may be sensitive to the local
+  environment or that produce a lot of false positives without uncovering
+  many problems, set the environment variable AUTHOR_TESTING to a true
+  value.
+
+[% END %][% END %]SUPPORT
 
   The [% name %] web page at:
 
