@@ -1,11 +1,11 @@
-# DocKnot 1.06
+# DocKnot 2.00
 
 [![Build
 status](https://travis-ci.org/rra/docknot.svg?branch=master)](https://travis-ci.org/rra/docknot)
 [![CPAN
 version](https://img.shields.io/cpan/v/App-DocKnot.svg)](https://metacpan.org/release/App-DocKnot)
 
-Copyright 2013-2018 Russ Allbery <rra@cpan.org>.  This software is
+Copyright 2013-2019 Russ Allbery <rra@cpan.org>.  This software is
 distributed under a BSD-style license.  Please see the section
 [License](#license) below for more information.
 
@@ -145,7 +145,7 @@ Perl module issues in the same place.
 The DocKnot package as a whole is covered by the following copyright
 statement and license:
 
-> Copyright 2013-2018
+> Copyright 2013-2019
 >     Russ Allbery <rra@cpan.org>
 >
 > Permission is hereby granted, free of charge, to any person obtaining a

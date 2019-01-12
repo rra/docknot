@@ -8,6 +8,7 @@ docs/metadata/description
 docs/metadata/metadata.json
 docs/metadata/README
 docs/metadata/requirements
+docs/metadata/test/suffix
 lib/App/DocKnot.pm
 lib/App/DocKnot/Generate.pm
 LICENSE

@@ -1,6 +1,6 @@
                        User-Visible DocKnot Changes
 
-DocKnot 2.00 (unreleased)
+DocKnot 2.00 (2019-01-12)
 
     Move previous docknot command functionality to a new docknot generate
     subcommand.  All docknot actions in the future will be added as
