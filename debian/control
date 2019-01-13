@@ -21,7 +21,7 @@ Rules-Requires-Root: no
 Testsuite: autopkgtest-pkg-perl
 Maintainer: Russ Allbery <rra@debian.org>
 Bugs: mailto:rra@debian.org
-Standards-Version: 4.2.1
+Standards-Version: 4.3.0
 Homepage: https://www.eyrie.org/~eagle/software/docknot/
 Vcs-Git: https://git.eyrie.org/git/devel/docknot.git
 Vcs-Browser: https://git.eyrie.org/?p=devel/docknot.git

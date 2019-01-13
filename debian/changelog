@@ -16,6 +16,7 @@ docknot (2.00-1) UNRELEASED; urgency=medium
       test dependencies.
     - Lancaster testing instructions generated even if a custom testing
       section is provided.
+  * Update standards version to 4.3.0 (no changes required).
 
  -- Russ Allbery <rra@debian.org>  Sat, 12 Jan 2019 16:13:47 -0800
 
