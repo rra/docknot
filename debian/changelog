@@ -1,3 +1,24 @@
+docknot (2.00-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+    - Previous docknot functionality moved to docknot generate command.
+    - docknot generate now takes the template as its first positional
+      argument.
+    - The metadata path defaults to docs/metadata if not given.
+    - The -o option and output argument are optional if a default output
+      file is defined (which it is for readme and readme-md).
+    - App::DocKnot functionality moved to App::DocKnot::Generate, and
+      App::DocKnot now provides command parsing and subcommand support.
+    - New generate-all command and method that generates all package
+      documentation with a default output path.
+    - Perl modules now generate a separate TESTING section.  Move the
+      Lancaster instructions to that section, and use it for Perl module
+      test dependencies.
+    - Lancaster testing instructions generated even if a custom testing
+      section is provided.
+
+ -- Russ Allbery <rra@debian.org>  Sat, 12 Jan 2019 16:13:47 -0800
+
 docknot (1.06-1) unstable; urgency=medium
 
   * New upstream release.
