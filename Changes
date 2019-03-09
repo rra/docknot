@@ -1,5 +1,11 @@
                        User-Visible DocKnot Changes
 
+DocKnot 2.01 (unreleased)
+
+    Add bug tracker links pointing to the CPAN RT installation to the
+    developer documentation links section of the thread template if
+    support.cpan is set.
+
 DocKnot 2.00 (2019-01-12)
 
     Move previous docknot command functionality to a new docknot generate

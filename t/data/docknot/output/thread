@@ -149,6 +149,8 @@ Developer documentation:
 \doc[todo.html][To-do list]
 \doc[https://github.com/rra/docknot]
     [GitHub]
+\doc[https://rt.cpan.org/Dist/Display.html?Name=App-DocKnot]
+    [Bug tracker]
 \doc[https://travis-ci.org/rra/docknot]
     [Travis-CI]
 
