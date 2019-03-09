@@ -2,6 +2,9 @@
 
 DocKnot 2.01 (unreleased)
 
+    Support orphaned warnings in the README and README.md output as well
+    as thread output.
+
     Add bug tracker links pointing to the CPAN RT installation to the
     developer documentation links section of the thread template if
     support.cpan is set.
