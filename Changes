@@ -2,6 +2,9 @@
 
 DocKnot 2.01 (unreleased)
 
+    Separate configuration parsing into a new App::DocKnot::Config module,
+    used by App::DocKnot::Generate.
+
     Support orphaned warnings in the README and README.md output as well
     as thread output.
 

@@ -10,6 +10,7 @@ docs/metadata/README
 docs/metadata/requirements
 docs/metadata/test/suffix
 lib/App/DocKnot.pm
+lib/App/DocKnot/Config.pm
 lib/App/DocKnot/Generate.pm
 LICENSE
 MANIFEST			This list of files
