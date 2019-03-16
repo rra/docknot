@@ -1,9 +1,16 @@
                        User-Visible DocKnot Changes
 
-DocKnot 2.01 (unreleased)
+DocKnot 3.00 (unreleased)
 
     Separate configuration parsing into a new App::DocKnot::Config module,
     used by App::DocKnot::Generate.
+
+    Move the entry point for command-line commands from App::DocKnot to
+    App::DocKnot::Command.  The App::DocKnot module now only provides some
+    helper methods to load application data, used by both
+    App::DocKnot::Config and App::DocKnot::Generate.  It's no longer
+    necessary to explicitly load App::DocKnot before using one of the
+    submodules.
 
     Support orphaned warnings in the README and README.md output as well
     as thread output.

@@ -15,13 +15,10 @@ use File::Spec;
 use JSON;
 use Perl6::Slurp;
 
-use Test::More tests => 8;
+use Test::More tests => 7;
 
 # Load the modules.
-BEGIN {
-    use_ok('App::DocKnot');
-    use_ok('App::DocKnot::Config');
-}
+BEGIN { use_ok('App::DocKnot::Config') }
 
 # Load a test configuration and check a few inobvious pieces of it.
 my $metadata_path = File::Spec->catfile('t', 'data', 'ansicolor', 'metadata');

@@ -15,7 +15,7 @@ use warnings;
 use App::DocKnot;
 
 # Dispatch everything to the module.
-my $docknot = App::DocKnot->new();
+my $docknot = App::DocKnot::Command->new();
 $docknot->run();
 
 __END__
@@ -154,7 +154,7 @@ Russ Allbery <rra@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2016, 2018 Russ Allbery <rra@cpan.org>
+Copyright 2016, 2018-2019 Russ Allbery <rra@cpan.org>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

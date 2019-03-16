@@ -10,6 +10,7 @@ docs/metadata/README
 docs/metadata/requirements
 docs/metadata/test/suffix
 lib/App/DocKnot.pm
+lib/App/DocKnot/Command.pm
 lib/App/DocKnot/Config.pm
 lib/App/DocKnot/Generate.pm
 LICENSE
@@ -26,6 +27,7 @@ share/templates/readme.tmpl
 share/templates/thread.tmpl
 t/cli/errors.t
 t/cli/generate.t
+t/config/basic.t
 t/data/ansicolor/metadata/blurb
 t/data/ansicolor/metadata/description
 t/data/ansicolor/metadata/metadata.json

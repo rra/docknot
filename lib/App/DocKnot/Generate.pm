@@ -14,12 +14,11 @@ package App::DocKnot::Generate 2.00;
 
 use 5.024;
 use autodie;
+use parent qw(App::DocKnot);
 use warnings;
 
 use App::DocKnot::Config;
 use Carp qw(croak);
-use File::BaseDir qw(config_files);
-use File::ShareDir qw(module_file);
 use Template;
 use Text::Wrap qw(wrap);
 
@@ -304,32 +303,6 @@ sub _code_for_to_thread {
 # Helper methods
 ##############################################################################
 
-# Internal helper routine to return the path of a file from the application
-# data.  These data files are installed with App::DocKnot, but each file can
-# be overridden by the user via files in $HOME/.config/docknot or
-# /etc/xdg/docknot (or whatever $XDG_CONFIG_DIRS is set to).
-#
-# We therefore try File::BaseDir first (which handles the XDG paths) and fall
-# back on using File::ShareDir to locate the data.
-#
-# $self - The App::DocKnot::Generate object
-# @path - The relative path of the file as a list of components
-#
-# Returns: The absolute path to the application data
-#  Throws: Text exception on failure to locate the desired file
-sub _appdata_path {
-    my ($self, @path) = @_;
-
-    # Try XDG paths first.
-    my $path = config_files('docknot', @path);
-
-    # If that doesn't work, use the data that came with the module.
-    if (!defined($path)) {
-        $path = module_file('App::DocKnot', File::Spec->catfile(@path));
-    }
-    return $path;
-}
-
 # Word-wrap a paragraph of text.  This is a helper function for _wrap, mostly
 # so that it can be invoked recursively to wrap bulleted paragraphs.
 #
@@ -496,7 +469,7 @@ sub generate {
     $vars{to_thread} = $self->_code_for_to_thread;
 
     # Ensure we were given a valid template.
-    $template = $self->_appdata_path('templates', "${template}.tmpl");
+    $template = $self->appdata_path('templates', "${template}.tmpl");
 
     # Run Template Toolkit processing.
     my $tt = Template->new({ ABSOLUTE => 1 }) or croak(Template->error());
@@ -568,7 +541,6 @@ App::DocKnot::Generate - Generate documentation from package metadata
 
 =head1 SYNOPSIS
 
-    use App::DocKnot;
     use App::DocKnot::Generate;
     my $docknot = App::DocKnot::Generate->new({ metadata => 'docs/metadata' });
     my $readme = $docknot->generate('readme');

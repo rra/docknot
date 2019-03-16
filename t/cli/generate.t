@@ -2,7 +2,7 @@
 #
 # Tests for the App::DocKnot command dispatch for generate.
 #
-# Copyright 2018 Russ Allbery <rra@cpan.org>
+# Copyright 2018-2019 Russ Allbery <rra@cpan.org>
 #
 # SPDX-License-Identifier: MIT
 
@@ -21,11 +21,11 @@ use Test::RRA qw(is_file_contents);
 use Test::More tests => 7;
 
 # Load the module.
-BEGIN { use_ok('App::DocKnot') }
+BEGIN { use_ok('App::DocKnot::Command') }
 
 # Create the command-line parser.
-my $docknot = App::DocKnot->new();
-isa_ok($docknot, 'App::DocKnot');
+my $docknot = App::DocKnot::Command->new();
+isa_ok($docknot, 'App::DocKnot::Command');
 
 # Generate the package README file to a temporary file, read it into memory,
 # and compare it to the actual README file.  This duplicates part of the

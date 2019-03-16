@@ -2,7 +2,7 @@
 #
 # Tests for the App::DocKnot command dispatch error handling.
 #
-# Copyright 2018 Russ Allbery <rra@cpan.org>
+# Copyright 2018-2019 Russ Allbery <rra@cpan.org>
 #
 # SPDX-License-Identifier: MIT
 
@@ -13,7 +13,7 @@ use warnings;
 use Test::More tests => 10;
 
 # Load the module.
-BEGIN { use_ok('App::DocKnot') }
+BEGIN { use_ok('App::DocKnot::Command') }
 
 # Check an error against the expected message, removing the trailing newline
 # and stripping off the leading $0 that's prepended and the colon and space
@@ -33,8 +33,8 @@ sub is_error {
 }
 
 # Create the command-line parser.
-my $docknot = App::DocKnot->new();
-isa_ok($docknot, 'App::DocKnot');
+my $docknot = App::DocKnot::Command->new();
+isa_ok($docknot, 'App::DocKnot::Command');
 
 # Test various errors.
 eval { $docknot->run('foo') };

@@ -13,11 +13,10 @@ package App::DocKnot::Config 2.00;
 
 use 5.024;
 use autodie;
+use parent qw(App::DocKnot);
 use warnings;
 
 use Carp qw(croak);
-use File::BaseDir qw(config_files);
-use File::ShareDir qw(module_file);
 use File::Spec;
 use JSON;
 use Perl6::Slurp;
@@ -40,49 +39,6 @@ our @METADATA_FILES = qw(
 ##############################################################################
 # Helper methods
 ##############################################################################
-
-# Internal helper routine to return the path of a file from the application
-# data.  These data files are installed with App::DocKnot, but each file can
-# be overridden by the user via files in $HOME/.config/docknot or
-# /etc/xdg/docknot (or whatever $XDG_CONFIG_DIRS is set to).
-#
-# We therefore try File::BaseDir first (which handles the XDG paths) and fall
-# back on using File::ShareDir to locate the data.
-#
-# $self - The App::DocKnot::Generate object
-# @path - The relative path of the file as a list of components
-#
-# Returns: The absolute path to the application data
-#  Throws: Text exception on failure to locate the desired file
-sub _appdata_path {
-    my ($self, @path) = @_;
-
-    # Try XDG paths first.
-    my $path = config_files('docknot', @path);
-
-    # If that doesn't work, use the data that came with the module.
-    if (!defined($path)) {
-        $path = module_file('App::DocKnot', File::Spec->catfile(@path));
-    }
-    return $path;
-}
-
-# Internal helper routine that locates an application data file, interprets it
-# as JSON, and returns the resulting decoded contents.  This uses the relaxed
-# parsing mode, so comments and commas after data elements are supported.
-#
-# $self - The App::DocKnot::Generate object
-# @path - The path of the file to load, as a list of components
-#
-# Returns: Anonymous hash or array resulting from decoding the JSON object
-#  Throws: slurp or JSON exception on failure to load or decode the object
-sub _load_appdata_json {
-    my ($self, @path) = @_;
-    my $path = $self->_appdata_path(@path);
-    my $json = JSON->new;
-    $json->relaxed;
-    return $json->decode(scalar(slurp($path)));
-}
 
 # Internal helper routine to return the path of a file or directory from the
 # package metadata directory.  The resulting file or directory path is not
@@ -209,11 +165,11 @@ sub config {
 
     # Expand the package license into license text.
     my $license      = $data_ref->{license};
-    my $licenses_ref = $self->_load_appdata_json('licenses.json');
+    my $licenses_ref = $self->load_appdata_json('licenses.json');
     if (!exists($licenses_ref->{$license})) {
         die "Unknown license $license\n";
     }
-    my $license_text = slurp($self->_appdata_path('licenses', $license));
+    my $license_text = slurp($self->appdata_path('licenses', $license));
     $data_ref->{license} = { $licenses_ref->{$license}->%* };
     $data_ref->{license}{full} = $license_text;
 
@@ -258,7 +214,6 @@ App::DocKnot::Config - Read and return DocKnot package configuration
 
 =head1 SYNOPSIS
 
-    use App::DocKnot;
     use App::DocKnot::Config;
     my $reader = App::DocKnot::Config->new({ metadata => 'docs/metadata' });
     my $config = $reader->config();

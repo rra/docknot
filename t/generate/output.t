@@ -3,7 +3,7 @@
 # Test the generate_output method.  This doubles as a test for whether the
 # package metadata is consistent with the files currently in the distribution.
 #
-# Copyright 2016, 2018 Russ Allbery <rra@cpan.org>
+# Copyright 2016, 2018-2019 Russ Allbery <rra@cpan.org>
 #
 # SPDX-License-Identifier: MIT
 
@@ -19,13 +19,10 @@ use File::Temp;
 use Perl6::Slurp;
 use Test::RRA qw(is_file_contents);
 
-use Test::More tests => 8;
+use Test::More tests => 7;
 
 # Load the module.
-BEGIN {
-    use_ok('App::DocKnot');
-    use_ok('App::DocKnot::Generate');
-}
+BEGIN { use_ok('App::DocKnot::Generate') }
 
 # Initialize the App::DocKnot object using the default metadata path.
 my $metadata_path = File::Spec->catfile(getcwd(), 'docs', 'metadata');
