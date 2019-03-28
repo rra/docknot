@@ -12,7 +12,7 @@ use 5.024;
 use autodie;
 use warnings;
 
-use App::DocKnot;
+use App::DocKnot::Command;
 
 # Dispatch everything to the module.
 my $docknot = App::DocKnot::Command->new();
