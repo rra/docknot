@@ -30,5 +30,6 @@ is_file_contents($output, 'README', 'README in package');
 $output = $docknot->generate('readme-md');
 is_file_contents($output, 'README.md', 'README.md in package');
 $output = $docknot->generate('thread');
-my $expected = File::Spec->catfile('t', 'data', 'docknot', 'output', 'thread');
+my $dataroot = File::Spec->catfile('t', 'data', 'generate');
+my $expected = File::Spec->catfile($dataroot, 'docknot', 'output', 'thread');
 is_file_contents($output, $expected, 'Thread output for package');

@@ -22,8 +22,8 @@ BEGIN { use_ok('App::DocKnot::Generate') }
 
 # We have a set of test cases in the data directory.  Each of them contains
 # metadata and output directories.
-my $dataroot = File::Spec->catfile('t', 'data');
-opendir(my $tests, File::Spec->catfile('t', 'data'));
+my $dataroot = File::Spec->catfile('t', 'data', 'generate');
+opendir(my $tests, $dataroot);
 my @tests = File::Spec->no_upwards(readdir($tests));
 closedir($tests);
 @tests = grep { -d File::Spec->catfile($dataroot, $_, 'metadata') } @tests;
