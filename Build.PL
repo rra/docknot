@@ -33,7 +33,7 @@ use Module::Build;
 # Basic package configuration.
 my $build = Module::Build->new(
     dist_abstract        => 'Package documentation generator',
-    dist_author          => 'Russ Allbery <eagle@eyrie.org>',
+    dist_author          => 'Russ Allbery <rra@cpan.org>',
     license              => 'mit',
     module_name          => 'App::DocKnot',
     recursive_test_files => 1,
