@@ -1,3 +1,9 @@
+# Configuration for Travis-CI continuous integration.
+#
+# Copyright 2015-2019 Russ Allbery <eagle@eyrie.org>
+#
+# SPDX-License-Identifier: MIT
+
 language: perl
 perl:
   - "5.28"
@@ -8,8 +14,8 @@ perl:
 # version.  (These conditionals are written weirdly backwards so that the
 # command line evaluates to true.)
 #
-# Don't fail the test if Test::Perl::Critic cannot be installed, since
-# this seems to fail very regularly on Travis-CI.
+# Don't fail the test if Test::MinimumVersion or Test::Perl::Critic cannot
+# be installed, since this seems to fail very regularly on Travis-CI.
 
 env: AUTHOR_TESTING=1
 before_install:
@@ -19,7 +25,7 @@ before_install:
   - cpanm Perl6::Slurp
   - cpanm Template
   - test "$TRAVIS_PERL_VERSION" != "5.28" || cpanm Devel::Cover
-  - test "$TRAVIS_PERL_VERSION" != "5.28" || cpanm Test::MinimumVersion
+  - test "$TRAVIS_PERL_VERSION" != "5.28" || cpanm Test::MinimumVersion || true
   - test "$TRAVIS_PERL_VERSION" != "5.28" || cpanm Test::Perl::Critic || true
   - test "$TRAVIS_PERL_VERSION" != "5.28" || cpanm Test::Pod
   - test "$TRAVIS_PERL_VERSION" != "5.28" || cpanm Test::Pod::Coverage
