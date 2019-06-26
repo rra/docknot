@@ -12,7 +12,7 @@ use warnings;
 
 use File::Spec;
 
-use Test::More tests => 5;
+use Test::More tests => 6;
 
 # Load the module.
 BEGIN { use_ok('App::DocKnot::Dist') }
@@ -24,50 +24,79 @@ my $dataroot = File::Spec->catfile('t', 'data', 'generate');
 # Module::Build distribution (use App::DocKnot itself and default paths).
 my $docknot = App::DocKnot::Dist->new({ distdir => q{.} });
 #<<<
-my $expected = [
+my @expected = (
     ['perl', 'Build.PL'],
     ['./Build', 'disttest'],
     ['./Build', 'dist'],
-];
+);
 #>>>
-is_deeply($docknot->commands(), $expected, 'Module::Build');
+my @seen = $docknot->commands();
+is_deeply(\@seen, \@expected, 'Module::Build');
 
 # ExtUtils::MakeMaker distribution.
 my $metadata_path = File::Spec->catfile($dataroot, 'ansicolor', 'metadata');
 $docknot
   = App::DocKnot::Dist->new({ distdir => q{.}, metadata => $metadata_path });
 #<<<
-$expected = [
+@expected = (
     ['perl', 'Makefile.PL'],
     ['make', 'disttest'],
     ['make', 'dist'],
-];
+);
 #>>>
-is_deeply($docknot->commands(), $expected, 'ExtUtils::MakeMaker');
+@seen = $docknot->commands();
+is_deeply(\@seen, \@expected, 'ExtUtils::MakeMaker');
 
 # Autoconf distribution.
-$metadata_path = File::Spec->catfile($dataroot, 'c-tap-harness', 'metadata');
+$metadata_path = File::Spec->catfile($dataroot, 'lbcd', 'metadata');
 $docknot
   = App::DocKnot::Dist->new({ distdir => q{.}, metadata => $metadata_path });
 #<<<
-$expected = [
+@expected = (
     ['./bootstrap'],
     ['./configure', 'CC=clang'],
-    ['make', 'clean'],
     ['make', 'warnings'],
     ['make', 'check'],
+    ['make', 'clean'],
     ['./configure', 'CC=gcc'],
     ['make', 'warnings'],
     ['make', 'check'],
     ['make', 'clean'],
     ['make', 'distcheck'],
-];
+);
 #>>>
-is_deeply($docknot->commands(), $expected, 'Autoconf');
+@seen = $docknot->commands();
+is_deeply(\@seen, \@expected, 'Autoconf');
+
+# Autoconf distribution with C++.
+$metadata_path = File::Spec->catfile($dataroot, 'c-tap-harness', 'metadata');
+$docknot
+  = App::DocKnot::Dist->new({ distdir => q{.}, metadata => $metadata_path });
+#<<<
+@expected = (
+    ['./bootstrap'],
+    ['./configure', 'CC=g++'],
+    ['make', 'warnings'],
+    ['make', 'check'],
+    ['make', 'clean'],
+    ['./configure', 'CC=clang'],
+    ['make', 'warnings'],
+    ['make', 'check'],
+    ['make', 'clean'],
+    ['./configure', 'CC=gcc'],
+    ['make', 'warnings'],
+    ['make', 'check'],
+    ['make', 'clean'],
+    ['make', 'distcheck'],
+);
+#>>>
+@seen = $docknot->commands();
+is_deeply(\@seen, \@expected, 'Autoconf with C++');
 
 # Makefile only distribution (make).
 $metadata_path = File::Spec->catfile($dataroot, 'control-archive', 'metadata');
 $docknot
   = App::DocKnot::Dist->new({ distdir => q{.}, metadata => $metadata_path });
-$expected = [['make', 'dist']];
-is_deeply($docknot->commands(), $expected, 'make');
+@expected = (['make', 'dist']);
+@seen     = $docknot->commands();
+is_deeply(\@seen, \@expected, 'make');

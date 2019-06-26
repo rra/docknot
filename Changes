@@ -6,7 +6,11 @@ DocKnot 3.00 (unreleased)
     used by App::DocKnot::Generate.
 
     Add new docknot dist command and App::DocKnot::Dist module, which runs
-    appropriate commands to create a distribution tarball.
+    appropriate commands to create a distribution tarball.  This command
+    will also run the test suite, with both Clang and GCC for packages
+    using Autoconf, and will also build and test with C++ if the package
+    indicates that it supports C++ via the build.cplusplus key in the
+    package metadata.
 
     Move the entry point for command-line commands from App::DocKnot to
     App::DocKnot::Command.  The App::DocKnot module now only provides some

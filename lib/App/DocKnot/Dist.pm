@@ -31,9 +31,9 @@ our %COMMANDS = (
     'Autoconf' => [
         ['./bootstrap'],
         ['./configure', 'CC=clang'],
-        ['make', 'clean'],
         ['make', 'warnings'],
         ['make', 'check'],
+        ['make', 'clean'],
         ['./configure', 'CC=gcc'],
         ['make', 'warnings'],
         ['make', 'check'],
@@ -140,7 +140,24 @@ sub new {
 #          a command and its arguments
 sub commands {
     my ($self) = @_;
-    return $COMMANDS{ $self->{config}{build}{type} };
+    my $type = $self->{config}{build}{type};
+    my @commands = map { [@$_] } $COMMANDS{$type}->@*;
+
+    # Special-case: Autoconf packages with C++ support should also attempt a
+    # build with a C++ compiler.
+    if ($type eq 'Autoconf' && $self->{config}{build}{cplusplus}) {
+        #<<<
+        my @extra = (
+            ['./configure', 'CC=g++'],
+            ['make', 'warnings'],
+            ['make', 'check'],
+            ['make', 'clean'],
+        );
+        #>>>
+        splice(@commands, 1, 0, @extra);
+    }
+
+    return @commands;
 }
 
 # Generate a distribution tarball.  This assumes it is run from the root
@@ -165,7 +182,7 @@ sub make_distribution {
 
     # Change to that directory and run the configured commands.
     chdir($prefix);
-    for my $command_ref ($self->commands()->@*) {
+    for my $command_ref ($self->commands()) {
         systemx($command_ref->@*);
     }
 
