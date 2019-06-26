@@ -53,6 +53,13 @@ use Getopt::Long;
 #     in the option specification for that option).  If any of these options
 #     are not set, an error will be thrown.
 our %COMMANDS = (
+    dist => {
+        method   => 'make_distribution',
+        module   => 'App::DocKnot::Dist',
+        options  => ['distdir|d=s', 'metadata|m=s'],
+        maximum  => 0,
+        required => ['distdir'],
+    },
     generate => {
         method  => 'generate_output',
         module  => 'App::DocKnot::Generate',

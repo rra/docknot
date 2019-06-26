@@ -5,6 +5,9 @@ DocKnot 3.00 (unreleased)
     Separate configuration parsing into a new App::DocKnot::Config module,
     used by App::DocKnot::Generate.
 
+    Add new docknot dist command and App::DocKnot::Dist module, which runs
+    appropriate commands to create a distribution tarball.
+
     Move the entry point for command-line commands from App::DocKnot to
     App::DocKnot::Command.  The App::DocKnot module now only provides some
     helper methods to load application data, used by both

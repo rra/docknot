@@ -2,7 +2,7 @@
 #
 # Build script for the docknot application.
 #
-# Copyright 2013, 2016, 2018 Russ Allbery <rra@cpan.org>
+# Copyright 2013, 2016, 2018-2019 Russ Allbery <rra@cpan.org>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -61,15 +61,16 @@ my $build = Module::Build->new(
     },
 
     # Other package relationships.
-    configure_requires => { 'Module::Build'       => 0.36 },
-    test_requires      => { 'IPC::System::Simple' => 0 },
+    configure_requires => { 'Module::Build' => 0.36 },
     requires           => {
-        'File::BaseDir'  => 0,
-        'File::ShareDir' => 0,
-        'JSON'           => 0,
-        'Perl6::Slurp'   => 0,
-        'Template'       => 0,
-        perl             => '5.024',
+        'File::BaseDir'       => 0,
+        'File::ShareDir'      => 0,
+        'IPC::Run'            => 0,
+        'IPC::System::Simple' => 0,
+        'JSON'                => 0,
+        'Perl6::Slurp'        => 0,
+        'Template'            => 0,
+        perl                  => '5.024',
     },
 );
 

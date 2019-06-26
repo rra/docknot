@@ -10,7 +10,7 @@ use 5.024;
 use autodie;
 use warnings;
 
-use Test::More tests => 10;
+use Test::More tests => 11;
 
 # Load the module.
 BEGIN { use_ok('App::DocKnot::Command') }
@@ -60,3 +60,7 @@ eval { $docknot->run('generate', '-m', '/nonexistent', 'readme') };
 is_error($@,
     'generate: metadata path /nonexistent does not exist or is not a directory'
 );
+
+# Check for a missing required argument.
+eval { $docknot->run('dist') };
+is_error($@, 'dist: missing required option --distdir');
