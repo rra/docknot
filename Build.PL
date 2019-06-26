@@ -61,7 +61,7 @@ my $build = Module::Build->new(
     },
 
     # Other package relationships.
-    configure_requires => { 'Module::Build' => 0.36 },
+    configure_requires => { 'Module::Build' => 0.4004 },
     requires           => {
         'File::BaseDir'       => 0,
         'File::ShareDir'      => 0,
@@ -71,6 +71,10 @@ my $build = Module::Build->new(
         'Perl6::Slurp'        => 0,
         'Template'            => 0,
         perl                  => '5.024',
+    },
+    test_requires => {
+        'Capture::Tiny'         => 0,
+        'File::Copy::Recursive' => 0,
     },
 );
 

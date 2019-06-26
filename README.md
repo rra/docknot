@@ -92,8 +92,9 @@ If a test fails, you can run a single test with verbose output via:
     ./Build test --test_files <path-to-test>
 ```
 
-IPC::System::Simple is required to run the test suite.  The following
-additional Perl modules will be used by the test suite if present:
+Capture::Tiny and File::Copy::Recursive are required to run the test
+suite.  The following additional Perl modules will be used by the test
+suite if present:
 
 * Devel::Cover
 * Test::MinimumVersion
