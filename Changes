@@ -26,6 +26,9 @@ DocKnot 3.00 (unreleased)
     developer documentation links section of the thread template if
     support.cpan is set.
 
+    Output more helpful information about test failures on Windows and
+    other systems that don't have the diff command.
+
 DocKnot 2.00 (2019-01-12)
 
     Move previous docknot command functionality to a new docknot generate
