@@ -33,14 +33,17 @@ isa_ok($docknot, 'App::DocKnot::Generate');
 my $readme_path    = File::Spec->catfile(getcwd(), 'README');
 my $readme_md_path = File::Spec->catfile(getcwd(), 'README.md');
 
-# Write the README output for the DocKnot package to a temporary file.
+# Write the README output for the DocKnot package to a temporary file.  Always
+# apply a CRLF conversion layer (which should be harmless on UNIX) to ensure
+# correct behavior on Windows, where we should have automatically converted
+# newlines to CRLF when writing.
 my $tmp     = File::Temp->new();
 my $tmpname = $tmp->filename;
 $docknot->generate_output('readme', $tmpname);
-my $output = slurp($tmp);
+my $output = slurp('<:crlf', $tmp);
 is_file_contents($output, 'README', 'README in package');
 $docknot->generate_output('readme-md', $tmpname);
-$output = slurp("$tmpname");
+$output = slurp('<:crlf', "$tmpname");
 is_file_contents($output, 'README.md', 'README.md in package');
 
 # Test default output destinations by creating a temporary directory and then
