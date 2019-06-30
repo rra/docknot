@@ -12,6 +12,7 @@ docs/metadata/test/suffix
 lib/App/DocKnot.pm
 lib/App/DocKnot/Command.pm
 lib/App/DocKnot/Config.pm
+lib/App/DocKnot/Dist.pm
 lib/App/DocKnot/Generate.pm
 LICENSE
 MANIFEST			This list of files
@@ -28,6 +29,15 @@ share/templates/thread.tmpl
 t/cli/errors.t
 t/cli/generate.t
 t/config/basic.t
+t/data/dist/Build.PL
+t/data/dist/docs/metadata/blurb
+t/data/dist/docs/metadata/description
+t/data/dist/docs/metadata/metadata.json
+t/data/dist/docs/metadata/requirements
+t/data/dist/lib/Empty.pm
+t/data/dist/MANIFEST
+t/data/dist/MANIFEST.SKIP
+t/data/dist/t/api/empty.t.in
 t/data/generate/ansicolor/metadata/blurb
 t/data/generate/ansicolor/metadata/description
 t/data/generate/ansicolor/metadata/metadata.json
@@ -122,6 +132,8 @@ t/data/perl.conf
 t/data/perlcriticrc
 t/data/perltidyrc
 t/data/regenerate-data
+t/dist/basic.t
+t/dist/commands.t
 t/docs/pod-coverage.t
 t/docs/pod-spelling.t
 t/docs/pod.t
