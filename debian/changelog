@@ -1,3 +1,15 @@
+docknot (3.00-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+    - Move confiugration parsing to App::DocKnot::Config.
+    - Move entry point for commands to App::DocKnot::Command.
+    - Add new docknot dist command and App::DocKnot::Dist module.
+    - Support orphaned warnings in README and README.md output.
+    - Add bug tracker links to CPAN RT in the developer documentation
+      links section of the thread output.
+
+ -- Russ Allbery <rra@debian.org>  Sat, 29 Jun 2019 20:34:20 -0700
+
 docknot (2.00-1) unstable; urgency=medium
 
   * New upstream release.
