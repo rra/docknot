@@ -3,9 +3,12 @@ Section: text
 Priority: optional
 Build-Depends:
  debhelper-compat (= 12),
+ libcapture-tiny-perl,
  libdevel-cover-perl,
  libfile-basedir-perl,
+ libfile-copy-recursive-perl,
  libfile-sharedir-perl,
+ libipc-run-perl,
  libipc-system-simple-perl,
  libjson-perl,
  libmodule-build-perl,
@@ -32,6 +35,8 @@ Multi-Arch: foreign
 Depends:
  libfile-basedir-perl,
  libfile-sharedir-perl,
+ libipc-run-perl,
+ libipc-system-simple-perl,
  libjson-perl,
  libperl6-slurp-perl,
  libtemplate-perl,
