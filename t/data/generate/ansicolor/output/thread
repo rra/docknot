@@ -160,6 +160,8 @@ Developer documentation:
 \doc[todo.html][To-do list]
 \doc[https://github.com/rra/ansicolor]
     [GitHub]
+\doc[https://rt.cpan.org/Dist/Display.html?Name=Term-ANSIColor]
+    [Bug tracker]
 
 \h2[License]
 

@@ -18,6 +18,7 @@
         "autotools": true,
         "automake": "1.11",
         "autoconf": "2.64",
+        "cplusplus": true,
         "install": false,
         "manpages": true,
         "type": "Autoconf",
