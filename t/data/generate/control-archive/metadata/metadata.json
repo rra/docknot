@@ -20,6 +20,7 @@
     "license": "Expat",
     "build": {
         "install": false,
+        "type": "make",
     },
     "support": {
         "email": "eagle@eyrie.org",

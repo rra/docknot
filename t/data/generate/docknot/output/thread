@@ -101,6 +101,8 @@ The following additional Perl modules are required to use it:
 
 \bullet(packed)[File::BaseDir]
 \bullet(packed)[File::ShareDir]
+\bullet(packed)[IPC::Run]
+\bullet(packed)[IPC::System::Simple]
 \bullet(packed)[JSON]
 \bullet(packed)[Perl6::Slurp]
 \bullet(packed)[Template (part of Template Toolkit)]
@@ -149,6 +151,8 @@ Developer documentation:
 \doc[todo.html][To-do list]
 \doc[https://github.com/rra/docknot]
     [GitHub]
+\doc[https://rt.cpan.org/Dist/Display.html?Name=App-DocKnot]
+    [Bug tracker]
 \doc[https://travis-ci.org/rra/docknot]
     [Travis-CI]
 
