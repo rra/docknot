@@ -16,6 +16,7 @@ use 5.024;
 use autodie;
 use warnings;
 
+use App::DocKnot::Dist;
 use App::DocKnot::Generate;
 use Getopt::Long;
 
