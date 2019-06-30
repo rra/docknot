@@ -2,7 +2,7 @@ Source: docknot
 Section: text
 Priority: optional
 Build-Depends:
- debhelper (>= 11),
+ debhelper-compat (= 12),
  libdevel-cover-perl,
  libfile-basedir-perl,
  libfile-sharedir-perl,

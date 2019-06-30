@@ -7,6 +7,8 @@ docknot (3.00-1) UNRELEASED; urgency=medium
     - Support orphaned warnings in README and README.md output.
     - Add bug tracker links to CPAN RT in the developer documentation
       links section of the thread output.
+  * Update to debhelper compatibility level V12.
+    - Remove debian/compat and depend on debhelper-compat instead.
 
  -- Russ Allbery <rra@debian.org>  Sat, 29 Jun 2019 20:34:20 -0700
 
