@@ -1,5 +1,9 @@
                        User-Visible DocKnot Changes
 
+DocKnot 3.01 (unreleased)
+
+    Set user.name and user.email for Git in dist/basic.t test.
+
 DocKnot 3.00 (2019-06-29)
 
     Separate configuration parsing into a new App::DocKnot::Config module,

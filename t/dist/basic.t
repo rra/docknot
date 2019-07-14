@@ -47,6 +47,8 @@ dircopy($dataroot, $sourcedir)
 my $testpath = File::Spec->catfile($sourcedir, 't', 'api', 'empty.t');
 rename($testpath . '.in', $testpath);
 chdir($sourcedir);
+systemx(qw(git config --add user.name Test));
+systemx(qw(git config --add user.email test@example.com));
 systemx(qw(git add -A .));
 systemx(qw(git commit -q -m Initial));
 
