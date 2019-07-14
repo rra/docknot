@@ -89,6 +89,26 @@ sub _move_tarballs {
     return;
 }
 
+# Given a command with arguments, replace a command of "perl" with the
+# configured path to Perl, if any.  Assumes that the perl configuration
+# parameter is set in the object and should not be called if this is not true.
+#
+# $self        - The App::DocKnot::Dist object
+# $command_ref - Reference to an array representing a command with arguments
+#
+# Returns: Reference to an array representing a command with arguments, with
+#          the command replaced with the configured path to Perl if it was
+#          "perl"
+sub _replace_perl_path {
+    my ($self, $command_ref) = @_;
+    if ($command_ref->[0] ne 'perl') {
+        return $command_ref;
+    }
+    my @command = $command_ref->@*;
+    $command[0] = $self->{perl};
+    return [@command];
+}
+
 ##############################################################################
 # Public interface
 ##############################################################################
@@ -100,6 +120,7 @@ sub _move_tarballs {
 # $args  - Anonymous hash of arguments with the following keys:
 #   distdir  - Path to the directory for distribution tarball
 #   metadata - Path to the directory containing package metadata
+#   perl     - Path to Perl to use (default: search the user's PATH)
 #
 # Returns: Newly created object
 #  Throws: Text exceptions on invalid metadata directory path
@@ -126,6 +147,7 @@ sub new {
     my $self = {
         config  => $config->config(),
         distdir => $distdir,
+        perl    => $args_ref->{perl},
     };
     bless($self, $class);
     return $self;
@@ -142,6 +164,14 @@ sub commands {
     my ($self) = @_;
     my $type = $self->{config}{build}{type};
     my @commands = map { [@$_] } $COMMANDS{$type}->@*;
+
+    # Special-case: If a specific path to Perl was configured, use that path
+    # rather than searching for perl in the user's PATH.  This is used
+    # primarily by the test suite, which wants to run a Module::Build Build.PL
+    # and thus has to use the same perl binary as the one running the tests.
+    if (defined($self->{perl})) {
+        @commands = map { $self->_replace_perl_path($_) } @commands;
+    }
 
     # Special-case: Autoconf packages with C++ support should also attempt a
     # build with a C++ compiler.
@@ -255,6 +285,12 @@ Required.
 
 The path to the directory containing metadata for a package.  Default:
 F<docs/metadata> relative to the current directory.
+
+=item perl
+
+The path to the Perl executable to use for build steps that require it.  Used
+primarily in the test suite.  Default: The binary named C<perl> on the user's
+PATH.
 
 =back
 

@@ -12,7 +12,7 @@ use warnings;
 
 use File::Spec;
 
-use Test::More tests => 6;
+use Test::More tests => 7;
 
 # Load the module.
 BEGIN { use_ok('App::DocKnot::Dist') }
@@ -31,6 +31,18 @@ my @expected = (
 );
 #>>>
 my @seen = $docknot->commands();
+is_deeply(\@seen, \@expected, 'Module::Build');
+
+# Test configuring an alternate path to Perl.
+$docknot = App::DocKnot::Dist->new({ distdir => q{.}, perl => '/a/perl' });
+#<<<
+@expected = (
+    ['/a/perl', 'Build.PL'],
+    ['./Build', 'disttest'],
+    ['./Build', 'dist'],
+);
+#>>>
+@seen = $docknot->commands();
 is_deeply(\@seen, \@expected, 'Module::Build');
 
 # ExtUtils::MakeMaker distribution.
