@@ -3,6 +3,7 @@ Section: text
 Priority: optional
 Build-Depends:
  debhelper-compat (= 12),
+ git,
  libcapture-tiny-perl,
  libdevel-cover-perl,
  libfile-basedir-perl,

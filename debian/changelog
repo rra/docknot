@@ -6,6 +6,7 @@ docknot (3.01-1) unstable; urgency=medium
     - Allow the path to Perl to be configured in App::DocKnot::Dist.
   * Set AUTOMATED_TESTING to run more of the test suite.  Remove
     Build-Depends for author-only tests, which are not run.
+  * Add git to Build-Depends to run the dist test suite.
 
  -- Russ Allbery <rra@debian.org>  Sun, 14 Jul 2019 20:55:42 -0700
 
