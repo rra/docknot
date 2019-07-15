@@ -10,6 +10,11 @@ DocKnot 3.01 (unreleased)
 
     Set user.name and user.email for Git in dist/basic.t test.
 
+    Hopefully fix tests on Windows via more correct use of File::Temp
+    objects: be clear about using the file name instead of the file
+    descriptor, and delete the file by letting the File::Temp object go
+    out of scope.
+
 DocKnot 3.00 (2019-06-29)
 
     Separate configuration parsing into a new App::DocKnot::Config module,
