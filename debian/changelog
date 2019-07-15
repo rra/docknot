@@ -4,6 +4,8 @@ docknot (3.01-1) unstable; urgency=medium
     - Run make check-cppcheck during dist for Autoconf packages.
     - Run make check-valgrind during dist for packages that support it.
     - Allow the path to Perl to be configured in App::DocKnot::Dist.
+  * Set AUTOMATED_TESTING to run more of the test suite.  Remove
+    Build-Depends for author-only tests, which are not run.
 
  -- Russ Allbery <rra@debian.org>  Sun, 14 Jul 2019 20:55:42 -0700
 

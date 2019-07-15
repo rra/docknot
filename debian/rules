@@ -1,4 +1,6 @@
 #!/usr/bin/make -f
 
+export AUTOMATED_TESTING=1
+
 %:
 	dh $@

@@ -15,8 +15,6 @@ Build-Depends:
  libperl6-slurp-perl,
  libtemplate-perl,
  libtest-minimumversion-perl,
- libtest-perl-critic-perl,
- libtest-pod-coverage-perl,
  libtest-pod-perl,
  libtest-strict-perl,
  libtest-synopsis-perl,
