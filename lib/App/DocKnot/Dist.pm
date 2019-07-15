@@ -188,6 +188,12 @@ sub commands {
         splice(@commands, 1, 0, @extra);
     }
 
+    # Special-case: Autoconf packages with Valgrind support should also run
+    # make check-valgrind.
+    if ($type eq 'Autoconf' && $self->{config}{build}{valgrind}) {
+        splice(@commands, -3, 0, ['make', 'check-valgrind']);
+    }
+
     return @commands;
 }
 

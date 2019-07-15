@@ -81,7 +81,7 @@ $docknot
 @seen = $docknot->commands();
 is_deeply(\@seen, \@expected, 'Autoconf');
 
-# Autoconf distribution with C++.
+# Autoconf distribution with C++ and valgrind.
 $metadata_path = File::Spec->catfile($dataroot, 'c-tap-harness', 'metadata');
 $docknot
   = App::DocKnot::Dist->new({ distdir => q{.}, metadata => $metadata_path });
@@ -99,6 +99,7 @@ $docknot
     ['./configure', 'CC=gcc'],
     ['make', 'warnings'],
     ['make', 'check'],
+    ['make', 'check-valgrind'],
     ['make', 'clean'],
     ['make', 'check-cppcheck'],
     ['make', 'distcheck'],
