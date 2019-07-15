@@ -1,6 +1,6 @@
                        User-Visible DocKnot Changes
 
-DocKnot 3.01 (unreleased)
+DocKnot 3.01 (2019-07-14)
 
     docknot dist now also runs make check-cppcheck for Autoconf build
     systems.
