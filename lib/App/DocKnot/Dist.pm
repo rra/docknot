@@ -38,6 +38,7 @@ our %COMMANDS = (
         ['make', 'warnings'],
         ['make', 'check'],
         ['make', 'clean'],
+        ['make', 'check-cppcheck'],
         ['make', 'distcheck'],
     ],
     'ExtUtils::MakeMaker' => [

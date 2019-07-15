@@ -2,6 +2,9 @@
 
 DocKnot 3.01 (unreleased)
 
+    docknot dist now also runs make check-cppcheck for Autoconf build
+    systems.
+
     Allow the path to Perl to be configured in App::DocKnot::Dist.  This
     is used primarily for testing so that we can try building a
     distribution using Module::Build with the same Perl used to run the

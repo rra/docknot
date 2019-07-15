@@ -74,6 +74,7 @@ $docknot
     ['make', 'warnings'],
     ['make', 'check'],
     ['make', 'clean'],
+    ['make', 'check-cppcheck'],
     ['make', 'distcheck'],
 );
 #>>>
@@ -99,6 +100,7 @@ $docknot
     ['make', 'warnings'],
     ['make', 'check'],
     ['make', 'clean'],
+    ['make', 'check-cppcheck'],
     ['make', 'distcheck'],
 );
 #>>>
