@@ -54,7 +54,9 @@ systemx(qw(git commit -q -m Initial));
 
 # Check whether we have all the necessary tools to run the test.
 my $out;
-if (!run(['git', 'archive', 'HEAD'], q{|}, ['tar', 'tf', q{-}], \$out)) {
+my $result
+  = eval { run(['git', 'archive', 'HEAD'], q{|}, ['tar', 'tf', q{-}], \$out) };
+if ($@ || !$result) {
     chdir($cwd);
     plan skip_all => 'git and tar not available';
 } else {
