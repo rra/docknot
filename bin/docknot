@@ -87,7 +87,9 @@ Print out usage information and exit.
 
 The directory into which to put the generated distribution tarball.  This is
 also used as a working directory for a temporary copy of the package source.
-Required.
+This should point to a trusted directory, not one where an attacker could have
+written files; see L<App::DocKnot::Dist/make_distribution()> for more
+information.  Required.
 
 =item B<-m> I<metadata>, B<--metadata>=I<metadata>
 
@@ -204,7 +206,7 @@ SOFTWARE.
 
 =head1 SEE ALSO
 
-L<App::DocKnot::Generate>
+L<App::DocKnot::Dist>, L<App::DocKnot::Generate>
 
 This program is part of the DocKnot distribution.  DocKnot is available from
 CPAN as App::DocKnot, or directly from its web site at

@@ -2,6 +2,12 @@
 
 DocKnot 3.02 (unreleased)
 
+    docknot dist now removes any existing directory when creating a new
+    distribution.  It overrides permissions if possible while doing this
+    so that it can clean up from a failed Automake make distcheck, so the
+    destination directory should be trusted, not one to which an attacker
+    may be able to write files.
+
     Remove make warnings from the commands when building a distribution
     that supports C++, since my current Autoconf warning flag discovery
     code doesn't properly exclude options that are unsupported by C++.

@@ -68,10 +68,17 @@ if ($@ || !$result) {
 chdir($cwd);
 require_ok('App::DocKnot::Dist');
 
+# Put some existing files in the directory that are marked read-only.  These
+# should be cleaned up automatically.
+mkdir($distdir);
+mkdir(File::Spec->catfile($distdir, 'Empty'));
+open(my $fh, '>', File::Spec->catfile($distdir, 'Empty', 'Build.PL'));
+close($fh);
+chmod(0000, File::Spec->catfile($distdir, 'Empty', 'Build.PL'));
+
 # Setup finished.  Now we can create a distribution tarball.  Be careful to
 # change working directories before letting $dir go out of scope so that
 # cleanup works properly.
-mkdir($distdir);
 chdir($sourcedir);
 eval {
     my $dist = App::DocKnot::Dist->new({ distdir => $distdir, perl => $^X });

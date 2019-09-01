@@ -207,13 +207,23 @@ sub commands {
 sub make_distribution {
     my ($self) = @_;
 
-    # Export the Git repository into a new directory.
+    # Determine the source directory and the distribution directory name.
     my $source = getcwd() or die "cannot get current directory: $!\n";
     my $prefix = $self->{config}{distribution}{tarname};
-    my @git    = ('git', 'archive', "--remote=$source", "--prefix=${prefix}/",
+
+    # If the distribution directory name already exists, remove it.  Automake
+    # may have made parts of it read-only, so be forceful in the removal.
+    # Note that this does not pass the safe parameter and therefore should not
+    # be called on attacker-controlled directories.
+    chdir($self->{distdir});
+    if (-d $prefix) {
+        remove_tree($prefix);
+    }
+
+    # Export the Git repository into a new directory.
+    my @git = ('git', 'archive', "--remote=$source", "--prefix=${prefix}/",
         'master',);
     my @tar = qw(tar xf -);
-    chdir($self->{distdir});
     run(\@git, q{|}, \@tar) or die "@git | @tar failed with status $?\n";
 
     # Change to that directory and run the configured commands.
@@ -240,7 +250,7 @@ __END__
 
 =for stopwords
 Allbery DocKnot MERCHANTABILITY NONINFRINGEMENT sublicense JSON CPAN ARGS
-distdir
+distdir Automake
 
 =head1 NAME
 
@@ -284,8 +294,9 @@ following keys:
 
 =item distdir
 
-The path to the directory into which to put the distribution tarball.
-Required.
+The path to the directory into which to put the distribution tarball.  This
+should point to a trusted directory, not one where an attacker could have
+written files (see make_distribution() below).  Required.
 
 =item metadata
 
@@ -316,6 +327,14 @@ an implementation detail of make_distribution().
 =item make_distribution()
 
 Generate a distribution tarball in the C<destdir> directory provided to new().
+
+If C<destdir> already contains a subdirectory whose name matches the
+C<tarname> of the distribution, it will be forcibly removed.  In order to
+successfully remove trees that result from Automake's C<make distcheck>
+failing partway through, App::DocKnot::Dist will change permissions as needed
+to remove an existing directory.  For security reasons, the C<distdir>
+parameter of this module should therefore only be pointed to a trusted
+directory, not one where an attacker could have written files.
 
 =back
 
