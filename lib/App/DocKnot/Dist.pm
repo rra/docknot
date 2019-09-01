@@ -162,8 +162,8 @@ sub new {
 # Returns: List of commands, each of which is a list of strings representing
 #          a command and its arguments
 sub commands {
-    my ($self) = @_;
-    my $type = $self->{config}{build}{type};
+    my ($self)   = @_;
+    my $type     = $self->{config}{build}{type};
     my @commands = map { [@$_] } $COMMANDS{$type}->@*;
 
     # Special-case: If a specific path to Perl was configured, use that path
