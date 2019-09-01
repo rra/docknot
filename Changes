@@ -2,6 +2,10 @@
 
 DocKnot 3.02 (unreleased)
 
+    Remove make warnings from the commands when building a distribution
+    that supports C++, since my current Autoconf warning flag discovery
+    code doesn't properly exclude options that are unsupported by C++.
+
     Properly skip a test on Windows that requires tar.
 
 DocKnot 3.01 (2019-07-14)

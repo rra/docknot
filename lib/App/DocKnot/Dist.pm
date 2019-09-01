@@ -180,7 +180,6 @@ sub commands {
         #<<<
         my @extra = (
             ['./configure', 'CC=g++'],
-            ['make', 'warnings'],
             ['make', 'check'],
             ['make', 'clean'],
         );
