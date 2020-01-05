@@ -16,8 +16,9 @@ DocKnot 3.02 (unreleased)
     may be able to write files.
 
     Remove make warnings from the commands when building a distribution
-    that supports C++, since my current Autoconf warning flag discovery
-    code doesn't properly exclude options that are unsupported by C++.
+    that supports C++ with the C++ compiler, since my current Autoconf
+    warning flag discovery code doesn't properly exclude options that are
+    unsupported by C++.
 
     Properly skip a test on Windows that requires tar.
 
