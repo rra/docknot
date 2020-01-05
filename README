@@ -57,6 +57,7 @@ REQUIREMENTS
   * File::ShareDir
   * IPC::Run
   * IPC::System::Simple
+  * List::MoreUtils
   * JSON
   * Perl6::Slurp
   * Template (part of Template Toolkit)

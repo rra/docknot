@@ -103,6 +103,7 @@ The following additional Perl modules are required to use it:
 \bullet(packed)[File::ShareDir]
 \bullet(packed)[IPC::Run]
 \bullet(packed)[IPC::System::Simple]
+\bullet(packed)[List::MoreUtils]
 \bullet(packed)[JSON]
 \bullet(packed)[Perl6::Slurp]
 \bullet(packed)[Template (part of Template Toolkit)]

@@ -5,6 +5,10 @@ DocKnot 3.02 (unreleased)
     Add support for the No Maintenance Intended badge in the Markdown
     README file if the package is marked as orphaned.
 
+    If the native distribution generation commands create only a
+    gzip-compressed tarball, generate an xz-compressed tarball from the
+    gzip-compressed tarball during docknot dist.
+
     docknot dist now removes any existing directory when creating a new
     distribution.  It overrides permissions if possible while doing this
     so that it can clean up from a failed Automake make distcheck, so the

@@ -2,7 +2,7 @@
 #
 # Basic tests for App::DocKnot::Dist.
 #
-# Copyright 2019 Russ Allbery <rra@cpan.org>
+# Copyright 2019-2020 Russ Allbery <rra@cpan.org>
 #
 # SPDX-License-Identifier: MIT
 
@@ -60,7 +60,7 @@ if ($@ || !$result) {
     chdir($cwd);
     plan skip_all => 'git and tar not available';
 } else {
-    plan tests => 3;
+    plan tests => 5;
 }
 
 # Load the module.  Change back to the starting directory for this so that
@@ -85,5 +85,7 @@ eval {
     capture_stdout { $dist->make_distribution() };
 };
 ok(-f File::Spec->catfile($distdir, 'Empty-1.00.tar.gz'), 'dist exists');
+ok(-f File::Spec->catfile($distdir, 'Empty-1.00.tar.xz'), 'xz dist exists');
+ok(!-f File::Spec->catfile($distdir, 'Empty-1.00.tar'), 'tarball missing');
 chdir($cwd);
 is($@, q{}, 'no errors');

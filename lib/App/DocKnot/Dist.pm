@@ -23,6 +23,7 @@ use File::Copy qw(move);
 use File::Path qw(remove_tree);
 use IPC::Run qw(run);
 use IPC::System::Simple qw(systemx);
+use List::MoreUtils qw(any lastval);
 
 # Base commands to run for various types of distributions.  Additional
 # variations may be added depending on additional configuration parameters.
@@ -61,6 +62,42 @@ our %COMMANDS = (
 # Helper methods
 ##############################################################################
 
+# Find matching tarballs given a directory and a prefix.
+#
+# $self   - The App::DocKnot::Dist object
+# $path   - The directory path
+# $prefix - The tarball file prefix
+#
+# Returns: All matching files, without the directory name, as a list
+sub _find_matching_tarballs {
+    my ($self, $path, $prefix) = @_;
+    my $pattern = qr{ \A \Q$prefix\E - \d.* [.]tar [.][xg]z \z }xms;
+    opendir(my $source, $path);
+    my @files = grep { $_ =~ $pattern } readdir($source);
+    closedir($source);
+    return @files;
+}
+
+# Given a directory and a prefix for tarballs in that directory, ensure that
+# all the desired compression formats exist.  Currently this only handles
+# generating the xz version of a gzip tarball.
+#
+# $self   - The App::DocKnot::Dist object
+# $path   - The directory path
+# $prefix - The tarball file prefix
+sub _generate_compression_formats {
+    my ($self, $path, $prefix) = @_;
+    my @files = $self->_find_matching_tarballs($path, $prefix);
+    if (!any { m{ [.]tar [.]xz \z }xms } @files) {
+        my $gzip_file = lastval { m{ [.]tar [.]gz \z }xms } @files;
+        systemx('gzip', '-dk', File::Spec->catfile($path, $gzip_file));
+        my $tar_file = $gzip_file;
+        $tar_file =~ s{ [.]gz \z }{}xms;
+        systemx('xz', File::Spec->catfile($path, $tar_file));
+    }
+    return;
+}
+
 # Given a source directory, a prefix for tarballs and related files (such as
 # signatures), and a destination directory, move all matching files from the
 # source directory to the destination directory.
@@ -74,14 +111,7 @@ our %COMMANDS = (
 #         Text exception on failure to move a file
 sub _move_tarballs {
     my ($self, $source_path, $prefix, $dest_path) = @_;
-
-    # Find all matching files.
-    my $pattern = qr{ \A \Q$prefix\E - \d.* [.]tar [.][xg]z \z }xms;
-    opendir(my $source, $source_path);
-    my @files = grep { $_ =~ $pattern } readdir($source);
-    closedir($source);
-
-    # Move the files.
+    my @files = $self->_find_matching_tarballs($source_path, $prefix);
     for my $file (@files) {
         my $source_file = File::Spec->catfile($source_path, $file);
         move($source_file, $dest_path)
@@ -238,6 +268,9 @@ sub make_distribution {
     # Remove the working tree.
     chdir(File::Spec->updir());
     remove_tree($prefix, { safe => 1 });
+
+    # Generate additional compression formats if needed.
+    $self->_generate_compression_formats(File::Spec->curdir(), $prefix);
     return;
 }
 
@@ -250,7 +283,7 @@ __END__
 
 =for stopwords
 Allbery DocKnot MERCHANTABILITY NONINFRINGEMENT sublicense JSON CPAN ARGS
-distdir Automake
+distdir Automake xz
 
 =head1 NAME
 
@@ -326,7 +359,7 @@ an implementation detail of make_distribution().
 
 =item make_distribution()
 
-Generate a distribution tarball in the C<destdir> directory provided to new().
+Generate distribution tarballs in the C<destdir> directory provided to new().
 
 If C<destdir> already contains a subdirectory whose name matches the
 C<tarname> of the distribution, it will be forcibly removed.  In order to
@@ -336,6 +369,10 @@ to remove an existing directory.  For security reasons, the C<distdir>
 parameter of this module should therefore only be pointed to a trusted
 directory, not one where an attacker could have written files.
 
+If the native distribution tarball generation commands for the package
+generate a gzip-compressed tarball but not an xz-compressed tarball, an
+xz-compressed tarball will be created.
+
 =back
 
 =head1 AUTHOR
@@ -344,7 +381,7 @@ Russ Allbery <rra@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2019 Russ Allbery <rra@cpan.org>
+Copyright 2019-2020 Russ Allbery <rra@cpan.org>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

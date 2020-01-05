@@ -60,6 +60,7 @@ The following additional Perl modules are required to use it:
 * File::ShareDir
 * IPC::Run
 * IPC::System::Simple
+* List::MoreUtils
 * JSON
 * Perl6::Slurp
 * Template (part of Template Toolkit)
