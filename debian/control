@@ -12,6 +12,7 @@ Build-Depends:
  libipc-run-perl,
  libipc-system-simple-perl,
  libjson-perl,
+ liblist-moreutils-perl,
  libmodule-build-perl,
  libperl6-slurp-perl,
  libtemplate-perl,

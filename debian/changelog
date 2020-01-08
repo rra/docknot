@@ -1,3 +1,15 @@
+docknot (3.02-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+    - Add support for No Maintenance Intended badge in Markdown README.
+    - Create xz-compressed distribution tarballs if needed.
+    - Check for files missing from the distribution tarball.
+    - Remove existing directories when recreating a distribution.
+    - Don't use make warnings with C++ builds.
+    - Properly skip a test on Windows that requires tar.
+
+ -- Russ Allbery <rra@debian.org>  Wed, 08 Jan 2020 14:48:16 -0800
+
 docknot (3.01-1) unstable; urgency=medium
 
   * New upstream release.
