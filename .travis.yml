@@ -27,7 +27,7 @@ before_install:
   - cpanm Template
   - test "$TRAVIS_PERL_VERSION" != "5.30" || cpanm Devel::Cover
   - test "$TRAVIS_PERL_VERSION" != "5.30" || cpanm Test::MinimumVersion || true
-  - test "$TRAVIS_PERL_VERSION" != "5.30" || cpanm Test::Perl::Critic || true
+  - test "$TRAVIS_PERL_VERSION" != "5.30" || cpanm Test::Perl::Critic   || true
   - test "$TRAVIS_PERL_VERSION" != "5.30" || cpanm Test::Pod
   - test "$TRAVIS_PERL_VERSION" != "5.30" || cpanm Test::Pod::Coverage
   - test "$TRAVIS_PERL_VERSION" != "5.30" || cpanm Test::Strict
