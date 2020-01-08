@@ -65,11 +65,20 @@ our %COMMANDS = (
 # care whether these files or any files in these directories are included in
 # the distribution).  These should match the full file path relative to the
 # top directory.
+#
+# Include all of the build-generated files for docknot itself so that we can
+# use the new version to release the new version.
 ## no critic (RegularExpressions::ProhibitFixedStringMatches)
 our @DIST_IGNORE = (
     qr{ \A [.]git \z }xms,
     qr{ \A autom4te[.]cache \z }xms,
+    qr{ \A Build \z }xms,
+    qr{ \A MANIFEST[.]bak \z }xms,
+    qr{ \A MYMETA [.] (?:json (?:[.]lock)? | yml) \z }xms,
+    qr{ \A _build \z }xms,
+    qr{ \A blib \z }xms,
     qr{ \A config[.]h[.]in~ \z }xms,
+    qr{ \A cover_db \z }xms,
     qr{ \A tests/config \z }xms,
     qr{ [.]tar[.][gx]z \z }xms,
 );
