@@ -1,6 +1,6 @@
 # Configuration for Travis-CI continuous integration.
 #
-# Copyright 2015-2019 Russ Allbery <eagle@eyrie.org>
+# Copyright 2015-2020 Russ Allbery <eagle@eyrie.org>
 #
 # SPDX-License-Identifier: MIT
 
@@ -22,7 +22,10 @@ env: AUTHOR_TESTING=1
 before_install:
   - cpanm File::BaseDir
   - cpanm File::ShareDir
+  - cpanm IPC::Run
+  - cpanm IPC::System::Simple
   - cpanm JSON
+  - cpanm List::MoreUtils
   - cpanm Perl6::Slurp
   - cpanm Template
   - test "$TRAVIS_PERL_VERSION" != "5.30" || cpanm Devel::Cover
