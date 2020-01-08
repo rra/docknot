@@ -17,9 +17,11 @@ use autodie;
 use warnings;
 
 use App::DocKnot::Config;
+use Archive::Tar ();
 use Carp qw(croak);
 use Cwd qw(getcwd);
 use File::Copy qw(move);
+use File::Find qw(find);
 use File::Path qw(remove_tree);
 use IPC::Run qw(run);
 use IPC::System::Simple qw(systemx);
@@ -58,9 +60,73 @@ our %COMMANDS = (
 );
 #>>>
 
+# Regexes matching files or directories in the source tree to ignore when
+# comparing it against the generated distribution (in other words, we don't
+# care whether these files or any files in these directories are included in
+# the distribution).  These should match the full file path relative to the
+# top directory.
+## no critic (RegularExpressions::ProhibitFixedStringMatches)
+our @DIST_IGNORE = (
+    qr{ \A [.]git \z }xms,
+    qr{ \A autom4te[.]cache \z }xms,
+    qr{ \A config[.]h[.]in~ \z }xms,
+    qr{ \A tests/config \z }xms,
+    qr{ [.]tar[.][gx]z \z }xms,
+);
+## use critic
+
 ##############################################################################
 # Helper methods
 ##############################################################################
+
+# Given the path to the source tree, generate a list of files that we expect
+# to find in the distribution tarball.
+#
+# $self - The App::DocKnot::Dist object
+# $path - The directory path
+#
+# Returns: A list of files (no directories) that the distribution tarball
+#          should contain.
+sub _expected_dist_files {
+    my ($self, $path) = @_;
+    my @files;
+
+    # Find all files in the source directory, stripping its path from the file
+    # name and excluding (and pruning) anything matching @DIST_IGNORE.
+    my $wanted = sub {
+        my $name = $File::Find::name;
+        $name =~ s{ \A \Q$path\E / }{}xms;
+        return if !$name;
+        if (any { $name =~ $_ } @DIST_IGNORE) {
+            $File::Find::prune = 1;
+            return;
+        }
+        return if -d;
+        push(@files, $name);
+    };
+
+    # Generate and return the list of files.
+    find($wanted, $path);
+    return @files;
+}
+
+# Find the tarball compressed with gzip given a directory and a prefix.
+#
+# $self   - The App::DocKnot::Dist object
+# $path   - The directory path
+# $prefix - The tarball file prefix
+#
+# Returns: The full path to the gzip tarball
+#  Throws: Text exception if no gzip tarball was found
+sub _find_gzip_tarball {
+    my ($self, $path, $prefix) = @_;
+    my @files     = $self->_find_matching_tarballs($path, $prefix);
+    my $gzip_file = lastval { m{ [.]tar [.]gz \z }xms } @files;
+    if (!defined($gzip_file)) {
+        die "cannot find gzip tarball for $prefix in $path\n";
+    }
+    return File::Spec->catfile($path, $gzip_file);
+}
 
 # Find matching tarballs given a directory and a prefix.
 #
@@ -184,6 +250,30 @@ sub new {
     return $self;
 }
 
+# Given a distribution tarball compressed with gzip, ensure that every file
+# from the source directory that is expected to be there is in the
+# distribution tarball.  Assumes that it is run from the root of the source
+# directory.
+#
+# $self    - The App::DocKnot::Dist object
+# $source  - Path to the source directory
+# $tarball - Path to a gzip-compressed distribution tarball
+#
+# Returns: A list of files missing from the distribution (so an empty list
+#          means all expected files were found)
+sub check_dist {
+    my ($self, $source, $tarball) = @_;
+    my @expected = $self->_expected_dist_files(getcwd());
+    my %expected = map { $_ => 1 } @expected;
+    my $archive  = Archive::Tar->new($tarball);
+    for my $file ($archive->list_files()) {
+        $file =~ s{ \A [^/]* / }{}xms;
+        delete $expected{$file};
+    }
+    my @missing = sort(keys(%expected));
+    return @missing;
+}
+
 # Analyze a source directory and return the list of commands to run to
 # generate a distribution tarball.
 #
@@ -234,6 +324,7 @@ sub commands {
 # $self - The App::DocKnot::Dist object
 #
 # Throws: Text exception if any of the commands fail
+#         Text exception if the distribution is missing files
 sub make_distribution {
     my ($self) = @_;
 
@@ -270,7 +361,22 @@ sub make_distribution {
     remove_tree($prefix, { safe => 1 });
 
     # Generate additional compression formats if needed.
-    $self->_generate_compression_formats(File::Spec->curdir(), $prefix);
+    $self->_generate_compression_formats(getcwd(), $prefix);
+
+    # Check the distribution for any missing files.  If there are any, report
+    # them and then fail with an error.
+    my $tarball = $self->_find_gzip_tarball(getcwd(), $prefix);
+    chdir($source);
+    my @missing = $self->check_dist($source, $tarball);
+    if (@missing) {
+        print "Files found in local tree but not in distribution:\n"
+          or die "cannot print to stdout: $!\n";
+        print q{    } . join(qq{\n    }, @missing) . "\n"
+          or die "cannot print to stdout: $!\n";
+        my $count = scalar(@missing);
+        my $files = ($count == 1) ? '1 file' : "$count files";
+        die "$files missing from distribution\n";
+    }
     return;
 }
 
@@ -350,10 +456,21 @@ PATH.
 
 =over 4
 
+=item check_dist(SOURCE, TARBALL)
+
+Given the path to a source directory and the path to a gzip-compressed
+distribution tarball made from that directory, return the list of files that
+should be in the tarball but aren't.  An empty list means that all files in
+the source tree expected to be in the distribution are present.
+
+This method is provided primarily for testing convenience and is normally just
+an implementation detail of make_distribution().
+
 =item commands()
 
 Return the commands that should be run to generate a distribution tarball as a
 reference to an array of arrays.  Each included array is a single command.
+
 This method is provided primarily for testing convenience and is normally just
 an implementation detail of make_distribution().
 
@@ -372,6 +489,10 @@ directory, not one where an attacker could have written files.
 If the native distribution tarball generation commands for the package
 generate a gzip-compressed tarball but not an xz-compressed tarball, an
 xz-compressed tarball will be created.
+
+After the distribution is created, check_dist() will be run on it.  If any
+files are missing from the distribution, they will be reported to standard
+output and then an exception will be thrown.
 
 =back
 

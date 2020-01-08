@@ -51,6 +51,10 @@ Build, test, and generate a distribution tarball of the package in the
 current directory.  The exact commands used is determined by the package
 metadata (see L<App::DocKnot::Generate> for format documentation).
 
+After the distribution is built, it will be checked against the source tree
+and B<docknot> will report an error and exit with a non-zero status if there
+are any expected files missing.
+
 =item generate
 
 Use metadata files and templates to generate human-readable documentation
@@ -184,7 +188,7 @@ Russ Allbery <rra@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2016, 2018-2019 Russ Allbery <rra@cpan.org>
+Copyright 2016, 2018-2020 Russ Allbery <rra@cpan.org>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

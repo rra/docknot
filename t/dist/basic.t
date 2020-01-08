@@ -60,7 +60,7 @@ if ($@ || !$result) {
     chdir($cwd);
     plan skip_all => 'git and tar not available';
 } else {
-    plan tests => 5;
+    plan tests => 12;
 }
 
 # Load the module.  Change back to the starting directory for this so that
@@ -76,16 +76,41 @@ open(my $fh, '>', File::Spec->catfile($distdir, 'Empty', 'Build.PL'));
 close($fh);
 chmod(0000, File::Spec->catfile($distdir, 'Empty', 'Build.PL'));
 
-# Setup finished.  Now we can create a distribution tarball.  Be careful to
-# change working directories before letting $dir go out of scope so that
-# cleanup works properly.
+# Setup finished.  Now we can create a distribution tarball.
 chdir($sourcedir);
-eval {
-    my $dist = App::DocKnot::Dist->new({ distdir => $distdir, perl => $^X });
-    capture_stdout { $dist->make_distribution() };
-};
+my $dist = App::DocKnot::Dist->new({ distdir => $distdir, perl => $^X });
+eval { capture_stdout { $dist->make_distribution() } };
 ok(-f File::Spec->catfile($distdir, 'Empty-1.00.tar.gz'), 'dist exists');
 ok(-f File::Spec->catfile($distdir, 'Empty-1.00.tar.xz'), 'xz dist exists');
 ok(!-f File::Spec->catfile($distdir, 'Empty-1.00.tar'), 'tarball missing');
-chdir($cwd);
 is($@, q{}, 'no errors');
+
+# If we add a new file to the source tree and run make_distribution() again,
+# it should fail, and the output should contain an error message about an
+# unknown file.
+open($fh, '>', 'some-file');
+print {$fh} "Some data\n" or die "cannot write to some-file: $!\n";
+close($fh);
+my $stdout = capture_stdout { eval { $dist->make_distribution() } };
+is($@, "1 file missing from distribution\n", 'correct error for extra file');
+like($stdout, qr{ some-file }xms, 'output mentions the right file');
+
+# Verify that check_dist produces the same output.
+my $tarball = File::Spec->catfile($distdir, 'Empty-1.00.tar.gz');
+my @missing = $dist->check_dist($sourcedir, $tarball);
+is_deeply(['some-file'], \@missing, 'check_dist matches');
+
+# Another missing file should produce different formatting.
+open($fh, '>', 'another-file');
+print {$fh} "Some data\n" or die "cannot write to some-file: $!\n";
+close($fh);
+$stdout = capture_stdout { eval { $dist->make_distribution() } };
+is($@, "2 files missing from distribution\n", 'correct error for two files');
+like($stdout, qr{ some-file }xms, 'output mentions the first file');
+like($stdout, qr{ another-file }xms, 'output mentions the other file');
+@missing = $dist->check_dist($sourcedir, $tarball);
+is_deeply(['another-file', 'some-file'], \@missing, 'check_dist matches');
+
+# Be careful to change working directories before letting $dir go out of scope
+# so that cleanup works properly.
+chdir($cwd);
