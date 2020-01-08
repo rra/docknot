@@ -106,7 +106,7 @@ print {$fh} "Some data\n" or die "cannot write to some-file: $!\n";
 close($fh);
 $stdout = capture_stdout { eval { $dist->make_distribution() } };
 is($@, "2 files missing from distribution\n", 'correct error for two files');
-like($stdout, qr{ some-file }xms, 'output mentions the first file');
+like($stdout, qr{ some-file }xms,    'output mentions the first file');
 like($stdout, qr{ another-file }xms, 'output mentions the other file');
 @missing = $dist->check_dist($sourcedir, $tarball);
 is_deeply(['another-file', 'some-file'], \@missing, 'check_dist matches');
