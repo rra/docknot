@@ -20,7 +20,7 @@ use File::Copy::Recursive qw(dircopy);
 use File::Spec;
 use File::Temp;
 use IPC::Run qw(run);
-use IPC::System::Simple qw(systemx);
+use IPC::System::Simple qw(capturex systemx);
 
 use Test::More;
 
