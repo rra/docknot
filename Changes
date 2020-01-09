@@ -1,5 +1,10 @@
                        User-Visible DocKnot Changes
 
+DocKnot 3.03 (unreleased)
+
+    For CPAN packages pushed to GitHub, add a license badge to the
+    Markdown README file.
+
 DocKnot 3.02 (2020-01-08)
 
     Add support for the No Maintenance Intended badge in the Markdown
