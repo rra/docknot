@@ -5,6 +5,8 @@ DocKnot 3.03 (unreleased)
     For CPAN packages pushed to GitHub, add a Shields.io license badge to
     the Markdown README file.
 
+    Skip the dist integration test if xz is not available.
+
 DocKnot 3.02 (2020-01-08)
 
     Add support for the No Maintenance Intended badge in the Markdown

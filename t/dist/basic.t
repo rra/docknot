@@ -33,6 +33,12 @@ my $dir       = File::Temp->newdir();
 my $sourcedir = File::Spec->catfile($dir, 'source');
 my $distdir   = File::Spec->catfile($dir, 'dist');
 
+# Check whether xz is available.
+eval { capturex('xz', '--version') };
+if ($@) {
+    plan skip_all => 'xz --version failed (possibly no xz binary)';
+}
+
 # Check whether git is available and can be used to initialize a repository.
 eval { systemx('git', 'init', '-q', File::Spec->catfile($dir, 'source')) };
 if ($@) {
