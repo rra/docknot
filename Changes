@@ -2,8 +2,8 @@
 
 DocKnot 3.03 (unreleased)
 
-    For CPAN packages pushed to GitHub, add a license badge to the
-    Markdown README file.
+    For CPAN packages pushed to GitHub, add a Shields.io license badge to
+    the Markdown README file.
 
 DocKnot 3.02 (2020-01-08)
 
