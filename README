@@ -55,6 +55,7 @@ REQUIREMENTS
 
   * File::BaseDir
   * File::ShareDir
+  * IO::Compress::Xz (part of IO-Compress-LZMA)
   * IPC::Run
   * IPC::System::Simple
   * JSON

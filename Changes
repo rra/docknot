@@ -8,6 +8,12 @@ DocKnot 3.03 (unreleased)
     For packages with a Debian package, add a Shields.io badge for the
     version in Debian.
 
+    docknot dist now uses IO::Uncompress::Gunzip and IO::Compress::Xz to
+    generate a missing xz tarball rather than running external gzip and xz
+    programs, which avoids test failures when those programs aren't
+    available or don't support the expected options.  Thanks to Slaven
+    Rezić for the testing and report.  (#131406)
+
     docknot dist now supports a distribution/ignore metadata setting,
     which contains a list of regular expressions of files to ignore when
     checking a distribution tarball for completeness.
@@ -15,8 +21,6 @@ DocKnot 3.03 (unreleased)
     Stop leaking exceptions via $@ to the caller of App::DocKnot::Config.
     Configuration parsing catches and ignores a variety of errors, which
     previously were polluting the caller's $@.
-
-    Skip the dist integration test if xz is not available.
 
 DocKnot 3.02 (2020-01-08)
 
