@@ -5,6 +5,9 @@ DocKnot 3.03 (unreleased)
     For CPAN packages pushed to GitHub, add a Shields.io license badge to
     the Markdown README file.
 
+    For packages with a Debian package, add a Shields.io badge for the
+    version in Debian.
+
     docknot dist now supports a distribution/ignore metadata setting,
     which contains a list of regular expressions of files to ignore when
     checking a distribution tarball for completeness.
