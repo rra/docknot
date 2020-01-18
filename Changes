@@ -7,6 +7,10 @@ DocKnot 3.03 (unreleased)
 
     Skip the dist integration test if xz is not available.
 
+    Stop leaking exceptions via $@ to the caller of App::DocKnot::Config.
+    Configuration parsing catches and ignores a variety of errors, which
+    previously were polluting the caller's $@.
+
 DocKnot 3.02 (2020-01-08)
 
     Add support for the No Maintenance Intended badge in the Markdown
