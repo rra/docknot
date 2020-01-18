@@ -100,13 +100,20 @@ sub _expected_dist_files {
     my ($self, $path) = @_;
     my @files;
 
+    # Supplemental ignore rules from the package configuration.
+    my @ignore;
+    if ($self->{config}{distribution}{ignore}) {
+        @ignore = map { qr{$_}xms } $self->{config}{distribution}{ignore}->@*;
+    }
+
     # Find all files in the source directory, stripping its path from the file
-    # name and excluding (and pruning) anything matching @DIST_IGNORE.
+    # name and excluding (and pruning) anything matching @DIST_IGNORE or in
+    # the distribution/ignore key of the package configuration.
     my $wanted = sub {
         my $name = $File::Find::name;
         $name =~ s{ \A \Q$path\E / }{}xms;
         return if !$name;
-        if (any { $name =~ $_ } @DIST_IGNORE) {
+        if (any { $name =~ $_ } @DIST_IGNORE, @ignore) {
             $File::Find::prune = 1;
             return;
         }
