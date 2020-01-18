@@ -85,7 +85,9 @@ chmod(0000, File::Spec->catfile($distdir, 'Empty', 'Build.PL'));
 # Setup finished.  Now we can create a distribution tarball.
 chdir($sourcedir);
 my $dist = App::DocKnot::Dist->new({ distdir => $distdir, perl => $^X });
-capture_stdout { eval { $dist->make_distribution() } };
+capture_stdout {
+    eval { $dist->make_distribution() };
+};
 ok(-f File::Spec->catfile($distdir, 'Empty-1.00.tar.gz'), 'dist exists');
 ok(-f File::Spec->catfile($distdir, 'Empty-1.00.tar.xz'), 'xz dist exists');
 ok(!-f File::Spec->catfile($distdir, 'Empty-1.00.tar'), 'tarball missing');
@@ -96,7 +98,9 @@ is($@, q{}, 'no errors');
 open($fh, '>', 'ignored-file');
 print {$fh} "Some data\n" or die "cannot write to some-file: $!\n";
 close($fh);
-capture_stdout { eval { $dist->make_distribution() } };
+capture_stdout {
+    eval { $dist->make_distribution() };
+};
 is($@, q{}, 'no errors with ignored file');
 
 # If we add a new file to the source tree and run make_distribution() again,
@@ -105,7 +109,9 @@ is($@, q{}, 'no errors with ignored file');
 open($fh, '>', 'some-file');
 print {$fh} "Some data\n" or die "cannot write to some-file: $!\n";
 close($fh);
-my $stdout = capture_stdout { eval { $dist->make_distribution() } };
+my $stdout = capture_stdout {
+    eval { $dist->make_distribution() };
+};
 is($@, "1 file missing from distribution\n", 'correct error for extra file');
 like($stdout, qr{ some-file }xms, 'output mentions the right file');
 
@@ -118,7 +124,9 @@ is_deeply(['some-file'], \@missing, 'check_dist matches');
 open($fh, '>', 'another-file');
 print {$fh} "Some data\n" or die "cannot write to some-file: $!\n";
 close($fh);
-$stdout = capture_stdout { eval { $dist->make_distribution() } };
+$stdout = capture_stdout {
+    eval { $dist->make_distribution() };
+};
 is($@, "2 files missing from distribution\n", 'correct error for two files');
 like($stdout, qr{ some-file }xms,    'output mentions the first file');
 like($stdout, qr{ another-file }xms, 'output mentions the other file');
