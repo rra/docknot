@@ -1,6 +1,6 @@
                        User-Visible DocKnot Changes
 
-DocKnot 3.03 (unreleased)
+DocKnot 3.03 (2020-01-19)
 
     For CPAN packages pushed to GitHub, add a Shields.io license badge to
     the Markdown README file.

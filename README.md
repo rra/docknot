@@ -1,4 +1,4 @@
-# DocKnot 3.02
+# DocKnot 3.03
 
 [![Build
 status](https://travis-ci.org/rra/docknot.svg?branch=master)](https://travis-ci.org/rra/docknot)
