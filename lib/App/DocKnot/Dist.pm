@@ -245,7 +245,7 @@ sub _replace_perl_path {
 # Create a new App::DocKnot::Dist object, which will be used for subsequent
 # calls.
 #
-# $class - Class of object ot create
+# $class - Class of object to create
 # $args  - Anonymous hash of arguments with the following keys:
 #   distdir  - Path to the directory for distribution tarball
 #   metadata - Path to the directory containing package metadata
