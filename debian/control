@@ -9,6 +9,7 @@ Build-Depends:
  libfile-basedir-perl,
  libfile-copy-recursive-perl,
  libfile-sharedir-perl,
+ libio-compress-lzma-perl,
  libipc-run-perl,
  libipc-system-simple-perl,
  libjson-perl,

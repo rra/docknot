@@ -1,3 +1,16 @@
+docknot (3.03-1) unstable; urgency=medium
+
+  * New upstream release.
+    - Add license badge for CPAN packages.
+    - Add Debian package version badge.
+    - Use IO::Uncompress::Gunzip and IO::Compress:Xz instead of forking
+      external programs.
+    - Support a distribution/ignore metadata setting to configure which
+      files to ignore when checking a distribution.
+    - Stop modifying the $@ of the caller of App::DocKnot::Config.
+
+ -- Russ Allbery <rra@debian.org>  Sun, 19 Jan 2020 19:37:49 -0800
+
 docknot (3.02-1) unstable; urgency=medium
 
   * New upstream release.
