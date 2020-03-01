@@ -38,7 +38,7 @@ jobs:
         run: perl -V
       - name: Install Dependencies
         run: cpm install -g --show-build-log-on-failure
-      - name: Makefile.PL
-        run: perl Makefile.PL
+      - name: Build.PL
+        run: perl Build.PL
       - name: make test
-        run: make test
+        run: ./Build test
