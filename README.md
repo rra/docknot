@@ -2,6 +2,8 @@
 
 [![Build
 status](https://travis-ci.org/rra/docknot.svg?branch=master)](https://travis-ci.org/rra/docknot)
+[![Build
+status](https://github.com/rra/docknot/workflows/build/badge.svg)](https://github.com/rra/docknot/actions)
 [![CPAN
 version](https://img.shields.io/cpan/v/App-DocKnot)](https://metacpan.org/release/App-DocKnot)
 [![License](https://img.shields.io/cpan/l/App-DocKnot)](https://github.com/rra/docknot/blob/master/LICENSE)
