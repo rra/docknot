@@ -25,7 +25,6 @@
         "browse": "https://git.eyrie.org/?p=devel/docknot.git",
         "github": "rra/docknot",
         "status": {
-            "travis": "rra/docknot",
             "workflow": "build",
         },
     },

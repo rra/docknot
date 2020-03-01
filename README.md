@@ -1,8 +1,6 @@
 # DocKnot 3.03
 
 [![Build
-status](https://travis-ci.org/rra/docknot.svg?branch=master)](https://travis-ci.org/rra/docknot)
-[![Build
 status](https://github.com/rra/docknot/workflows/build/badge.svg)](https://github.com/rra/docknot/actions)
 [![CPAN
 version](https://img.shields.io/cpan/v/App-DocKnot)](https://metacpan.org/release/App-DocKnot)

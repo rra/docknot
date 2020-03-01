@@ -1,6 +1,5 @@
 .github/workflows/build.yaml
 .gitignore
-.travis.yml
 bin/docknot
 Build.PL
 Changes
