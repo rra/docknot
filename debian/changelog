@@ -1,3 +1,12 @@
+docknot (3.04-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+    - Change the vcs.travis metadata key to vcs.status.travis.
+    - Add support for vcs.status.workflow to create a badge from a GitHub
+      workflow.
+
+ -- Russ Allbery <rra@debian.org>  Sat, 16 May 2020 11:19:21 -0700
+
 docknot (3.03-1) unstable; urgency=medium
 
   * New upstream release.
