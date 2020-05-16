@@ -1,6 +1,6 @@
                        User-Visible DocKnot Changes
 
-DocKnot 3.04 (unreleased)
+DocKnot 3.04 (2020-05-16)
 
     Change the vcs.travis metadata key to vcs.status.travis.  This will
     require changes to all templates and package metadata.json files that
