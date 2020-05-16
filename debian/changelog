@@ -4,6 +4,7 @@ docknot (3.04-1) UNRELEASED; urgency=medium
     - Change the vcs.travis metadata key to vcs.status.travis.
     - Add support for vcs.status.workflow to create a badge from a GitHub
       workflow.
+  * Update debhelper compatibility level to V13.
 
  -- Russ Allbery <rra@debian.org>  Sat, 16 May 2020 11:19:21 -0700
 
