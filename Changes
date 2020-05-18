@@ -1,5 +1,11 @@
                        User-Visible DocKnot Changes
 
+DocKnot 3.05 (unreleased)
+
+    Change the heuristic for when to refrain from wrapping output
+    paragraphs to require they start with three short lines rather than
+    two.
+
 DocKnot 3.04 (2020-05-16)
 
     Change the vcs.travis metadata key to vcs.status.travis.  This will

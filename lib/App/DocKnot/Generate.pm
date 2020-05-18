@@ -345,7 +345,7 @@ sub _wrap_paragraph {
     }
 
     # If this looks like a bunch of short lines, leave it alone.
-    if ($paragraph =~ m{ \A [^\n]{1,40} \n [^\n]{1,40} \n }xms) {
+    if ($paragraph =~ m{ \A (?: [^\n]{1,40} \n ){3,} }xms) {
         return $paragraph;
     }
 
