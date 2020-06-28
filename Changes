@@ -4,7 +4,8 @@ DocKnot 3.05 (unreleased)
 
     Change the heuristic for when to refrain from wrapping output
     paragraphs to require they start with three short lines rather than
-    two.
+    two, ignore the indentation, and increase the threshold for a short
+    line to 45 characters from 40.
 
 DocKnot 3.04 (2020-05-16)
 
