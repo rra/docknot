@@ -12,6 +12,7 @@ on 'test' => sub {
     requires 'Capture::Tiny';
     requires 'File::Copy::Recursive';
     requires 'Devel::Cover';
+    requires 'Perl::Critic::Freenode';
     requires 'Test::MinimumVersion';
     requires 'Test::Perl::Critic';
     requires 'Test::Pod';

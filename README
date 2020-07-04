@@ -90,6 +90,7 @@ TESTING
   suite if present:
 
   * Devel::Cover
+  * Perl::Critic::Freenode
   * Test::MinimumVersion
   * Test::Perl::Critic
   * Test::Pod
