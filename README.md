@@ -63,7 +63,7 @@ The following additional Perl modules are required to use it:
 * IPC::Run
 * IPC::System::Simple
 * JSON::MaybeXS
-* List::MoreUtils
+* List::SomeUtils
 * Perl6::Slurp
 * Template (part of Template Toolkit)
 

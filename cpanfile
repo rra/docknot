@@ -4,7 +4,7 @@ requires 'IO::Compress::Xz';
 requires 'IPC::Run';
 requires 'IPC::System::Simple';
 requires 'JSON::MaybeXS';
-requires 'List::MoreUtils';
+requires 'List::SomeUtils';
 requires 'Perl6::Slurp';
 requires 'Template';
 
