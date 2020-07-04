@@ -3,7 +3,7 @@ requires 'File::ShareDir';
 requires 'IO::Compress::Xz';
 requires 'IPC::Run';
 requires 'IPC::System::Simple';
-requires 'JSON';
+requires 'JSON::MaybeXS';
 requires 'List::MoreUtils';
 requires 'Perl6::Slurp';
 requires 'Template';
