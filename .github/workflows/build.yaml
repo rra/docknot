@@ -39,6 +39,7 @@ jobs:
         with:
           cpanfile: "cpanfile"
           args: "--with-suggests"
+          sudo: false
       - name: Build.PL
         run: perl Build.PL
       - name: make test
