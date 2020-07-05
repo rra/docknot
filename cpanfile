@@ -1,3 +1,5 @@
+# -*- perl -*-
+
 requires 'File::BaseDir';
 requires 'File::ShareDir';
 requires 'IO::Compress::Xz';
@@ -11,12 +13,12 @@ requires 'Template';
 on 'test' => sub {
     requires 'Capture::Tiny';
     requires 'File::Copy::Recursive';
-    requires 'Devel::Cover';
-    requires 'Perl::Critic::Freenode';
-    requires 'Test::MinimumVersion';
-    requires 'Test::Perl::Critic';
-    requires 'Test::Pod';
-    requires 'Test::Pod::Coverage';
-    requires 'Test::Strict';
-    requires 'Test::Synopsis';
+    suggests 'Devel::Cover';
+    suggests 'Perl::Critic::Freenode';
+    suggests 'Test::MinimumVersion';
+    suggests 'Test::Perl::Critic';
+    suggests 'Test::Pod';
+    suggests 'Test::Pod::Coverage';
+    suggests 'Test::Strict';
+    suggests 'Test::Synopsis';
 };

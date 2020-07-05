@@ -36,8 +36,9 @@ jobs:
       - uses: actions/checkout@v2
       - name: perl -V
         run: perl -V
-      - name: Install Dependencies
-        run: cpm install -g --show-build-log-on-failure
+      - uses: perl-actions/install-with-cpm@v1.3
+        cpanfile: "cpanfile"
+        args: "--with-suggests"
       - name: Build.PL
         run: perl Build.PL
       - name: make test
