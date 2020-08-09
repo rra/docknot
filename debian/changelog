@@ -5,6 +5,7 @@ docknot (3.05-1) UNRELEASED; urgency=medium
       paragraphs with intentionally broken lines.
     - Force the Debian version badge in README.md to use unstable.
     - Update dependenies as recommended by Perl::Critic::Freenode.
+  * Add missing dependency on libio-compress-lzma-perl.
 
  -- Russ Allbery <rra@debian.org>  Sun, 09 Aug 2020 16:11:07 -0700
 

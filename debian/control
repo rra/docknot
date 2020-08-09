@@ -36,6 +36,7 @@ Multi-Arch: foreign
 Depends:
  libfile-basedir-perl,
  libfile-sharedir-perl,
+ libio-compress-lzma-perl,
  libipc-run-perl,
  libipc-system-simple-perl,
  libjson-maybexs-perl,
