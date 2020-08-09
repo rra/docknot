@@ -1,4 +1,4 @@
-# DocKnot 3.04
+# DocKnot 3.05
 
 [![Build
 status](https://github.com/rra/docknot/workflows/build/badge.svg)](https://github.com/rra/docknot/actions)
