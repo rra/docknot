@@ -6,7 +6,7 @@ status](https://github.com/rra/pgp-sign/workflows/build/badge.svg)](https://gith
 version](https://img.shields.io/cpan/v/PGP-Sign)](https://metacpan.org/release/PGP-Sign)
 [![License](https://img.shields.io/cpan/l/PGP-Sign)](https://github.com/rra/pgp-sign/blob/master/LICENSE)
 [![Debian
-package](https://img.shields.io/debian/v/libpgp-sign-perl)](https://tracker.debian.org/pkg/libpgp-sign-perl)
+package](https://img.shields.io/debian/v/libpgp-sign-perl/unstable)](https://tracker.debian.org/pkg/libpgp-sign-perl)
 
 Copyright 1997-2000, 2002, 2004, 2018, 2020 Russ Allbery <rra@cpan.org>.
 This software is distributed under the same terms as Perl itself.  Please

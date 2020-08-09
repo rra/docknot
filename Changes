@@ -7,6 +7,9 @@ DocKnot 3.05 (unreleased)
     two, ignore the indentation, and increase the threshold for a short
     line to 45 characters from 40.
 
+    Force the badge for the Debian version in README.md to point to
+    unstable rather than stable.
+
     Depend on JSON::MaybeXS instead of JSON, and List::SomeUtils instead
     of List::MoreUtils.
 
