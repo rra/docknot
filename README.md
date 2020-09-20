@@ -13,11 +13,11 @@ distributed under a BSD-style license.  Please see the section
 ## Blurb
 
 DocKnot is a system for generating consistent human-readable software
-package documentation from metadata files and templates.  The metadata is
-primarily JSON files, but can include files of documentation snippets.
-The goal is to generate both web pages and distributed documentation files
-(such as `README`) from the same source, using templates for consistency
-across multiple packages.
+package documentation from a YAML metadata file and templates.  The goal
+is to generate both web pages and distributed documentation files (such as
+`README`) from the same source, using templates for consistency across
+multiple packages.  DocKnot also automates generating distribution
+tarballs for software packages.
 
 ## Description
 
@@ -63,9 +63,11 @@ The following additional Perl modules are required to use it:
 * IPC::Run
 * IPC::System::Simple
 * JSON::MaybeXS
+* Kwalify
 * List::SomeUtils
 * Perl6::Slurp
 * Template (part of Template Toolkit)
+* YAML::XS
 
 ## Building and Installation
 

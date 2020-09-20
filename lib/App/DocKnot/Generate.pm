@@ -19,6 +19,7 @@ use warnings;
 
 use App::DocKnot::Config;
 use Carp qw(croak);
+use Encode qw(encode);
 use Template;
 use Text::Wrap qw(wrap);
 
@@ -310,56 +311,78 @@ sub _code_for_to_thread {
 # four spaces and consistently on each line, remove the indentation and then
 # add it back in while wrapping the text.
 #
-# $self      - The App::DocKnot::Generate object
-# $paragraph - A paragraph of text to wrap
+# $self        - The App::DocKnot::Generate object
+# $para        - A paragraph of text to wrap
+# $options_ref - Options to controll the wrapping
+#   ignore_indent - Ignore indentation when choosing whether to wrap
 #
 # Returns: The wrapped paragraph
 sub _wrap_paragraph {
-    my ($self, $paragraph) = @_;
-    my ($indent) = ($paragraph =~ m{ \A ([ ]*) \S }xms);
+    my ($self, $para, $options_ref) = @_;
+    $options_ref //= {};
+    my ($indent) = ($para =~ m{ \A ([ ]*) \S }xms);
 
-    # If the indent is longer than four characters, leave it alone.
-    if (length($indent) > 4) {
-        return $paragraph;
+    # If the indent is longer than five characters and the ignore indent
+    # option is not set, leave it alone.  Allow an indent of five characters
+    # since it may be a continuation of a numbered list entry.
+    if (length($indent) > 5 && !$options_ref->{ignore_indent}) {
+        return $para;
     }
 
     # If this looks like thread commands or URLs, leave it alone.
-    if ($paragraph =~ m{ \A \s* (?: \\ | \[\d+\] ) }xms) {
-        return $paragraph;
+    if ($para =~ m{ \A \s* (?: \\ | \[\d+\] ) }xms) {
+        return $para;
     }
 
     # If this starts with a bullet, strip the bullet off, wrap the paragraph,
     # and then add it back in.
-    if ($paragraph =~ s{ \A (\s*) [*] (\s+) }{$1 $2}xms) {
+    if ($para =~ s{ \A (\s*) [*] (\s+) }{$1 $2}xms) {
         my $offset = length($1);
-        $paragraph = $self->_wrap_paragraph($paragraph);
-        substr($paragraph, $offset, 1, q{*});
-        return $paragraph;
+        $para = $self->_wrap_paragraph($para, { ignore_indent => 1 });
+        substr($para, $offset, 1, q{*});
+        return $para;
     }
 
-    # If this looks like a Markdown block quote leave it alone, but strip
-    # trailing whitespace.
-    if ($paragraph =~ m{ \A \s* > \s }xms) {
-        $paragraph =~ s{ [ ]+ \n }{\n}xmsg;
-        return $paragraph;
+    # If this starts with a number, strip the number off, wrap the paragraph,
+    # and then add it back in.
+    if ($para =~ s{\A (\s*) (\d+[.]) (\s+)}{$1 . q{ } x length($2) . $3}xmse) {
+        my $offset = length($1);
+        my $number = $2;
+        $para = $self->_wrap_paragraph($para, { ignore_indent => 1 });
+        substr($para, $offset, length($number), $number);
+        return $para;
     }
+
+    # If this looks like a Markdown block quote, strip trailing whitespace,
+    # remove the leading indentation marks, wrap the paragraph, and then put
+    # them back.
+    ## no critic (RegularExpressions::ProhibitCaptureWithoutTest)
+    if ($para =~ m{ \A (\s*) > \s }xms) {
+        $para =~ s{ [ ]+ \n }{\n}xmsg;
+        $para =~ s{ ^ (\s*) > (\s) }{$1 $2}xmsg;
+        my $offset = length($1);
+        $para = $self->_wrap_paragraph($para, { ignore_indent => 1 });
+        $para =~ s{ ^ (\s{$offset}) \s }{$1>}xmsg;
+        return $para;
+    }
+    ## use critic
 
     # If this looks like a bunch of short lines, leave it alone.
-    if ($paragraph =~ m{ \A (?: \Q$indent\E [^\n]{1,45} \n ){3,} }xms) {
-        return $paragraph;
+    if ($para =~ m{ \A (?: \Q$indent\E [^\n]{1,45} \n ){3,} }xms) {
+        return $para;
     }
 
     # If this paragraph is not consistently indented, leave it alone.
-    if ($paragraph !~ m{ \A (?: \Q$indent\E \S[^\n]+ \n )+ \z }xms) {
-        return $paragraph;
+    if ($para !~ m{ \A (?: \Q$indent\E \S[^\n]+ \n )+ \z }xms) {
+        return $para;
     }
 
     # Strip the indent from each line.
-    $paragraph =~ s{ (?: \A | (?<=\n) ) \Q$indent\E }{}xmsg;
+    $para =~ s{ (?: \A | (?<=\n) ) \Q$indent\E }{}xmsg;
 
     # Remove any existing newlines, preserving two spaces after periods.
-    $paragraph =~ s{ [.] ([)\"]?) \n (\S) }{.$1  $2}xmsg;
-    $paragraph =~ s{ \n(\S) }{ $1}xmsg;
+    $para =~ s{ [.] ([)\"]?) \n (\S) }{.$1  $2}xmsg;
+    $para =~ s{ \n(\S) }{ $1}xmsg;
 
     # Force locally correct configuration of Text::Wrap.
     local $Text::Wrap::break    = qr{\s+}xms;
@@ -368,14 +391,14 @@ sub _wrap_paragraph {
     local $Text::Wrap::unexpand = 0;
 
     # Do the wrapping.  This modifies @paragraphs in place.
-    $paragraph = wrap($indent, $indent, $paragraph);
+    $para = wrap($indent, $indent, $para);
 
     # Strip any trailing whitespace, since some gets left behind after periods
     # by Text::Wrap.
-    $paragraph =~ s{ [ ]+ \n }{\n}xmsg;
+    $para =~ s{ [ ]+ \n }{\n}xmsg;
 
     # All done.
-    return $paragraph;
+    return $para;
 }
 
 # Word-wrap a block of text.  This requires some annoying heuristics, but the
@@ -518,7 +541,7 @@ sub generate_output {
 
     # Generate the output.
     open(my $outfh, '>', $output);
-    print {$outfh} $self->generate($template)
+    print {$outfh} encode('utf-8', $self->generate($template))
       or croak("cannot write to $output: $!");
     close($outfh);
     return;

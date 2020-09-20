@@ -1,5 +1,23 @@
                        User-Visible DocKnot Changes
 
+DocKnot 4.00 (unreleased)
+
+    Change the metadata format to a single YAML file, with a slightly
+    different internal representation, whose default location is
+    docs/docknot.yaml.  The new docknot update command (or the
+    App::DocKnot::Update module) will convert from the old JSON format.
+    The new metadata format is checked against a schema when read.
+    DocKnot now depends on YAML::XS and Kwalify.
+
+    Word wrap numeric lists and, in Markdown output, quoted paragraphs.
+    Previously these preserved the original spacing from the input text
+    snippets.
+
+    Require paragraphs be indented by at least six spaces, not five, to be
+    treated as verbatim paragraphs and left unwrapped.  (Markdown
+    paragraphs can still use four spaces because they are wrapped in
+    markup lines.)
+
 DocKnot 3.05 (2020-08-09)
 
     Change the heuristic for when to refrain from wrapping output

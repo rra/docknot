@@ -157,15 +157,15 @@ articles by tokens.  This could be easily added; I just haven't needed it.
 If you're using tinyleaf, here is the setup process:
 
 1. Create a directory that tinyleaf will use to store incoming articles
-   temporarily, the archive directory, and the logs directory and
-   install the software:
+   temporarily, the archive directory, and the logs directory and install
+   the software:
 
    ```sh
        make install
    ```
 
-2. Run tinyleaf on some port, configuring it to use that directory and
-   to run process-control.  A typical tinyleaf command line would be:
+2. Run tinyleaf on some port, configuring it to use that directory and to
+   run process-control.  A typical tinyleaf command line would be:
 
    ```sh
        tinyleaf /srv/control/spool /srv/control/scripts/process-control

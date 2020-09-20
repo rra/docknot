@@ -225,7 +225,7 @@ and license:
         [% copr.holder %]
 [% END %]
 
-[% indent(to_thread(license.full), 4) %]
+[% indent(to_thread(license.text), 4) %]
 [% IF license.notices %]
 [% indent(to_thread(license.notices), 4) %]
 [% END %]

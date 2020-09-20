@@ -18,6 +18,7 @@ use warnings;
 
 use App::DocKnot::Dist;
 use App::DocKnot::Generate;
+use App::DocKnot::Update;
 use Getopt::Long;
 
 # Defines the subcommands, their options, and the module and method that
@@ -72,6 +73,12 @@ our %COMMANDS = (
         method  => 'generate_all',
         module  => 'App::DocKnot::Generate',
         options => ['metadata|m=s', 'width|w=i'],
+        maximum => 0,
+    },
+    update => {
+        method  => 'update',
+        module  => 'App::DocKnot::Update',
+        options => ['metadata|m=s', 'output|o=s'],
         maximum => 0,
     },
 );
@@ -285,7 +292,7 @@ Russ Allbery <rra@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2018-2019 Russ Allbery <rra@cpan.org>
+Copyright 2018-2020 Russ Allbery <rra@cpan.org>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
