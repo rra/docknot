@@ -48,7 +48,7 @@ my $build = Module::Build->new(
         resources   => {
             bugtracker => {
                 mailto => 'bug-App-DocKnot@rt.cpan.org',
-                web =>
+                web    =>
                   'https://rt.cpan.org/Dist/Display.html?Name=App-DocKnot',
             },
             homepage   => 'https://www.eyrie.org/~eagle/software/docknot',
