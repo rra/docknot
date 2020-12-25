@@ -20,7 +20,6 @@ build:
   gssapi: true
   install: false
   kerberos: true
-  lancaster: true
   manpages: true
   middle: |
     Pass `--enable-kafs` to configure to attempt to build kafs support,
@@ -264,6 +263,7 @@ requirements: |
   not available.
 
 test:
+  lancaster: true
   override: |
     rra-c-util comes with an extensive test suite, which you can run after
     building with:

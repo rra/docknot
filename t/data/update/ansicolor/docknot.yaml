@@ -6,7 +6,6 @@ blurb: |
   current text attributes at the end of that string.  Eight-color,
   sixteen-color, and 256-color escape sequences are all supported.
 build:
-  lancaster: true
   type: ExtUtils::MakeMaker
 copyrights:
 - holder: Russ Allbery <rra@cpan.org>
@@ -97,6 +96,8 @@ support:
   github: rra/ansicolor
   web: https://www.eyrie.org/~eagle/software/ansicolor/
 synopsis: simple ANSI text attribute control module
+test:
+  lancaster: true
 vcs:
   browse: https://git.eyrie.org/?p=perl/ansicolor.git
   github: rra/ansicolor

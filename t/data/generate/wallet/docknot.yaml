@@ -19,7 +19,6 @@ build:
   autotools: true
   install: true
   kerberos: true
-  lancaster: true
   manpages: true
   middle: |
     If you are upgrading the wallet server from an earlier installed version,
@@ -315,6 +314,7 @@ sections:
       CONFIGURATION section of the wallet client man page (`man wallet`).
 
 test:
+  lancaster: true
   prefix: |
     The wallet comes with a comprehensive test suite, but it requires some
     configuration in order to test anything other than low-level utility

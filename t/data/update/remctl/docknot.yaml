@@ -20,7 +20,6 @@ build:
   gssapi: true
   install: true
   kerberos: true
-  lancaster: true
   manpages: true
   middle: |
     Solaris users should look at `examples/remctld.xml`, an SMF manifest for
@@ -330,6 +329,7 @@ support:
   web: https://www.eyrie.org/~eagle/software/remctl/
 synopsis: remote authenticated command execution with ACLs
 test:
+  lancaster: true
   prefix: |
     remctl comes with a comprehensive test suite, but it requires some
     configuration in order to test anything other than low-level utility

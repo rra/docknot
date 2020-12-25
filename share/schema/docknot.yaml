@@ -42,8 +42,6 @@ mapping:
         type: bool
       kerberos:
         type: bool
-      lancaster:
-        type: bool
       manpages:
         type: bool
       middle:
@@ -210,6 +208,8 @@ mapping:
   test:
     type: map
     mapping:
+      lancaster:
+        type: bool
       override:
         type: text
       prefix:

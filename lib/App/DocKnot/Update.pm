@@ -212,6 +212,12 @@ sub update {
         delete $data_ref->{bootstrap};
     }
 
+    # Move build.lancaster to test.lancaster.
+    if (defined($data_ref->{build}{lancaster})) {
+        $data_ref->{test}{lancaster} = $data_ref->{build}{lancaster};
+        delete $data_ref->{build}{lancaster};
+    }
+
     # Move packaging to distribution.packaging.
     if (defined($data_ref->{packaging})) {
         $data_ref->{distribution}{packaging} = $data_ref->{packaging};

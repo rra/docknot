@@ -11,7 +11,6 @@ build:
   autoconf: '2.64'
   automake: '1.11'
   autotools: true
-  lancaster: true
   manpages: true
 copyrights:
 - holder: Russ Allbery <eagle@eyrie.org>
@@ -293,6 +292,7 @@ support:
   web: https://www.eyrie.org/~eagle/software/rra-c-util/
 synopsis: Russ Allbery's utility libraries for C
 test:
+  lancaster: true
   override: |
     rra-c-util comes with an extensive test suite, which you can run after
     building with:

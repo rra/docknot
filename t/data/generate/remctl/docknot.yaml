@@ -28,7 +28,6 @@ build:
   gssapi: true
   install: true
   kerberos: true
-  lancaster: true
   manpages: true
   middle: |
     Solaris users should look at `examples/remctld.xml`, an SMF manifest for
@@ -350,6 +349,7 @@ requirements: |
   the `java` branch in the Git repository but has not yet been merged.
 
 test:
+  lancaster: true
   prefix: |
     remctl comes with a comprehensive test suite, but it requires some
     configuration in order to test anything other than low-level utility

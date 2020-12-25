@@ -15,7 +15,6 @@ build:
   autoconf: '2.64'
   automake: '1.11'
   autotools: true
-  lancaster: true
   middle: |
     lbcd looks for `$sysconfdir/nolbcd` and returns the maximum load if that
     file is present, allowing one to effectively drop a system out of a
@@ -116,6 +115,7 @@ requirements: |
   IO::Socket::INET6 module for IPv6 support.
 
 test:
+  lancaster: true
   suffix: |
     Currently, the test suite only checks the portability and utility
     libraries, not the functionality of lbcd or lbcdclient.

@@ -25,7 +25,6 @@ copyrights:
     years: 2013-2020
 
 build:
-  lancaster: true
   type: Module::Build
 distribution:
   cpan: App-DocKnot
@@ -119,6 +118,7 @@ requirements: |
   * YAML::XS
 
 test:
+  lancaster: true
   suffix: |
     Capture::Tiny and File::Copy::Recursive are required to run the test
     suite.  The following additional Perl modules will be used by the test

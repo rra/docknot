@@ -12,7 +12,6 @@ copyrights:
     years: 1997-2000, 2002, 2004, 2018, 2020
 
 build:
-  lancaster: true
   type: Module::Build
 debian:
   summary: |
@@ -97,6 +96,7 @@ requirements: |
   matter, other non-UNIX systems).
 
 test:
+  lancaster: true
   suffix: |
     The following additional Perl modules will be used by the test suite if
     present:

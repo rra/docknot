@@ -18,7 +18,6 @@ copyrights:
     years: '2012'
 
 build:
-  lancaster: true
   type: ExtUtils::MakeMaker
 distribution:
   section: devel
@@ -28,6 +27,8 @@ support:
   email: rra@cpan.org
   github: rra/ansicolor
   web: https://www.eyrie.org/~eagle/software/ansicolor/
+test:
+  lancaster: true
 vcs:
   browse: https://git.eyrie.org/?p=perl/ansicolor.git
   github: rra/ansicolor
