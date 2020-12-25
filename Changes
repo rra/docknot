@@ -1,6 +1,6 @@
                        User-Visible DocKnot Changes
 
-DocKnot 4.00 (unreleased)
+DocKnot 4.00 (2020-12-25)
 
     Change the metadata format to a single YAML file, with a slightly
     different internal representation, whose default location is

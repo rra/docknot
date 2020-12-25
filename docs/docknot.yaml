@@ -15,7 +15,7 @@ format: v1
 
 name: DocKnot
 maintainer: Russ Allbery <rra@cpan.org>
-version: '3.05'
+version: '4.00'
 synopsis: Package documentation generator
 
 license:
