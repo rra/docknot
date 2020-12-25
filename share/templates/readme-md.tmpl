@@ -1,4 +1,4 @@
-# [% name %] [% version %]
+# [% name %]
 [% IF vcs.status || distribution.cpan || orphaned || packaging.debian %]
 [% IF orphaned %][![No maintenance intended](http://unmaintained.tech/badge.svg)](http://unmaintained.tech/) [% END -%]
 [% IF vcs.status.travis %][![Build status](https://travis-ci.org/[% vcs.status.travis %].svg?branch=master)](https://travis-ci.org/[% vcs.status.travis %]) [% END -%]

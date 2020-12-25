@@ -14,6 +14,9 @@ DocKnot 4.00 (unreleased)
     vcs.github was set and support.github was not, set support.github to
     match vcs.github during a docknot update.
 
+    Drop the current version number from the title of README.md.  This is
+    not a common practice and doesn't seem to add much value.
+
     Word wrap numeric lists and, in Markdown output, quoted paragraphs.
     Previously these preserved the original spacing from the input text
     snippets.
