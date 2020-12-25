@@ -13,6 +13,7 @@ docknot (4.00-1) UNRELEASED; urgency=medium
     - Minor output tweaks.
   * Update package synopsis from upstream blurb.
   * Change default packaging branch to debian/unstable.
+  * Remove bug address override directing bugs to my email.
 
  -- Russ Allbery <rra@debian.org>  Fri, 25 Dec 2020 12:13:01 -0800
 
