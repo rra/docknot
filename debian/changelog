@@ -1,5 +1,15 @@
-docknot (3.05-2) UNRELEASED; urgency=medium
+docknot (4.00-1) UNRELEASED; urgency=medium
 
+  * New upstream release.
+    - Change the metadata format to a single YAML file.
+    - Add schema checking.
+    - Add a docknot update command to convert from the old format.
+    - Reorganize the structure of the package metadata.
+    - Drop support.cpan since the CPAN RT instance is being retired.
+    - Drop the version number from README.md.
+    - Word-wrap numeric lists and (in Markdown) quoted paragraphs.
+    - Change the threshold for detection of verbatim paragraphs.
+    - Minor output tweaks.
   * Change default packaging branch to debian/unstable.
 
  -- Russ Allbery <rra@debian.org>  Fri, 25 Dec 2020 12:13:01 -0800
