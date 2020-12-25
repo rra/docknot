@@ -26,13 +26,17 @@ DESCRIPTION
   version of README as well, avoiding the ugly text rendering on the
   GitHub page for a package.
 
-  This package uses one metadata directory as its source information and
+  This package uses one metadata file as its source information and
   generates all the various bits of documentation for a package.  This
   allows me to make any changes in one place and then just regenerate the
   web page, included documentation, and other files to incorporate those
   changes.  It also lets me make changes to the templates to improve
   shared wording and push that out to every package I maintain during its
   next release, without having to remember which changes I wanted to make.
+
+  DocKnot is also slowly absorbing other tools that I use for software
+  distribution and web site maintenance, such as generating distribution
+  tarballs for software packages.
 
   DocKnot was designed and written for my personal needs, and I'm not sure
   it will be useful for anyone else.  At the least, the template files are
