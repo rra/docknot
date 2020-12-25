@@ -21,6 +21,8 @@ Build-Depends:
  libtest-pod-perl,
  libtest-strict-perl,
  libtest-synopsis-perl,
+ libyaml-libyaml-perl,
+ pkwalify,
 Rules-Requires-Root: no
 Testsuite: autopkgtest-pkg-perl
 Maintainer: Russ Allbery <rra@debian.org>
@@ -43,6 +45,8 @@ Depends:
  liblist-someutils-perl,
  libperl6-slurp-perl,
  libtemplate-perl,
+ libyaml-libyaml-perl,
+ pkwalify,
  ${misc:Depends},
  ${perl:Depends},
 Description: Generate package documentation from metadata
