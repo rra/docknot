@@ -208,13 +208,9 @@ sub run {
 
     # Dispatch the command and turn exceptions into error messages.
     eval {
-        if ($COMMANDS{$command}{code}) {
-            $COMMANDS{$command}{code}->($opts_ref, $args_ref->@*);
-        } else {
-            my $object = $COMMANDS{$command}{module}->new($opts_ref);
-            my $method = $COMMANDS{$command}{method};
-            $object->$method($args_ref->@*);
-        }
+        my $object = $COMMANDS{$command}{module}->new($opts_ref);
+        my $method = $COMMANDS{$command}{method};
+        $object->$method($args_ref->@*);
     };
     if ($@) {
         my $error = $@;
