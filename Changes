@@ -9,9 +9,15 @@ DocKnot 4.00 (unreleased)
     The new metadata format is checked against a schema when read.
     DocKnot now depends on YAML::XS and Kwalify.
 
-    Move bootstrap metadata to build.bootstrap and packaging to
-    distribution.packaging now that everything can be specified in a
-    single YAML file.
+    Support a test.override metadata key that overrides the Testing
+    section in README and README.md files entirely, except for the note
+    about Lancaster Consensus environment variables.
+
+    Move bootstrap metadata to build.bootstrap, packaging to
+    distribution.packaging, and readme.sections to sections to clean up
+    some old issues with the schema now that there's an upgrade process.
+    If readme.sections defined a testing section, move that to
+    test.override.
 
     Drop support for the support.cpan metadata key, since the CPAN RT
     instance is going away.  For packages with support.cpan set, if
@@ -29,6 +35,9 @@ DocKnot 4.00 (unreleased)
     treated as verbatim paragraphs and left unwrapped.  (Markdown
     paragraphs can still use four spaces because they are wrapped in
     markup lines.)
+
+    Add some additional markup to the Markdown version of building
+    instructions for packages that use Kerberos and Autoconf.
 
 DocKnot 3.05 (2020-08-09)
 

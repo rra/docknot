@@ -96,8 +96,8 @@ on using the harness below.
 
 ## Testing
 
-C TAP Harness comes with a comprehensive test suite, which you can run
-after building with:
+C TAP Harness comes with a test suite, which you can run after building
+with:
 
 ```
     make check

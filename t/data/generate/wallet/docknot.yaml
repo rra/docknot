@@ -232,29 +232,6 @@ description: |
   Kerberos keytab object for MIT Kerberos.  (Heimdal doesn't require any
   special support.)
 
-readme:
-  sections:
-    - title: Configuration
-      body: |
-        Before setting up the wallet server, review the Wallet::Config
-        documentation (with man Wallet::Config or perldoc Wallet::Config).
-        There are many customization options, some of which must be set.
-        You may also need to create a Kerberos keytab for the keytab
-        object backend and give it appropriate ACLs, and set up
-        `keytab-backend` and its `remctld` configuration on your KDC if
-        you want unchanging flag support.
-
-        For the basic setup and configuration of the wallet server, see
-        the file `docs/setup` in the source distribution.  You will need
-        to set up a database on the server (unless you're using SQLite),
-        initialize the database, install `remctld` and the wallet Perl
-        modules, and set up `remctld` to run the `wallet-backend` program.
-
-        The wallet client supports reading configuration settings from the
-        system `krb5.conf` file.  For more information, see the
-        CONFIGURATION section of the wallet client man page (`man
-        wallet`).
-
 requirements: |
   The wallet client requires the C
   [remctl](https://www.eyrie.org/~eagle/software/remctl/) client library and
@@ -315,6 +292,27 @@ requirements: |
 
   The NetDB ACL verifier (only of interest at sites using NetDB to manage
   DNS) requires the Net::Remctl Perl module.
+
+sections:
+  - title: Configuration
+    body: |
+      Before setting up the wallet server, review the Wallet::Config
+      documentation (with man Wallet::Config or perldoc Wallet::Config).
+      There are many customization options, some of which must be set.
+      You may also need to create a Kerberos keytab for the keytab object
+      backend and give it appropriate ACLs, and set up `keytab-backend`
+      and its `remctld` configuration on your KDC if you want unchanging
+      flag support.
+
+      For the basic setup and configuration of the wallet server, see the
+      file `docs/setup` in the source distribution.  You will need to set
+      up a database on the server (unless you're using SQLite), initialize
+      the database, install `remctld` and the wallet Perl modules, and set
+      up `remctld` to run the `wallet-backend` program.
+
+      The wallet client supports reading configuration settings from the
+      system `krb5.conf` file.  For more information, see the
+      CONFIGURATION section of the wallet client man page (`man wallet`).
 
 test:
   prefix: |

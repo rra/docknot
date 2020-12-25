@@ -137,8 +137,11 @@ BUILDING
   If none of the above made any sense to you, don't bother with this flag.
 [% END %][% IF build.suffix %]
 [% indent(to_text(build.suffix), 2) %]
-[% END %][% END %][% IF !readme.testing && (build.type == 'Module::Build' || build.type == 'ExtUtils::MakeMaker' || build.type == 'Autoconf') %]
+[% END %][% END %][% IF test.override || build.type == 'Module::Build' || build.type == 'ExtUtils::MakeMaker' || build.type == 'Autoconf' %]
 TESTING
+[% IF test.override %]
+[% indent(to_text(test.override), 2) %]
+[% ELSE %]
 [% IF test.prefix %]
 [% indent(to_text(test.prefix), 2) %]
 [% ELSE %]
@@ -167,7 +170,7 @@ TESTING
   ensure that necessary environment variables are set up.
 [% END %][% IF test.suffix %]
 [% indent(to_text(test.suffix), 2) %]
-[% END %][% IF build.lancaster %]
+[% END %][% END %][% IF build.lancaster %]
   To enable tests that don't detect functionality problems but are used to
   sanity-check the release, set the environment variable RELEASE_TESTING
   to a true value.  To enable tests that may be sensitive to the local
@@ -175,19 +178,11 @@ TESTING
   many problems, set the environment variable AUTHOR_TESTING to a true
   value.
 [% END %][% END %]
-[% FOREACH section IN readme.sections %][% section.title FILTER upper %]
+[% FOREACH section IN sections %][% section.title FILTER upper %]
 
 [% indent(to_text(section.body), 2) %]
 
-[% IF section.title == 'Testing' && build.lancaster %]
-  To enable tests that don't detect functionality problems but are used to
-  sanity-check the release, set the environment variable RELEASE_TESTING
-  to a true value.  To enable tests that may be sensitive to the local
-  environment or that produce a lot of false positives without uncovering
-  many problems, set the environment variable AUTHOR_TESTING to a true
-  value.
-
-[% END %][% END %]SUPPORT
+[% END %]SUPPORT
 
   The [% name %] web page at:
 

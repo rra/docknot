@@ -101,8 +101,8 @@ sub _config_from_json {
 
     # Load supplemental README sections.  readme.sections will contain a list
     # of sections to add to the README file.
-    for my $section ($data_ref->{readme}{sections}->@*) {
-        my $title = $section->{title};
+    for my $section_ref ($data_ref->{readme}{sections}->@*) {
+        my $title = $section_ref->{title};
 
         # The file containing the section data will match the title, converted
         # to lowercase and with spaces changed to dashes.
@@ -110,7 +110,7 @@ sub _config_from_json {
         $file =~ tr{ }{-};
 
         # Load the section content.
-        $section->{body} = $self->_load_metadata('sections', $file);
+        $section_ref->{body} = $self->_load_metadata('sections', $file);
     }
 
     # If there are no supplemental README sections, remove that data element.
@@ -216,6 +216,21 @@ sub update {
     if (defined($data_ref->{packaging})) {
         $data_ref->{distribution}{packaging} = $data_ref->{packaging};
         delete $data_ref->{packaging};
+    }
+
+    # Move readme.sections to sections.  If there was a testing override, move
+    # it to test.override and delete it from sections.
+    if (defined($data_ref->{readme})) {
+        $data_ref->{sections} = $data_ref->{readme}{sections};
+        delete $data_ref->{readme};
+        for my $section_ref ($data_ref->{sections}->@*) {
+            if (lc($section_ref->{title}) eq 'testing') {
+                $data_ref->{test}{override} = $section_ref->{body};
+                last;
+            }
+        }
+        $data_ref->{sections}
+          = [grep { lc($_->{title}) ne 'testing' } $data_ref->{sections}->@*];
     }
 
     # support.cpan is obsolete.  If vcs.github is set and support.github is

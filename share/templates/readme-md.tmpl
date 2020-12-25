@@ -117,11 +117,11 @@ you need to specify a different Kerberos installation root via
 
 You can also individually set the paths to the include directory and the
 library directory with `--with-krb5-include` and `--with-krb5-lib`.  You
-may need to do this if Autoconf can't figure out whether to use lib,
-lib32, or lib64 on your platform.
+may need to do this if Autoconf can't figure out whether to use `lib`,
+`lib32`, or `lib64` on your platform.
 
-To not use krb5-config and force library probing even if there is a
-krb5-config script on your path, set PATH_KRB5_CONFIG to a nonexistent
+To not use `krb5-config` and force library probing even if there is a
+`krb5-config` script on your path, set `PATH_KRB5_CONFIG` to a nonexistent
 path:
 
 ```
@@ -155,9 +155,11 @@ that make shared library migrations more difficult.  If none of the above
 made any sense to you, don't bother with this flag.
 [% END %][% IF build.suffix %]
 [% build.suffix %]
-[% END %][% END %][% IF !readme.testing && (build.type == 'Module::Build' || build.type == 'ExtUtils::MakeMaker' || build.type == 'Autoconf') %]
+[% END %][% END %][% IF test.override || build.type == 'Module::Build' || build.type == 'ExtUtils::MakeMaker' || build.type == 'Autoconf' %]
 ## Testing
-[% IF test.prefix %]
+[% IF test.override %]
+[% test.override %]
+[% ELSE %][% IF test.prefix %]
 [% test.prefix %]
 [% ELSE %]
 [% name %] comes with a test suite, which you can run after building with:
@@ -196,7 +198,7 @@ Do this instead of running the test program directly since it will ensure
 that necessary environment variables are set up.
 [% END %][% IF test.suffix %]
 [% test.suffix %]
-[% END %][% IF build.lancaster %]
+[% END %][% END %][% IF build.lancaster %]
 To enable tests that don't detect functionality problems but are used to
 sanity-check the release, set the environment variable `RELEASE_TESTING`
 to a true value.  To enable tests that may be sensitive to the local
@@ -204,19 +206,11 @@ environment or that produce a lot of false positives without uncovering
 many problems, set the environment variable `AUTHOR_TESTING` to a true
 value.
 [% END %][% END %]
-[% FOREACH section IN readme.sections %]## [% section.title %]
+[% FOREACH section IN sections %]## [% section.title %]
 
 [% section.body %]
 
-[% IF section.title == 'Testing' && build.lancaster %]
-To enable tests that don't detect functionality problems but are used to
-sanity-check the release, set the environment variable `RELEASE_TESTING`
-to a true value.  To enable tests that may be sensitive to the local
-environment or that produce a lot of false positives without uncovering
-many problems, set the environment variable `AUTHOR_TESTING` to a true
-value.
-
-[% END %][% END %]## Support
+[% END %]## Support
 
 The [[% name %] web page]([% support.web %]) will always have the current
 version of this package, the current documentation, and pointers to any

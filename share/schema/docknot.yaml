@@ -173,23 +173,20 @@ mapping:
         type: text
       work:
         type: text
-  readme:
-    type: map
-    mapping:
-      sections:
-        type: seq
-        sequence:
-          - type: map
-            mapping:
-              body:
-                type: text
-                required: true
-              title:
-                type: text
-                required: true
   requirements:
     type: text
     required: true
+  sections:
+    type: seq
+    sequence:
+      - type: map
+        mapping:
+          body:
+            type: text
+            required: true
+          title:
+            type: text
+            required: true
   support:
     type: map
     mapping:
@@ -213,6 +210,8 @@ mapping:
   test:
     type: map
     mapping:
+      override:
+        type: text
       prefix:
         type: text
       suffix:
