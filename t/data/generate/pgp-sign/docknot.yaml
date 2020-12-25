@@ -22,11 +22,11 @@ distribution:
   ignore:
     - ^t/data/gnupg1/random_seed$
     - ^t/data/gnupg./trustdb\.gpg$
+  packaging:
+    debian: libpgp-sign-perl
   section: perl
   tarname: PGP-Sign
   version: pgp-sign
-packaging:
-  debian: libpgp-sign-perl
 support:
   email: rra@cpan.org
   github: rra/pgp-sign

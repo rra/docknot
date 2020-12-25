@@ -64,6 +64,8 @@ description: |
   probing, and then I rewrote it again to update the coding style and use my
   standard portability layer.
 distribution:
+  packaging:
+    debian: lbcd
   section: system
   tarname: lbcd
   version: lbcd
@@ -83,8 +85,6 @@ orphaned: |
   load balancing and am no longer maintaining this package.  If you would
   like to pick up maintenance of it, please feel free.  Contact me if you
   would like this page to redirect to its new home.
-packaging:
-  debian: lbcd
 requirements: |
   lbcd is written in C, so you'll need a C compiler.  It also uses kernel
   calls to obtain load and uptime information, and at present has only been

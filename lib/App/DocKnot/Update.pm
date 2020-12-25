@@ -212,6 +212,12 @@ sub update {
         delete $data_ref->{bootstrap};
     }
 
+    # Move packaging to distribution.packaging.
+    if (defined($data_ref->{packaging})) {
+        $data_ref->{distribution}{packaging} = $data_ref->{packaging};
+        delete $data_ref->{packaging};
+    }
+
     # support.cpan is obsolete.  If vcs.github is set and support.github is
     # not, use it as support.github.
     if (defined($data_ref->{support}{cpan})) {

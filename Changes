@@ -9,8 +9,9 @@ DocKnot 4.00 (unreleased)
     The new metadata format is checked against a schema when read.
     DocKnot now depends on YAML::XS and Kwalify.
 
-    Move bootstrap metadata to build.bootstrap now that everything can be
-    specified in a single YAML file.
+    Move bootstrap metadata to build.bootstrap and packaging to
+    distribution.packaging now that everything can be specified in a
+    single YAML file.
 
     Drop support for the support.cpan metadata key, since the CPAN RT
     instance is going away.  For packages with support.cpan set, if

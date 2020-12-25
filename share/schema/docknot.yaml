@@ -92,6 +92,13 @@ mapping:
         type: seq
         sequence:
           - type: text
+      packaging:
+        type: map
+        mapping:
+          debian:
+            type: text
+          extra:
+            type: text
       section:
         type: text
         required: true
@@ -149,13 +156,6 @@ mapping:
     required: true
   orphaned:
     type: text
-  packaging:
-    type: map
-    mapping:
-      debian:
-        type: text
-      extra:
-        type: text
   quote:
     type: map
     mapping:

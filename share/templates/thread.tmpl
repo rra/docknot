@@ -32,8 +32,8 @@
 
     \download[[% name %]][[% distribution.version %]]
         [[% distribution.section %]/[% distribution.tarname %]-\version[[% distribution.version %]]]
-[% IF packaging.debian %]
-    \link[https://packages.debian.org/source/sid/[% packaging.debian %]]
+[% IF distribution.packaging.debian %]
+    \link[https://packages.debian.org/source/sid/[% distribution.packaging.debian %]]
          [Debian packages] \break[% END %]
     \link[https://archives.eyrie.org/software/ARCHIVE/[% distribution.tarname %]/]
          [Archive]
@@ -64,8 +64,8 @@
     \link[https://metacpan.org/release/[% distribution.cpan %]]
          [MetaCPAN][% END %][% IF vcs.openhub %] \break
     \link[[% vcs.openhub %]]
-         [Open HUB code analysis][% END %][% IF packaging.debian %] \break
-    \link[https://tracker.debian.org/pkg/[% packaging.debian %]]
+         [Open HUB code analysis][% END %][% IF distribution.packaging.debian %] \break
+    \link[https://tracker.debian.org/pkg/[% distribution.packaging.debian %]]
          [Debian package tracker][% END %]
 ]
 [% IF orphaned %]
@@ -112,7 +112,8 @@ security vulnerabilities and should not be used.][% END %]
 [% to_thread(debian.summary) | trim %][% IF debian.summary.match('\n\n') %]
 
 [% ELSE %]  [% END %]See the \link[https://tracker.debian.org/pkg/[%
-packaging.debian %]][Debian package tracker] for more information.
+distribution.packaging.debian %]][Debian package tracker] for more
+information.
 
 [% ELSIF debian.personal %]
 A Debian package is available from my \link[../debian.html][personal
@@ -122,8 +123,8 @@ repository].
 \link[https://metacpan.org/release/[% distribution.cpan %]]
 [[% distribution.cpan %] distribution].
 [% END %]
-[% IF packaging.extra %]
-[% to_thread(packaging.extra) %]
+[% IF distribution.packaging.extra %]
+[% to_thread(distribution.packaging.extra) %]
 [% END %][% name %] is maintained using the [% vcs.type %] version control
 system.  To check out the current development tree, [% IF vcs.github %]see
 \link[https://github.com/[% vcs.github %]][GitHub] or [% END %]clone:

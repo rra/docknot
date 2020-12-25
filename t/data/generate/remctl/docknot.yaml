@@ -118,17 +118,17 @@ debian:
     Debian 6.0 (squeeze) and newer.  The Ruby bindings package is named
     libremctl-ruby in Debian versions before 7.0 (wheezy).
 distribution:
+  packaging:
+    debian: remctl
+    extra: |
+      For those using Puppet, there is a [Puppet
+      module](https://forge.puppetlabs.com/ccin2p3/remctl) available for
+      installing the remctl server and managing server configurations.
+      This was written and is maintained by the IN2P3 Computing Centre;
+      see that page for more information.
   section: kerberos
   tarname: remctl
   version: remctl
-packaging:
-  debian: remctl
-  extra: |
-    For those using Puppet, there is a
-    [Puppet module](https://forge.puppetlabs.com/ccin2p3/remctl)
-    available for installing the remctl server and managing server
-    configurations.  This was written and is maintained by the IN2P3 Computing
-    Centre; see that page for more information.
 support:
   email: eagle@eyrie.org
   github: rra/remctl

@@ -69,6 +69,8 @@ description: |
   Sourceforge PAM module that you're missing in this module, please let me
   know.
 distribution:
+  packaging:
+    debian: libpam-krb5
   section: kerberos
   tarname: pam-krb5
   version: pam-krb5
@@ -81,8 +83,6 @@ license:
   name: BSD-3-clause-or-GPL-1+
 maintainer: Russ Allbery <eagle@eyrie.org>
 name: pam-krb5
-packaging:
-  debian: libpam-krb5
 quote:
   author: Joyce McGreevy
   date: 2003-11-17
