@@ -1,5 +1,6 @@
 docknot (4.00-1) UNRELEASED; urgency=medium
 
+  * First upload to Debian.  (Closes: #978083)
   * New upstream release.
     - Change the metadata format to a single YAML file.
     - Add schema checking.
