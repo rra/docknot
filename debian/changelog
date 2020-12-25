@@ -1,4 +1,4 @@
-docknot (4.00-1) UNRELEASED; urgency=medium
+docknot (4.00-1) unstable; urgency=medium
 
   * First upload to Debian.  (Closes: #978083)
   * New upstream release.
@@ -19,7 +19,7 @@ docknot (4.00-1) UNRELEASED; urgency=medium
   * Update standards version to 4.5.1 (no changes required).
   * Update debian/watch version to 4.
 
- -- Russ Allbery <rra@debian.org>  Fri, 25 Dec 2020 12:13:01 -0800
+ -- Russ Allbery <rra@debian.org>  Fri, 25 Dec 2020 13:52:05 -0800
 
 docknot (3.05-1) unstable; urgency=medium
 
