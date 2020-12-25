@@ -10,13 +10,13 @@ blurb: |
   be set separately for each command, unlike with rsh.  remctl is like a
   Kerberos-authenticated simple CGI server, or a combination of Kerberos ssh
   and sudo without most of the features and complexity of either.
-bootstrap: |
-  You will also need pkg-config installed to regenerate configure and
-  xml2rfc to build the formatted protocol documentation.
 build:
   autoconf: '2.64'
   automake: '1.11'
   autotools: true
+  bootstrap: |
+    You will also need pkg-config installed to regenerate configure and
+    xml2rfc to build the formatted protocol documentation.
   gssapi: true
   install: true
   kerberos: true

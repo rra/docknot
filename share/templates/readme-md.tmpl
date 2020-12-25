@@ -35,8 +35,8 @@ and need to regenerate Makefile.in, you will need Automake
 configure.ac or any of the m4 files it includes and need to regenerate
 configure or config.h.in, you will need Autoconf [% build.autoconf %] or
 later.[% IF build.manpages %]  Perl is also required to generate manual
-pages from a fresh Git checkout.[% END %][% IF bootstrap %]
-[% bootstrap %][% END %]
+pages from a fresh Git checkout.[% END %][% IF build.bootstrap %]
+[% build.bootstrap %][% END %]
 [% END %][% IF build.type == 'Module::Build' %]
 ## Building and Installation
 

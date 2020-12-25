@@ -22,6 +22,9 @@ build:
   autoconf: '2.64'
   automake: '1.11'
   autotools: true
+  bootstrap: |
+    You will also need pkg-config installed to regenerate configure and
+    xml2rfc to build the formatted protocol documentation.
   gssapi: true
   install: true
   kerberos: true
@@ -102,9 +105,6 @@ build:
     directories separately with `--with-gput-include` and `--with-gput-lib`.
   reduced_depends: true
   type: Autoconf
-bootstrap: |
-  You will also need pkg-config installed to regenerate configure and
-  xml2rfc to build the formatted protocol documentation.
 debian:
   summary: |
     Debian packages are available from Debian as of Debian 3.1 (sarge).  For

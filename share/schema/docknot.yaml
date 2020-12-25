@@ -23,8 +23,6 @@ mapping:
   blurb:
     type: text
     required: true
-  bootstrap:
-    type: text
   build:
     type: map
     mapping:
@@ -34,6 +32,8 @@ mapping:
         type: text
       autotools:
         type: bool
+      bootstrap:
+        type: text
       cplusplus:
         type: bool
       gssapi:

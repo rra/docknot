@@ -206,6 +206,12 @@ sub update {
     # Add the current format version.
     $data_ref->{format} = 'v1';
 
+    # Move bootstrap to build.bootstrap.
+    if (defined($data_ref->{bootstrap})) {
+        $data_ref->{build}{bootstrap} = $data_ref->{bootstrap};
+        delete $data_ref->{bootstrap};
+    }
+
     # support.cpan is obsolete.  If vcs.github is set and support.github is
     # not, use it as support.github.
     if (defined($data_ref->{support}{cpan})) {
