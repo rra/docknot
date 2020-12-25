@@ -193,8 +193,6 @@ mapping:
   support:
     type: map
     mapping:
-      cpan:
-        type: text
       email:
         type: text
         required: true

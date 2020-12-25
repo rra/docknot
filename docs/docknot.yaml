@@ -35,8 +35,8 @@ distribution:
 debian:
   personal: true
 support:
-  cpan: App-DocKnot
   email: rra@cpan.org
+  github: rra/docknot
   web: https://www.eyrie.org/~eagle/software/docknot/
 vcs:
   browse: https://git.eyrie.org/?p=devel/docknot.git

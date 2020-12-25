@@ -56,8 +56,6 @@
     \link[https://github.com/[% vcs.github %]]
          [GitHub][% END %][% IF support.github %] \break
     \link[https://github.com/[% support.github %]/issues]
-         [Bug tracker][% ELSIF support.cpan %] \break
-    \link[https://rt.cpan.org/Dist/Display.html?Name=[% support.cpan %]]
          [Bug tracker][% END %][% IF vcs.type == 'Git' %] \break
     \link[[% vcs.browse %]]
          [Git repository][% END %][% IF vcs.status.travis %] \break
@@ -157,8 +155,6 @@ also \link[[% vcs.browse %]][browse the current development source].
     \doc[https://github.com/[% vcs.github %]]
         [GitHub][% END %][% IF support.github %]
     \doc[https://github.com/[% support.github %]/issues]
-        [Bug tracker][% ELSIF support.cpan %]
-    \doc[https://rt.cpan.org/Dist/Display.html?Name=[% support.cpan %]]
         [Bug tracker][% END %][% IF vcs.status.travis %]
     \doc[https://travis-ci.org/[% vcs.status.travis %]]
         [Travis-CI][% END %][% IF vcs.openhub %]
@@ -202,8 +198,6 @@ Developer documentation:
 \doc[https://github.com/[% vcs.github %]]
     [GitHub][% END %][% IF support.github %]
 \doc[https://github.com/[% support.github %]/issues]
-    [Bug tracker][% ELSIF support.cpan %]
-\doc[https://rt.cpan.org/Dist/Display.html?Name=[% support.cpan %]]
     [Bug tracker][% END %][% IF vcs.status.travis %]
 \doc[https://travis-ci.org/[% vcs.status.travis %]]
     [Travis-CI][% END %][% IF vcs.openhub %]

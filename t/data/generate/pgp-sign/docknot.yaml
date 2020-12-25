@@ -28,8 +28,8 @@ distribution:
 packaging:
   debian: libpgp-sign-perl
 support:
-  cpan: PGP-Sign
   email: rra@cpan.org
+  github: rra/pgp-sign
   web: https://www.eyrie.org/~eagle/software/pgp-sign/
 vcs:
   browse: https://git.eyrie.org/?p=perl/pgp-sign.git

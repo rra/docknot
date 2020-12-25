@@ -47,9 +47,7 @@ my $build = Module::Build->new(
         'meta-spec' => { version => '2' },
         resources   => {
             bugtracker => {
-                mailto => 'bug-App-DocKnot@rt.cpan.org',
-                web    =>
-                  'https://rt.cpan.org/Dist/Display.html?Name=App-DocKnot',
+                web => 'https://github.com/rra/docknot/issues',
             },
             homepage   => 'https://www.eyrie.org/~eagle/software/docknot',
             repository => {

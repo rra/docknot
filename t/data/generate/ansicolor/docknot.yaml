@@ -25,8 +25,8 @@ distribution:
   tarname: Term-ANSIColor
   version: term-ansicolor
 support:
-  cpan: Term-ANSIColor
   email: rra@cpan.org
+  github: rra/ansicolor
   web: https://www.eyrie.org/~eagle/software/ansicolor/
 vcs:
   browse: https://git.eyrie.org/?p=perl/ansicolor.git

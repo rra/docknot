@@ -127,11 +127,11 @@ The [DocKnot web page](https://www.eyrie.org/~eagle/software/docknot/)
 will always have the current version of this package, the current
 documentation, and pointers to any additional resources.
 
-For bug tracking, use the [CPAN bug
-tracker](https://rt.cpan.org/Dist/Display.html?Name=App-DocKnot).
-However, please be aware that I tend to be extremely busy and work
-projects often take priority.  I'll save your report and get to it as soon
-as I can, but it may take me a couple of months.
+For bug tracking, use the [issue tracker on
+GitHub](https://github.com/rra/docknot/issues).  However, please be aware
+that I tend to be extremely busy and work projects often take priority.
+I'll save your report and get to it as soon as I can, but it may take me a
+couple of months.
 
 ## Source Repository
 
@@ -145,9 +145,7 @@ web](https://git.eyrie.org/?p=devel/docknot.git).
 
 The eyrie.org repository is the canonical one, maintained by the author,
 but using GitHub is probably more convenient for most purposes.  Pull
-requests are gratefully reviewed and normally accepted.  It's probably
-better to use the CPAN bug tracker than GitHub issues, though, to keep all
-Perl module issues in the same place.
+requests are gratefully reviewed and normally accepted.
 
 ## License
 

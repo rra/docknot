@@ -214,6 +214,17 @@ sub update {
     # Add the current format version.
     $data_ref->{format} = 'v1';
 
+    # support.cpan is obsolete.  If vcs.github is set and support.github is
+    # not, use it as support.github.
+    if (defined($data_ref->{support}{cpan})) {
+        if (!defined($data_ref->{support}{github})) {
+            if (defined($data_ref->{vcs}{github})) {
+                $data_ref->{support}{github} = $data_ref->{vcs}{github};
+            }
+        }
+        delete $data_ref->{support}{cpan};
+    }
+
     # Check the schema of the resulting file.
     my $schema_path = $self->appdata_path('schema/docknot.yaml');
     my $schema_ref  = YAML::XS::LoadFile($schema_path);

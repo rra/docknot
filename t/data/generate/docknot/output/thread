@@ -41,7 +41,7 @@
     \link[todo.html][To-do list] \break
     \link[https://github.com/rra/docknot]
          [GitHub] \break
-    \link[https://rt.cpan.org/Dist/Display.html?Name=App-DocKnot]
+    \link[https://github.com/rra/docknot/issues]
          [Bug tracker] \break
     \link[https://git.eyrie.org/?p=devel/docknot.git]
          [Git repository] \break
@@ -152,7 +152,7 @@ development source].
     \doc[todo.html][To-do list]
     \doc[https://github.com/rra/docknot]
         [GitHub]
-    \doc[https://rt.cpan.org/Dist/Display.html?Name=App-DocKnot]
+    \doc[https://github.com/rra/docknot/issues]
         [Bug tracker]
 
 ]

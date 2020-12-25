@@ -93,8 +93,8 @@ requirements: |
   All are available on CPAN.  Those tests will be skipped if the modules are
   not available.
 support:
-  cpan: Term-ANSIColor
   email: rra@cpan.org
+  github: rra/ansicolor
   web: https://www.eyrie.org/~eagle/software/ansicolor/
 synopsis: simple ANSI text attribute control module
 vcs:
