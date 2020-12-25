@@ -42,8 +42,6 @@ my %DEFAULT_OUTPUT = (
 # the line.  The returned code will take a line of text and return that line
 # with leading whitespace added as required.
 #
-# $self - The App::DocKnot::Generate object
-#
 # Returns: Code reference to a closure that uses $self->{width} for width
 sub _code_for_center {
     my ($self) = @_;
@@ -65,7 +63,6 @@ sub _code_for_center {
 # They will be wrapped with a four-space outdent and kept within
 # $self->{width} columns.
 #
-# $self           - The App::DocKnot::Generate object
 # $copyrights_ref - A reference to a list of anonymous hashes, each with keys:
 #   holder - The copyright holder for that copyright
 #   years  - The years of that copyright
@@ -115,8 +112,6 @@ sub _code_for_copyright {
 # doesn't use any configuration.  It takes the indentation and an optional
 # prefix to put at the start of each line.
 #
-# $self - The App::DocKnot::Generate object
-#
 # Returns: Code reference to a closure
 sub _code_for_indent {
     my ($self) = @_;
@@ -136,8 +131,6 @@ sub _code_for_indent {
 # This is constructed as a method returning a closure so that its behavior can
 # be influenced by App::DocKnot configuration in the future, but it currently
 # doesn't use any configuration.
-#
-# $self - The App::DocKnot::Generate object
 #
 # Returns: Code reference to a closure that takes a block of text and returns
 #          the converted text
@@ -209,8 +202,6 @@ sub _code_for_to_text {
 # This is constructed as a method returning a closure so that its behavior can
 # be influenced by App::DocKnot configuration in the future, but it currently
 # doesn't use any configuration.
-#
-# $self - The App::DocKnot::Generate object
 #
 # Returns: Code reference to a closure that takes a block of text and returns
 #          the converted thread
@@ -311,7 +302,6 @@ sub _code_for_to_thread {
 # four spaces and consistently on each line, remove the indentation and then
 # add it back in while wrapping the text.
 #
-# $self        - The App::DocKnot::Generate object
 # $para        - A paragraph of text to wrap
 # $options_ref - Options to controll the wrapping
 #   ignore_indent - Ignore indentation when choosing whether to wrap
@@ -405,7 +395,6 @@ sub _wrap_paragraph {
 # alternative is to try to get the template to always produce correctly
 # wrapped results, which is far harder.
 #
-# $self - The App::DocKnot::Generate object
 # $text - The text to wrap
 #
 # Returns: The wrapped text
@@ -439,7 +428,6 @@ sub _wrap {
 # Create a new App::DocKnot::Generate object, which will be used for
 # subsequent calls.
 #
-# $class - Class of object to create
 # $args  - Anonymous hash of arguments with the following keys:
 #   metadata - Path to the directory containing package metadata
 #   width    - Line length at which to wrap output files
@@ -467,7 +455,6 @@ sub new {
 
 # Generate a documentation file from the package metadata.
 #
-# $self     - The App::DocKnot::Generate object
 # $template - Name of the documentation template (using Template Toolkit)
 #
 # Returns: The generated documentation as a string
@@ -506,8 +493,6 @@ sub generate {
 # Generate all package documentation from the package metadata.  Only
 # generates the output for templates with a default output file.
 #
-# $self - The App::DocKnot::Generate object
-#
 # Returns: undef
 #  Throws: autodie exception on failure to read metadata or write the output
 #          Text exception on Template Toolkit failures
@@ -522,7 +507,6 @@ sub generate_all {
 
 # Generate a documentation file from the package metadata.
 #
-# $self     - The App::DocKnot::Generate object
 # $template - Name of the documentation template
 # $output   - Output file name (undef to use the default)
 #

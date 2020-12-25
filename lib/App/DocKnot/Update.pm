@@ -47,7 +47,6 @@ our @JSON_METADATA_FILES = qw(
 # package metadata directory.  The resulting file or directory path is not
 # checked for existence.
 #
-# $self - The App::DocKnot::Generate object
 # @path - The relative path of the file as a list of components
 #
 # Returns: The absolute path in the metadata directory
@@ -60,7 +59,6 @@ sub _metadata_path {
 # and return the contents.  The file is specified as a list of path
 # components.
 #
-# $self - The App::DocKnot::Generate object
 # @path - The path of the file to load, as a list of components
 #
 # Returns: The contents of the file as a string
@@ -74,7 +72,6 @@ sub _load_metadata {
 # JSON and decodes it, returning the resulting object.  This uses the relaxed
 # parsing mode, so comments and commas after data elements are supported.
 #
-# $self - The App::DocKnot::Generate object
 # @path - The path of the file to load, as a list of components
 #
 # Returns: Anonymous hash or array resulting from decoding the JSON object
@@ -88,8 +85,6 @@ sub _load_metadata_json {
 }
 
 # Load the legacy JSON DocKnot package configuration.
-#
-# $self - The App::DocKnot::Config object
 #
 # Returns: The package configuration as a dict
 #  Throws: autodie exception on failure to read metadata
@@ -169,7 +164,6 @@ sub _config_from_json {
 # Create a new App::DocKnot::Update object, which will be used for subsequent
 # calls.
 #
-# $class - Class of object to create
 # $args  - Anonymous hash of arguments with the following keys:
 #   metadata - Path to the directory containing package metadata
 #   output   - Path to the output file with the converted metadata
@@ -196,8 +190,6 @@ sub new {
 
 # Update an older version of DocKnot configuration.  Currently, this only
 # handles the old JSON format.
-#
-# $self - The App::DocKnot::Update object
 #
 # Raises: autodie exception on failure to read metadata
 #         Text exception on inconsistencies in the package data

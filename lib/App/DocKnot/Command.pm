@@ -89,7 +89,6 @@ our %COMMANDS = (
 
 # Parse command-line options and do any required error handling.
 #
-# $self        - The App::DocKnot::Command object
 # $command     - The command being run or undef for top-level options
 # $options_ref - A reference to the options specification
 # @args        - The arguments to the command
@@ -130,7 +129,6 @@ sub _parse_options {
 
 # Parse command-line options for a given command.
 #
-# $self    - The App::DocKnot::Command object
 # $command - The command being run
 # @args    - The arguments to the command
 #
@@ -150,8 +148,6 @@ sub _parse_command {
 
 # Create a new App::DocKnot::Command object.
 #
-# $class - Class of object to create
-#
 # Returns: Newly created object
 sub new {
     my ($class) = @_;
@@ -163,7 +159,6 @@ sub new {
 # Parse command-line options to determine which command to run, and then
 # dispatch that command.
 #
-# $self - The App::DocKnot::Command object
 # @args - Command-line arguments (optional, default: @ARGV)
 #
 # Returns: undef

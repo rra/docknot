@@ -28,7 +28,6 @@ use YAML::XS ();
 # Create a new App::DocKnot::Config object, which will be used for subsequent
 # calls.
 #
-# $class - Class of object to create
 # $args  - Anonymous hash of arguments with the following keys:
 #   metadata - Path to the docknot.yaml file
 #
@@ -50,8 +49,6 @@ sub new {
 }
 
 # Load the DocKnot package configuration.
-#
-# $self - The App::DocKnot::Config object
 #
 # Returns: The package configuration as a dict
 #  Throws: YAML::XS exception on invalid package metadata
