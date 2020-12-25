@@ -11,6 +11,7 @@ docknot (4.00-1) UNRELEASED; urgency=medium
     - Word-wrap numeric lists and (in Markdown) quoted paragraphs.
     - Change the threshold for detection of verbatim paragraphs.
     - Minor output tweaks.
+  * Update package synopsis from upstream blurb.
   * Change default packaging branch to debian/unstable.
 
  -- Russ Allbery <rra@debian.org>  Fri, 25 Dec 2020 12:13:01 -0800
