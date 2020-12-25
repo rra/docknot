@@ -218,8 +218,21 @@ sub update {
         delete $data_ref->{build}{lancaster};
     }
 
-    # Move packaging to distribution.packaging.
+    # Move packaging.debian to packaging.debian.package, move debian to
+    # packaging.debian, and move packaging to distribution.packaging.
     if (defined($data_ref->{packaging})) {
+        if (defined($data_ref->{packaging}{debian})) {
+            my $package = $data_ref->{packaging}{debian};
+            $data_ref->{packaging}{debian} = { package => $package };
+        }
+    }
+    if (defined($data_ref->{debian})) {
+        $data_ref->{packaging}{debian} //= {};
+        $data_ref->{packaging}{debian}
+          = { $data_ref->{debian}->%*, $data_ref->{packaging}{debian}->%* };
+        delete $data_ref->{debian};
+    }
+    if ($data_ref->{packaging}) {
         $data_ref->{distribution}{packaging} = $data_ref->{packaging};
         delete $data_ref->{packaging};
     }

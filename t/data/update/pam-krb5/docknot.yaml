@@ -39,12 +39,6 @@ copyrights:
   years: '2005'
 - holder: Frank Cusack <fcusack@fcusack.com>
   years: 1999-2000
-debian:
-  summary: |
-    Debian packages are available from Debian in Debian 4.0 (etch) and later
-    releases as libpam-krb5 and libpam-heimdal.  The former packages are built
-    against the MIT Kerberos libraries and the latter against the Heimdal
-    libraries.
 description: |
   pam-krb5 provides a Kerberos PAM module that supports authentication, user
   ticket cache handling, simple authorization (via .k5login or checking
@@ -70,7 +64,13 @@ description: |
   know.
 distribution:
   packaging:
-    debian: libpam-krb5
+    debian:
+      package: libpam-krb5
+      summary: |
+        Debian packages are available from Debian in Debian 4.0 (etch) and later
+        releases as libpam-krb5 and libpam-heimdal.  The former packages are built
+        against the MIT Kerberos libraries and the latter against the Heimdal
+        libraries.
   section: kerberos
   tarname: pam-krb5
   version: pam-krb5

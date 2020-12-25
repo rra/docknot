@@ -32,8 +32,8 @@
 
     \download[[% name %]][[% distribution.version %]]
         [[% distribution.section %]/[% distribution.tarname %]-\version[[% distribution.version %]]]
-[% IF distribution.packaging.debian %]
-    \link[https://packages.debian.org/source/sid/[% distribution.packaging.debian %]]
+[% IF distribution.packaging.debian.package %]
+    \link[https://packages.debian.org/source/sid/[% distribution.packaging.debian.package %]]
          [Debian packages] \break[% END %]
     \link[https://archives.eyrie.org/software/ARCHIVE/[% distribution.tarname %]/]
          [Archive]
@@ -64,8 +64,8 @@
     \link[https://metacpan.org/release/[% distribution.cpan %]]
          [MetaCPAN][% END %][% IF vcs.openhub %] \break
     \link[[% vcs.openhub %]]
-         [Open HUB code analysis][% END %][% IF distribution.packaging.debian %] \break
-    \link[https://tracker.debian.org/pkg/[% distribution.packaging.debian %]]
+         [Open HUB code analysis][% END %][% IF distribution.packaging.debian.package %] \break
+    \link[https://tracker.debian.org/pkg/[% distribution.packaging.debian.package %]]
          [Debian package tracker][% END %]
 ]
 [% IF orphaned %]
@@ -108,14 +108,14 @@ An \link[https://archives.eyrie.org/software/ARCHIVE/[% distribution.tarname %]/
 [archive of older releases] is also available.[% IF advisories %]
 \class(alert)[Versions older than [% advisories.0.threshold %] have known
 security vulnerabilities and should not be used.][% END %]
-[% IF debian.summary %]
-[% to_thread(debian.summary) | trim %][% IF debian.summary.match('\n\n') %]
+[% IF distribution.packaging.debian.summary %]
+[% to_thread(distribution.packaging.debian.summary) | trim %][% IF distribution.packaging.debian.summary.match('\n\n') %]
 
 [% ELSE %]  [% END %]See the \link[https://tracker.debian.org/pkg/[%
-distribution.packaging.debian %]][Debian package tracker] for more
+distribution.packaging.debian.package %]][Debian package tracker] for more
 information.
 
-[% ELSIF debian.personal %]
+[% ELSIF distribution.packaging.debian.personal %]
 A Debian package is available from my \link[../debian.html][personal
 repository].
 [% END %][% IF distribution.cpan %]

@@ -28,11 +28,12 @@ build:
   type: Module::Build
 distribution:
   cpan: App-DocKnot
+  packaging:
+    debian:
+      personal: true
   section: devel
   tarname: App-DocKnot
   version: docknot
-debian:
-  personal: true
 support:
   email: rra@cpan.org
   github: rra/docknot

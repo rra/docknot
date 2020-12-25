@@ -71,13 +71,6 @@ mapping:
           years:
             type: text
             required: true
-  debian:
-    type: map
-    mapping:
-      personal:
-        type: bool
-      summary:
-        type: text
   description:
     type: text
     required: true
@@ -94,7 +87,14 @@ mapping:
         type: map
         mapping:
           debian:
-            type: text
+            type: map
+            mapping:
+              package:
+                type: text
+              personal:
+                type: bool
+              summary:
+                type: text
           extra:
             type: text
       section:

@@ -13,16 +13,16 @@ copyrights:
 
 build:
   type: Module::Build
-debian:
-  summary: |
-    PGP::Sign is packaged for Debian as libpgp-sign-perl.
 distribution:
   cpan: PGP-Sign
   ignore:
     - ^t/data/gnupg1/random_seed$
     - ^t/data/gnupg./trustdb\.gpg$
   packaging:
-    debian: libpgp-sign-perl
+    debian:
+      package: libpgp-sign-perl
+      summary: |
+        PGP::Sign is packaged for Debian as libpgp-sign-perl.
   section: perl
   tarname: PGP-Sign
   version: pgp-sign

@@ -56,9 +56,10 @@ build:
     `--with-remctl-lib=DIR`.
   reduced_depends: true
   type: Autoconf
-debian:
-  personal: true
 distribution:
+  packaging:
+    debian:
+      personal: true
   section: kerberos
   tarname: wallet
   version: wallet

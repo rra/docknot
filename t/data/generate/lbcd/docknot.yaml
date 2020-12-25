@@ -35,14 +35,15 @@ build:
   type: Autoconf
 distribution:
   packaging:
-    debian: lbcd
+    debian:
+      package: lbcd
+      summary: |
+        A Debian package is included in Debian 5.0 (lenny) and later
+        releases.  Thanks to Guido Guenther for doing the initial upload
+        to Debian.
   section: system
   tarname: lbcd
   version: lbcd
-debian:
-  summary: |
-    A Debian package is included in Debian 5.0 (lenny) and later releases.
-    Thanks to Guido Guenther for doing the initial upload to Debian.
 support:
   email: eagle@eyrie.org
   listname: lbnamed-users

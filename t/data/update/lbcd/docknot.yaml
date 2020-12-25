@@ -31,10 +31,6 @@ build:
 copyrights:
 - holder: The Board of Trustees of the Leland Stanford Junior University
   years: 1993-1994, 1996-1998, 2000, 2003-2009, 2012-2013
-debian:
-  summary: |
-    A Debian package is included in Debian 5.0 (lenny) and later releases.
-    Thanks to Guido Guenther for doing the initial upload to Debian.
 description: |
   lbcd provides a lightweight way to query a system via unauthenticated UDP
   for system load information plus some related information that may be
@@ -64,7 +60,11 @@ description: |
   standard portability layer.
 distribution:
   packaging:
-    debian: lbcd
+    debian:
+      package: lbcd
+      summary: |
+        A Debian package is included in Debian 5.0 (lenny) and later releases.
+        Thanks to Guido Guenther for doing the initial upload to Debian.
   section: system
   tarname: lbcd
   version: lbcd

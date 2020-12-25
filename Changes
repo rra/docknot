@@ -14,10 +14,12 @@ DocKnot 4.00 (unreleased)
     about Lancaster Consensus environment variables.
 
     Move bootstrap metadata to build.bootstrap, build.lancaster to
-    test.lancaster, packaging to distribution.packaging, and
-    readme.sections to sections to clean up some old issues with the
-    schema now that there's an upgrade process.  If readme.sections
-    defined a testing section, move that to test.override.
+    test.lancaster, packaging to distribution.packaging, packaging.debian
+    to distribution.packaging.debian.package, debian to
+    distribution.packaging.debian, and readme.sections to sections to
+    clean up some old issues with the schema now that there's an upgrade
+    process.  If readme.sections defined a testing section, move that to
+    test.override.
 
     Drop support for the support.cpan metadata key, since the CPAN RT
     instance is going away.  For packages with support.cpan set, if
