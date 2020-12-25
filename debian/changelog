@@ -16,6 +16,7 @@ docknot (4.00-1) UNRELEASED; urgency=medium
   * Update Vcs-Git and Vcs-Browser to point to Salsa.
   * Remove bug address override directing bugs to my email.
   * Update standards version to 4.5.1 (no changes required).
+  * Update debian/watch version to 4.
 
  -- Russ Allbery <rra@debian.org>  Fri, 25 Dec 2020 12:13:01 -0800
 
