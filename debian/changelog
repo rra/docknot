@@ -14,6 +14,7 @@ docknot (4.00-1) UNRELEASED; urgency=medium
   * Update package synopsis from upstream blurb.
   * Change default packaging branch to debian/unstable.
   * Update Vcs-Git and Vcs-Browser to point to Salsa.
+  * Add Lintian override for repeated-path-segment (see #968156).
   * Remove bug address override directing bugs to my email.
   * Update standards version to 4.5.1 (no changes required).
   * Update debian/watch version to 4.

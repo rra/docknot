@@ -1,0 +1,5 @@
+# This Lintian check as implemented (as opposed to a check for adjacent
+# matching segments that may catch a misuse of dh_install) is not helpful.
+# See #968156 for the Lintian bug report and the discussion in #950052 for
+# some more details.
+docknot: repeated-path-segment share usr/share/perl5/auto/share/
