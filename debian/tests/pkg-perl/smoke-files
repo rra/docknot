@@ -1,0 +1,7 @@
+# Some of the tests use the metadata and generated files for the DocKnot
+# package itself.
+
+README
+README.md
+docs/docknot.yaml
+t
