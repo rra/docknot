@@ -5,6 +5,8 @@ status](https://github.com/rra/docknot/workflows/build/badge.svg)](https://githu
 [![CPAN
 version](https://img.shields.io/cpan/v/App-DocKnot)](https://metacpan.org/release/App-DocKnot)
 [![License](https://img.shields.io/cpan/l/App-DocKnot)](https://github.com/rra/docknot/blob/master/LICENSE)
+[![Debian
+package](https://img.shields.io/debian/v/docknot/unstable)](https://tracker.debian.org/pkg/docknot)
 
 Copyright 2013-2021 Russ Allbery <rra@cpan.org>.  This software is
 distributed under a BSD-style license.  Please see the section

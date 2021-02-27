@@ -27,6 +27,8 @@
     \download[DocKnot][docknot]
         [devel/App-DocKnot-\version[docknot]]
 
+    \link[https://packages.debian.org/source/sid/docknot]
+         [Debian packages] \break
     \link[https://archives.eyrie.org/software/ARCHIVE/App-DocKnot/]
          [Archive]
 
@@ -46,7 +48,9 @@
     \link[https://git.eyrie.org/?p=devel/docknot.git]
          [Git repository] \break
     \link[https://metacpan.org/release/App-DocKnot]
-         [MetaCPAN]
+         [MetaCPAN] \break
+    \link[https://tracker.debian.org/pkg/docknot]
+         [Debian package tracker]
 ]
 
 \h2[Blurb]
@@ -125,8 +129,9 @@ The distribution:
 An \link[https://archives.eyrie.org/software/ARCHIVE/App-DocKnot/]
 [archive of older releases] is also available.
 
-A Debian package is available from my \link[../debian.html][personal
-repository].
+DocKnot is packaged for Debian as docknot.  See the
+\link[https://tracker.debian.org/pkg/docknot][Debian package tracker] for
+more information.
 
 DocKnot is available from CPAN as the
 \link[https://metacpan.org/release/App-DocKnot] [App-DocKnot

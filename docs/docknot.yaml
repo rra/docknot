@@ -30,7 +30,8 @@ distribution:
   cpan: App-DocKnot
   packaging:
     debian:
-      personal: true
+      package: docknot
+      summary: DocKnot is packaged for Debian as docknot.
   section: devel
   tarname: App-DocKnot
   version: docknot
