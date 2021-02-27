@@ -233,6 +233,24 @@ sub _replace_perl_path {
     return [@command];
 }
 
+# Given a directory and a prefix for tarballs in that directory, sign the
+# tarballs in that directory.
+#
+# $path   - The directory path
+# $prefix - The tarball file prefix
+#
+# Throws: Text exception on failure to sign the file
+sub _sign_tarballs {
+    my ($self, $path, $prefix) = @_;
+    my @files = $self->_find_matching_tarballs($path, $prefix);
+    for my $file (@files) {
+        my $tarball_path = File::Spec->catdir($path, $file);
+        systemx($self->{gpg}, '--detach-sign', '--armor', '-u',
+            $self->{pgp_key}, $tarball_path);
+    }
+    return;
+}
+
 ##############################################################################
 # Public interface
 ##############################################################################
@@ -256,10 +274,14 @@ sub new {
     if ($args_ref->{metadata}) {
         $config_args{metadata} = $args_ref->{metadata};
     }
-    my $config = App::DocKnot::Config->new(\%config_args);
+    my $config_reader = App::DocKnot::Config->new(\%config_args);
 
-    # Ensure we were given a valid distdir argument.
-    my $distdir = $args_ref->{distdir};
+    # Load the global configuration.
+    my $global_config_ref = $config_reader->global_config();
+
+    # Ensure we were given a valid distdir argument if it was not set in the
+    # global configuration.
+    my $distdir = $args_ref->{distdir} // $global_config_ref->{distdir};
     if (!defined($distdir)) {
         croak('distdir path not given');
     } elsif (!-d $distdir) {
@@ -268,9 +290,11 @@ sub new {
 
     # Create and return the object.
     my $self = {
-        config  => $config->config(),
+        config  => $config_reader->config(),
         distdir => $distdir,
+        gpg     => $args_ref->{gpg} // 'gpg',
         perl    => $args_ref->{perl},
+        pgp_key => $args_ref->{pgp_key} // $global_config_ref->{pgp_key},
     };
     bless($self, $class);
     return $self;
@@ -398,6 +422,12 @@ sub make_distribution {
         my $files = ($count == 1) ? '1 file' : "$count files";
         die "$files missing from distribution\n";
     }
+
+    # Sign the tarballs if configured to do so.
+    if (defined($self->{pgp_key})) {
+        $self->_sign_tarballs($self->{distdir}, $prefix);
+    }
+
     return;
 }
 
@@ -410,7 +440,7 @@ __END__
 
 =for stopwords
 Allbery DocKnot MERCHANTABILITY NONINFRINGEMENT sublicense JSON CPAN ARGS
-distdir Automake xz
+distdir Automake xz gpg
 
 =head1 NAME
 
@@ -458,6 +488,12 @@ The path to the directory into which to put the distribution tarball.  This
 should point to a trusted directory, not one where an attacker could have
 written files (see make_distribution() below).  Required.
 
+=item gpg
+
+The path to the B<gpg> binary, used to sign generated tarballs if C<pgp_key>
+is present in the global configuration or provided as a constructor argument.
+Default: The binary named C<gpg> on the user's PATH.
+
 =item metadata
 
 The path to the directory containing metadata for a package.  Default:
@@ -468,6 +504,13 @@ F<docs/metadata> relative to the current directory.
 The path to the Perl executable to use for build steps that require it.  Used
 primarily in the test suite.  Default: The binary named C<perl> on the user's
 PATH.
+
+=item pgp_key
+
+Sign generated tarballs with the provided PGP key.  The key can be named in
+any way that the B<-u> option of GnuPG understands.  The generated signature
+will be armored and stored in a file named by appending C<.asc> to the name
+of the tarball.
 
 =back
 
@@ -523,7 +566,7 @@ Russ Allbery <rra@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2019-2020 Russ Allbery <rra@cpan.org>
+Copyright 2019-2021 Russ Allbery <rra@cpan.org>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

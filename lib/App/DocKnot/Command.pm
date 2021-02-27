@@ -58,7 +58,7 @@ our %COMMANDS = (
     dist => {
         method   => 'make_distribution',
         module   => 'App::DocKnot::Dist',
-        options  => ['distdir|d=s', 'metadata|m=s'],
+        options  => ['distdir|d=s', 'metadata|m=s', 'pgp-key|p=s'],
         maximum  => 0,
         required => ['distdir'],
     },
@@ -283,7 +283,7 @@ Russ Allbery <rra@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2018-2020 Russ Allbery <rra@cpan.org>
+Copyright 2018-2021 Russ Allbery <rra@cpan.org>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

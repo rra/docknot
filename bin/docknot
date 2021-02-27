@@ -22,7 +22,7 @@ __END__
 
 =for stopwords
 Allbery DocKnot docknot MERCHANTABILITY NONINFRINGEMENT sublicense subcommand
-subcommands distdir
+subcommands distdir pgp-key
 
 =head1 NAME
 
@@ -32,7 +32,7 @@ docknot - Generate human-readable documentation from package metadata
 
 B<docknot> B<-h>
 
-B<docknot> dist [B<-m> I<metadata>] B<-d> I<distdir>
+B<docknot> dist [B<-d> I<distdir>] [B<-m> I<metadata>] [B<-p> I<pgp-key>]
 
 B<docknot> generate [B<-m> I<metadata>] [B<-w> I<width>] I<template> [I<output>]
 
@@ -99,7 +99,9 @@ The directory into which to put the generated distribution tarball.  This is
 also used as a working directory for a temporary copy of the package source.
 This should point to a trusted directory, not one where an attacker could have
 written files; see L<App::DocKnot::Dist/make_distribution()> for more
-information.  Required.
+information.  Default: The C<destdir> option in the global DocKnot
+configuration file.  This option is required if there is no configuration file
+or if this option is not set.
 
 =item B<-m> I<metadata>, B<--metadata>=I<metadata>
 
@@ -108,6 +110,13 @@ being generated.  This should be a directory containing all the package
 metadata files required by App::DocKnot.  Default: F<docs/metadata> relative
 to the current directory (which is the recommended metadata path for a
 project).
+
+=item B<-p> I<pgp-key>, B<--pgp-key>=I<pgp-key>
+
+The name of the PGP key to use to sign the generated distribution tarballs.
+The key can be named in any way that the B<-u> option of GnuPG understands.
+The generated signature will be armored and stored in a file named by
+appending C<.asc> to the name of the tarball.
 
 =back
 
@@ -213,7 +222,7 @@ Russ Allbery <rra@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2016, 2018-2020 Russ Allbery <rra@cpan.org>
+Copyright 2016, 2018-2021 Russ Allbery <rra@cpan.org>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
