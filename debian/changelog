@@ -1,3 +1,15 @@
+docknot (4.01-1) experimental; urgency=medium
+
+  * New upstream release.
+    - Read ~/.config/docknot/config.yaml to set global user preferences,
+      including distdir and pgp_key for docknot dist.
+    - docknot dist now supports signing the generated tarballs.
+    - Remove load_appdata_json helper function from App::DocKnot.
+    - Fix docknot --help.
+    - Documentation cleanups.
+
+ -- Russ Allbery <rra@debian.org>  Sat, 27 Feb 2021 11:54:27 -0800
+
 docknot (4.00-2) unstable; urgency=medium
 
   * Configure the autopkgtest-pkg-perl tests.  (Closes: #981765)
