@@ -2,7 +2,7 @@
 #
 # Tests for the App::DocKnot command dispatch error handling.
 #
-# Copyright 2018-2020 Russ Allbery <rra@cpan.org>
+# Copyright 2018-2021 Russ Allbery <rra@cpan.org>
 #
 # SPDX-License-Identifier: MIT
 
@@ -61,4 +61,4 @@ is_error($@, 'generate: metadata path /nonexistent does not exist');
 
 # Check for a missing required argument.
 eval { $docknot->run('dist') };
-is_error($@, 'dist: missing required option --distdir');
+is_error($@, 'dist: distdir path not given');

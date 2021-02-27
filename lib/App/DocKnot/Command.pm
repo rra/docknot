@@ -57,11 +57,10 @@ use Pod::Usage qw(pod2usage);
 #     are not set, an error will be thrown.
 our %COMMANDS = (
     dist => {
-        method   => 'make_distribution',
-        module   => 'App::DocKnot::Dist',
-        options  => ['distdir|d=s', 'metadata|m=s', 'pgp-key|p=s'],
-        maximum  => 0,
-        required => ['distdir'],
+        method  => 'make_distribution',
+        module  => 'App::DocKnot::Dist',
+        options => ['distdir|d=s', 'metadata|m=s', 'pgp-key|p=s'],
+        maximum => 0,
     },
     generate => {
         method  => 'generate_output',
