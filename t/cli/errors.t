@@ -12,6 +12,10 @@ use warnings;
 
 use Test::More tests => 11;
 
+# Isolate from the environment.
+local $ENV{XDG_CONFIG_HOME} = '/nonexistent';
+local $ENV{XDG_CONFIG_DIRS} = '/nonexistent';
+
 # Load the module.
 BEGIN { use_ok('App::DocKnot::Command') }
 

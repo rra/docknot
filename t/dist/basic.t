@@ -24,6 +24,10 @@ use IPC::System::Simple qw(capturex systemx);
 
 use Test::More;
 
+# Isolate from the environment.
+local $ENV{XDG_CONFIG_HOME} = '/nonexistent';
+local $ENV{XDG_CONFIG_DIRS} = '/nonexistent';
+
 # Find the full path to the test data.
 my $cwd      = getcwd() or die "$0: cannot get working directory: $!\n";
 my $dataroot = File::Spec->catfile($cwd, 't', 'data', 'dist', 'package');
