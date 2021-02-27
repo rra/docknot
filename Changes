@@ -25,6 +25,8 @@ DocKnot 4.01 (unreleased)
     reflect new dependencies and the removal of a JSON dependency from
     most of DocKnot.
 
+    Fix left-over documentation references to the old metatada path.
+
 DocKnot 4.00 (2020-12-25)
 
     Change the metadata format to a single YAML file, with a slightly

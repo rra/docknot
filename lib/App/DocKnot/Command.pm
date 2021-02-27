@@ -309,10 +309,10 @@ SOFTWARE.
 
 =head1 SEE ALSO
 
-L<App::DocKnot::Generate>, L<docknot(1)>
+L<docknot(1)>
 
 This module is part of the App-DocKnot distribution.  The current version of
-App::DocKnot is available from CPAN, or directly from its web site at
+DocKnot is available from CPAN, or directly from its web site at
 L<https://www.eyrie.org/~eagle/software/docknot/>.
 
 =cut

@@ -549,7 +549,8 @@ App::DocKnot::Generate - Generate documentation from package metadata
 =head1 SYNOPSIS
 
     use App::DocKnot::Generate;
-    my $docknot = App::DocKnot::Generate->new({ metadata => 'docs/metadata' });
+    my $docknot
+      = App::DocKnot::Generate->new({ metadata => 'docs/docknot.yaml' });
     my $readme = $docknot->generate('readme');
     my $index = $docknot->generate('thread');
     $docknot->generate_output('readme');
@@ -609,7 +610,7 @@ following keys:
 =item metadata
 
 The path to the directory containing metadata for a package.  Default:
-F<docs/metadata> relative to the current directory.
+F<docs/docknot.yaml> relative to the current directory.
 
 =item width
 
@@ -680,10 +681,10 @@ SOFTWARE.
 
 =head1 SEE ALSO
 
-L<docknot(1)>
+L<docknot(1)>, L<App::DocKnot::Config>
 
 This module is part of the App-DocKnot distribution.  The current version of
-App::DocKnot is available from CPAN, or directly from its web site at
+DocKnot is available from CPAN, or directly from its web site at
 L<https://www.eyrie.org/~eagle/software/docknot/>.
 
 =cut

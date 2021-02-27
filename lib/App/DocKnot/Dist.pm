@@ -494,7 +494,8 @@ following keys:
 
 The path to the directory into which to put the distribution tarball.  This
 should point to a trusted directory, not one where an attacker could have
-written files (see make_distribution() below).  Required.
+written files (see make_distribution() below).  Required if not set in the
+global configuration file.
 
 =item gpg
 
@@ -505,7 +506,7 @@ Default: The binary named C<gpg> on the user's PATH.
 =item metadata
 
 The path to the directory containing metadata for a package.  Default:
-F<docs/metadata> relative to the current directory.
+F<docs/docknot.yaml> relative to the current directory.
 
 =item perl
 
@@ -516,9 +517,10 @@ PATH.
 =item pgp_key
 
 Sign generated tarballs with the provided PGP key.  The key can be named in
-any way that the B<-u> option of GnuPG understands.  The generated signature
-will be armored and stored in a file named by appending C<.asc> to the name
-of the tarball.
+any way that the B<-u> option of GnuPG understands.  This can also be set in
+the global configuration file.  There is no default; if this option is not
+set, either as a constructor parameter or in the global configuration file,
+the generated tarballs will not be signed.
 
 =back
 
@@ -566,6 +568,11 @@ After the distribution is created, check_dist() will be run on it.  If any
 files are missing from the distribution, they will be reported to standard
 output and then an exception will be thrown.
 
+If the C<pgp_key> constructor parameter or global configuration option is set,
+the generated tarballs will then be signed with that key, using B<gpg>.  The
+generated signature will be armored and stored in a file named by appending
+C<.asc> to the name of the tarball.
+
 =back
 
 =head1 AUTHOR
@@ -596,10 +603,10 @@ SOFTWARE.
 
 =head1 SEE ALSO
 
-L<docknot(1)>
+L<docknot(1)>, L<App::DocKnot::Config>
 
 This module is part of the App-DocKnot distribution.  The current version of
-App::DocKnot is available from CPAN, or directly from its web site at
+DocKnot is available from CPAN, or directly from its web site at
 L<https://www.eyrie.org/~eagle/software/docknot/>.
 
 =cut

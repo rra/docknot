@@ -26,7 +26,7 @@ subcommands distdir pgp-key
 
 =head1 NAME
 
-docknot - Generate human-readable documentation from package metadata
+docknot - Manage software documentation and distributions
 
 =head1 SYNOPSIS
 
@@ -107,9 +107,9 @@ or if this option is not set.
 
 The path to the metadata files for the package whose distribution tarball is
 being generated.  This should be a directory containing all the package
-metadata files required by App::DocKnot.  Default: F<docs/metadata> relative
-to the current directory (which is the recommended metadata path for a
-project).
+metadata files required by App::DocKnot.  Default: F<docs/docknot.yaml>
+relative to the current directory (which is the recommended metadata path for
+a project).
 
 =item B<-p> I<pgp-key>, B<--pgp-key>=I<pgp-key>
 
@@ -128,7 +128,7 @@ appending C<.asc> to the name of the tarball.
 
 The path to the metadata files for the package whose documentation is being
 generated.  This should be a directory containing all the package metadata
-files required by App::DocKnot.  Default: F<docs/metadata> relative to the
+files required by App::DocKnot.  Default: F<docs/docknot.yaml> relative to the
 current directory (which is the recommended metadata path for a project).
 
 =item B<-w> I<width>, B<--width>=I<width>
@@ -159,7 +159,7 @@ If the template isn't listed above, this argument is required.
 
 The path to the metadata files for the package whose documentation is being
 generated.  This should be a directory containing all the package metadata
-files required by App::DocKnot.  Default: F<docs/metadata> relative to the
+files required by App::DocKnot.  Default: F<docs/docknot.yaml> relative to the
 current directory (which is the recommended metadata path for a project).
 
 =item B<-w> I<width>, B<--width>=I<width>
@@ -244,10 +244,11 @@ SOFTWARE.
 
 =head1 SEE ALSO
 
-L<App::DocKnot::Dist>, L<App::DocKnot::Generate>
+L<App::DocKnot::Config>, L<App::DocKnot::Dist>, L<App::DocKnot::Generate>,
+L<App::DocKnot::Update>
 
-This program is part of the DocKnot distribution.  DocKnot is available from
-CPAN as App::DocKnot, or directly from its web site at
+This program is part of the App-DocKnot distribution.  The current version of
+DocKnot is available from CPAN, or directly from its web site at
 L<https://www.eyrie.org/~eagle/software/docknot/>.
 
 =cut
