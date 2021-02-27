@@ -102,8 +102,8 @@ The following additional Perl modules are required to use it:
 
 \bullet(packed)[File::BaseDir]
 \bullet(packed)[File::ShareDir]
-\bullet(packed)[IO::Uncompress::Gunzip (part of IO-Compress)]
 \bullet(packed)[IO::Compress::Xz (part of IO-Compress-Lzma)]
+\bullet(packed)[IO::Uncompress::Gunzip (part of IO-Compress)]
 \bullet(packed)[IPC::Run]
 \bullet(packed)[IPC::System::Simple]
 \bullet(packed)[JSON::MaybeXS]

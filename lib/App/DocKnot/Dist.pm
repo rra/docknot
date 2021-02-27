@@ -455,9 +455,9 @@ App::DocKnot::Dist - Prepare a distribution tarball
 =head1 REQUIREMENTS
 
 Git, Perl 5.24 or later, and the modules File::BaseDir, File::ShareDir,
-IO::Uncompress::Gunzip (part of IO-Compress), IO::Compress::Xz (part of
-IO-Compress-Lzma), IPC::Run, IPC::System::Simple, Kwalify, List::SomeUtils,
-and YAML::XS, all of which are available from CPAN.
+IO::Compress::Xz (part of IO-Compress-Lzma), IO::Uncompress::Gunzip (part of
+IO-Compress), IPC::Run, IPC::System::Simple, Kwalify, List::SomeUtils, and
+YAML::XS, all of which are available from CPAN.
 
 The tools to build whatever type of software distribution is being prepared
 are also required, since the distribution is built and tested as part of

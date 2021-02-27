@@ -63,8 +63,8 @@ The following additional Perl modules are required to use it:
 
 * File::BaseDir
 * File::ShareDir
-* IO::Uncompress::Gunzip (part of IO-Compress)
 * IO::Compress::Xz (part of IO-Compress-Lzma)
+* IO::Uncompress::Gunzip (part of IO-Compress)
 * IPC::Run
 * IPC::System::Simple
 * JSON::MaybeXS
