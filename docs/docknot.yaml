@@ -122,7 +122,6 @@ requirements: |
   * Kwalify
   * List::SomeUtils
   * Perl6::Slurp
-  * Pod::Usage
   * Template (part of Template Toolkit)
   * YAML::XS
 

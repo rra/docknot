@@ -246,8 +246,8 @@ App::DocKnot::Command - Run DocKnot commands
 Perl 5.24 or later and the modules File::BaseDir, File::ShareDir,
 IO::Compress::Xz (part of IO-Compress-Lzma), IO::Uncompress::Gunzip (part of
 IO-Compress), IPC::Run, IPC::System::Simple, JSON::MaybeXS, Kwalify,
-List::SomeUtils, Perl6::Slurp, Pod::Usage, Template (part of Template
-Toolkit), and YAML::XS, all of which are available from CPAN.
+List::SomeUtils, Perl6::Slurp, Template (part of Template Toolkit), and
+YAML::XS, all of which are available from CPAN.
 
 =head1 DESCRIPTION
 
