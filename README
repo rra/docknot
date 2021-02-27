@@ -59,13 +59,15 @@ REQUIREMENTS
 
   * File::BaseDir
   * File::ShareDir
-  * IO::Compress::Xz (part of IO-Compress-LZMA)
+  * IO::Uncompress::Gunzip (part of IO-Compress)
+  * IO::Compress::Xz (part of IO-Compress-Lzma)
   * IPC::Run
   * IPC::System::Simple
   * JSON::MaybeXS
   * Kwalify
   * List::SomeUtils
   * Perl6::Slurp
+  * Pod::Usage
   * Template (part of Template Toolkit)
   * YAML::XS
 

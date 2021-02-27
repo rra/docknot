@@ -440,7 +440,7 @@ __END__
 
 =for stopwords
 Allbery DocKnot MERCHANTABILITY NONINFRINGEMENT sublicense JSON CPAN ARGS
-distdir Automake xz gpg
+distdir Automake xz gpg Kwalify IO-Compress-Lzma
 
 =head1 NAME
 
@@ -454,9 +454,17 @@ App::DocKnot::Dist - Prepare a distribution tarball
 
 =head1 REQUIREMENTS
 
-Perl 5.24 or later and the modules File::BaseDir, File::ShareDir, IPC::Run,
-IPC::System::Simple, JSON, and Perl6::Slurp, all of which are available from
-CPAN.
+Git, Perl 5.24 or later, and the modules File::BaseDir, File::ShareDir,
+IO::Uncompress::Gunzip (part of IO-Compress), IO::Compress::Xz (part of
+IO-Compress-Lzma), IPC::Run, IPC::System::Simple, Kwalify, List::SomeUtils,
+and YAML::XS, all of which are available from CPAN.
+
+The tools to build whatever type of software distribution is being prepared
+are also required, since the distribution is built and tested as part of
+preparing the tarball.
+
+To sign distribution tarballs, the GnuPG command-line program B<gpg> is
+required.  (Any version, either GnuPG v1 or GnuPG v2, should work.)
 
 =head1 DESCRIPTION
 

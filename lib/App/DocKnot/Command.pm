@@ -20,6 +20,7 @@ use App::DocKnot::Dist;
 use App::DocKnot::Generate;
 use App::DocKnot::Update;
 use Getopt::Long;
+use Pod::Usage qw(pod2usage);
 
 # Defines the subcommands, their options, and the module and method that
 # implements them.  The keys are the names of the commands.  Each value is a
@@ -229,7 +230,8 @@ sub run {
 __END__
 
 =for stopwords
-Allbery DocKnot docknot MERCHANTABILITY NONINFRINGEMENT sublicense
+Allbery DocKnot docknot MERCHANTABILITY NONINFRINGEMENT sublicense Kwalify
+IO-Compress-Lzma
 
 =head1 NAME
 
@@ -242,9 +244,11 @@ App::DocKnot::Command - Run DocKnot commands
 
 =head1 REQUIREMENTS
 
-Perl 5.24 or later and the modules File::BaseDir, File::ShareDir, JSON,
-Perl6::Slurp, and Template (part of Template Toolkit), all of which are
-available from CPAN.
+Perl 5.24 or later and the modules File::BaseDir, File::ShareDir,
+IO::Uncompress::Gunzip (part of IO-Compress), IO::Compress::Xz (part of
+IO-Compress-Lzma), IPC::Run, IPC::System::Simple, JSON::MaybeXS, Kwalify,
+List::SomeUtils, Perl6::Slurp, Pod::Usage, Template (part of Template
+Toolkit), and YAML::XS, all of which are available from CPAN.
 
 =head1 DESCRIPTION
 

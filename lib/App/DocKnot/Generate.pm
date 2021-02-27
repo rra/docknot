@@ -540,7 +540,7 @@ __END__
 
 =for stopwords
 Allbery DocKnot MERCHANTABILITY NONINFRINGEMENT XDG sublicense JSON CPAN
-ARGS
+ARGS Kwalify
 
 =head1 NAME
 
@@ -557,9 +557,9 @@ App::DocKnot::Generate - Generate documentation from package metadata
 
 =head1 REQUIREMENTS
 
-Perl 5.24 or later and the modules File::BaseDir, File::ShareDir, JSON,
-Perl6::Slurp, and Template (part of Template Toolkit), all of which are
-available from CPAN.
+Perl 5.24 or later and the modules File::BaseDir, File::ShareDir, Kwalify,
+Template (part of Template Toolkit), and YAML::XS, all of which are available
+from CPAN.
 
 =head1 DESCRIPTION
 
@@ -658,7 +658,7 @@ Russ Allbery <rra@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2013-2020 Russ Allbery <rra@cpan.org>
+Copyright 2013-2021 Russ Allbery <rra@cpan.org>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
