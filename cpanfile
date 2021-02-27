@@ -3,12 +3,14 @@
 requires 'File::BaseDir';
 requires 'File::ShareDir';
 requires 'IO::Compress::Xz';
+requires 'IO::Uncompress::Gunzip';
 requires 'IPC::Run';
 requires 'IPC::System::Simple';
 requires 'JSON::MaybeXS';
 requires 'Kwalify';
 requires 'List::SomeUtils';
 requires 'Perl6::Slurp';
+requires 'Pod::Usage';
 requires 'Template';
 requires 'YAML::XS';
 
