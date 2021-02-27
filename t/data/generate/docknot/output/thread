@@ -110,7 +110,6 @@ The following additional Perl modules are required to use it:
 \bullet(packed)[Kwalify]
 \bullet(packed)[List::SomeUtils]
 \bullet(packed)[Perl6::Slurp]
-\bullet(packed)[Pod::Usage]
 \bullet(packed)[Template (part of Template Toolkit)]
 \bullet(packed)[YAML::XS]
 

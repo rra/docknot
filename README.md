@@ -71,7 +71,6 @@ The following additional Perl modules are required to use it:
 * Kwalify
 * List::SomeUtils
 * Perl6::Slurp
-* Pod::Usage
 * Template (part of Template Toolkit)
 * YAML::XS
 

@@ -19,7 +19,7 @@ DocKnot 4.01 (unreleased)
     Remove the load_appdata_json helper function from App::DocKnot.  This
     is no longer used now that all DocKnot data is in YAML.
 
-    Properly depend on and import Pod::Usage so that docknot --help works.
+    Properly import Pod::Usage so that docknot --help works.
 
     Correct the REQUIREMENTS sections of the module documentation to
     reflect new dependencies and the removal of a JSON dependency from

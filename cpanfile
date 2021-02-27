@@ -10,7 +10,6 @@ requires 'JSON::MaybeXS';
 requires 'Kwalify';
 requires 'List::SomeUtils';
 requires 'Perl6::Slurp';
-requires 'Pod::Usage';
 requires 'Template';
 requires 'YAML::XS';
 
