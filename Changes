@@ -1,6 +1,6 @@
                        User-Visible DocKnot Changes
 
-DocKnot 4.01 (unreleased)
+DocKnot 4.01 (2021-02-27)
 
     DocKnot now supports a global configuration file.  The default
     location is $HOME/.config/docknot/config.yaml, but it honors the XDG
