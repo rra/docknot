@@ -1,6 +1,6 @@
                        Revision history for DocKnot
 
-4.02 - not released
+4.02 - Not Released
 
  - Support setting distribution.packaging.debian.package along with
    distribution.packaging.debian.personal to specify the package name.  Do
