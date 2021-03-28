@@ -3,8 +3,8 @@ $ID = q$Id$;
 #
 # faq2html -- Convert some particular text formats into XHTML.
 #
-# Copyright 1999, 2000, 2001, 2002, 2004, 2005, 2008, 2010, 2013, 2014
-#     Russ Allbery <rra@stanford.edu>
+# Copyright 1999-2002, 2004-2005, 2008, 2010, 2013-2014, 2021
+#     Russ Allbery <eagle@eyrie.org>
 #
 # This program is free software; you may redistribute it and/or modify it
 # under the same terms as Perl itself.
@@ -181,8 +181,23 @@ sub whitechomp { local $_ = shift; s/^\s+//; s/\s+$//; $_ }
 # Identification functions
 ##############################################################################
 
-# Expects a paragraph, returns whether every line is a bulletted item.
-sub is_allbullet { $_[0] =~ /^(\s*[-*o]\s).*\n(\1.*\n)+\s*$/ }
+# Expects a paragraph, returns whether it is composed entirely of bullet
+# items.  Take some care to avoid returning true for paragraphs that consist
+# of a single bullet entry, since we want to handle those separately to wrap
+# them in paragraph tags.
+sub is_allbullet {
+    local $_ = shift;
+    my @lines = split ("\n", $_);
+    return if not $lines[0] =~ /^(\s*)([-*o]\s)\S/;
+    my $bullet  = $1;
+    my $space   = $bullet =~ s/[-*o]/ /;
+    my $bullets = 0;
+    for (@lines) {
+        return if !/^(?:\Q$bullet\E|\Q$space\E)\S/;
+        $bullets++ if /^\Q$bullet\E/;
+    }
+    return $bullets > 1;
+}
 
 # Expects a paragraph, returns whether every line is a numbered item with a
 # simple number.
@@ -818,13 +833,24 @@ while (defined $BUFFER) {
     # Check for paragraphs that are entirely bulletted lines, and turn them
     # into unordered lists without <p> tags.
     if (is_allbullet $_) {
+        my $last;
         my @lines = split (/\n/, $_);
         for (@lines) {
             next unless /\S/;
-            $_ = debullet $_;
-            $INDENT = indent $_;
+            if (is_bullet $_) {
+                if (defined $last) {
+                    output start ($INDENT, 'ul');
+                    output li ($INDENT, embolden $last);
+                }
+                $last = debullet $_;
+                $INDENT = indent $last;
+            } else {
+                $last .= "\n$_";
+            }
+        }
+        if (defined $last) {
             output start ($INDENT, 'ul');
-            output li ($INDENT, embolden $_);
+            output li ($INDENT, embolden $last);
         }
         next;
     }
