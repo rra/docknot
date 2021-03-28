@@ -1,5 +1,11 @@
                        Revision history for DocKnot
 
+4.02 - not released
+
+ - Support setting distribution.packaging.debian.package along with
+   distribution.packaging.debian.personal to specify the package name.  Do
+   not generate links to Debian in that case.
+
 4.01 - 2021-02-27
 
  - DocKnot now supports a global configuration file.  The default location
