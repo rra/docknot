@@ -188,11 +188,13 @@ sub whitechomp { local $_ = shift; s/^\s+//; s/\s+$//; $_ }
 sub is_allbullet {
     local $_ = shift;
     my @lines = split ("\n", $_);
-    return if not $lines[0] =~ /^(\s*)([-*o]\s)\S/;
+    return if not $lines[0] =~ /^(\s*[-*o]\s)\S/;
     my $bullet  = $1;
-    my $space   = $bullet =~ s/[-*o]/ /;
+    my $space   = $bullet;
+    $space =~ s/[-*o]/ /;
     my $bullets = 0;
     for (@lines) {
+        next if !/\S/;
         return if !/^(?:\Q$bullet\E|\Q$space\E)\S/;
         $bullets++ if /^\Q$bullet\E/;
     }
