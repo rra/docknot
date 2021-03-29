@@ -1,3 +1,12 @@
+docknot (4.01-2) UNRELEASED; urgency=medium
+
+  * Add perl to build dependencies, since it is formally needed although
+    other packages are likely to pull it in.  Remove libdevel-cover-perl,
+    since that test is skipped, and add libtest-pod-coverage-perl, which
+    is run under automated testing.
+
+ -- Russ Allbery <rra@debian.org>  Sun, 28 Mar 2021 17:21:29 -0700
+
 docknot (4.01-1) experimental; urgency=medium
 
   * New upstream release.

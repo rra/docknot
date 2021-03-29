@@ -5,7 +5,6 @@ Build-Depends:
  debhelper-compat (= 13),
  git,
  libcapture-tiny-perl,
- libdevel-cover-perl,
  libfile-basedir-perl,
  libfile-copy-recursive-perl,
  libfile-sharedir-perl,
@@ -20,9 +19,11 @@ Build-Depends:
  libtemplate-perl,
  libtest-minimumversion-perl,
  libtest-pod-perl,
+ libtest-pod-coverage-perl,
  libtest-strict-perl,
  libtest-synopsis-perl,
  libyaml-libyaml-perl,
+ perl,
  pkwalify,
 Rules-Requires-Root: no
 Testsuite: autopkgtest-pkg-perl
