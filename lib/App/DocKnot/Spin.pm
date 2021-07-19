@@ -1,19 +1,18 @@
-#!/usr/bin/perl -w
-$ID = q$Id$;
+# Translate thread (an HTML macro language) into HTML.
 #
-# spin -- Translate thread (an HTML macro language) into HTML.
+# This module translates a single file or a tree of files in thread (a custom
+# macro language) into HTML.  It also handles formatting some other input
+# types (text and POD, for example), copying other types of files to the
+# output tree, and, when run on a tree of files, creates site navigation
+# links.
 #
-# Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
-#     2010, 2011, 2013 Russ Allbery <rra@stanford.edu>
-#
-# This program is free software; you may redistribute it and/or modify it
-# under the same terms as Perl itself.
+# SPDX-License-Identifier: MIT
 
 ##############################################################################
 # Modules and declarations
 ##############################################################################
 
-require 5.005;
+package App::DocKnot::Spin 4.01;
 
 # The default list of files and/or directories to exclude from spinning.  This
 # can be added to with the -e option.  Each of these should be a regular
@@ -22,10 +21,11 @@ require 5.005;
              qr/^RCS\z/);
 
 # The URL to the software page for all of my web page generation software.
-$URL = 'http://www.eyrie.org/~eagle/software/web/';
+$URL = 'https://www.eyrie.org/~eagle/software/web/';
 
 use strict;
 use subs qw(expand parse parse_context);
+use warnings;
 use vars qw(%DEPEND $DOCID @EXCLUDES $FILE @FILES $FULLPATH $ID $OUTPUT
             %OUTPUT $REPO @RSS %SITEDESCS %SITELINKS @SITEMAP $SOURCE $SPACE
             @STATE $STYLES $URL %VERSIONS %commands %macros %strings);
@@ -1280,7 +1280,7 @@ sub pod2html {
     my $styles = ($STYLES ? " -s $STYLES" : '');
     $style = 'pod' unless $style;
     $options .= " -s $style";
-    my $command = "pod2thread $options $source | $FULLPATH -f$styles";
+    my $command = "pod2thread $options $source | $FULLPATH spin -f$styles";
     my $footer = sub {
         my ($blurb, $id, $file) = @_;
         my $link = '<a href="%URL%">spun</a>';
@@ -1411,113 +1411,134 @@ sub delete_files {
 # Main routine
 ##############################################################################
 
-$| = 1;
-$FULLPATH = $0;
-$0 =~ s%.*/%%;
+sub spin_command {
+    my ($self, @args) = @_;
 
-# Parse command-line options.
-my ($delete, @excludes, $filter, $help, $overrides, $version);
-$STYLES = '';
-Getopt::Long::config ('bundling');
-GetOptions ('d|delete'      => \$delete,
-            'e|exclude=s'   => \@excludes,
-            'f|filter'      => \$filter,
-            'h|help'        => \$help,
-            'o|overrides=s' => \$overrides,
-            's|style-url=s' => \$STYLES,
-            'v|version'     => \$version) or exit 1;
-if ($help) {
-    print "Feeding myself to perldoc, please wait....\n";
-    exec ('perldoc', '-t', $FULLPATH);
-} elsif ($version) {
-    my $version = join (' ', (split (' ', $ID))[1..3]);
-    $version =~ s/,v\b//;
-    $version =~ s/(\S+)$/($1)/;
-    $version =~ tr%/%-%;
-    print $version, "\n";
-    exit;
-}
-$STYLES =~ s%/*$%/% if $STYLES;
-push (@EXCLUDES, map { qr/$_/ } @excludes);
-
-# Load overrides from the specified file, if desired.
-if ($overrides) {
-    unless (do "$overrides") {
-        if ($@) {
-            die "$0: cannot load $overrides: $@\n";
-        } else {
-            die "$0: cannot load $overrides: $!\n";
-        }
-    }
-}
-
-# The arguments depend on whether -f is given.  If it is, just filter stdin to
-# stdout; otherwise, take the input tree and the output tree on the command
-# line and process the input into the output.
-if ($filter) {
-    if (@ARGV) { die "Usage: $0 -f\n" }
-    spin ('-', '-');
-} else {
-    die "Usage: $0 <source> [<output>]\n" unless (@ARGV >= 1 && @ARGV <= 2);
-    ($SOURCE, $OUTPUT) = @ARGV;
-    $OUTPUT ||= '-';
-    $OUTPUT =~ s%/+$%%;
-    if (-f $SOURCE) {
-        open (STDIN, $SOURCE) or die "$0: cannot open $SOURCE: $!\n";
-        if ($OUTPUT ne '-') {
-            my (undef, $dir, $file) = File::Spec->splitpath ($OUTPUT);
-            my $current = getcwd;
-            chdir $dir or die "$0: cannot chdir to $dir: $!\n";
-            $OUTPUT = File::Spec->catpath ('', getcwd, $file);
-            chdir $current or die "$0: cannot chdir to $current: $!\n";
-            open (STDOUT, "> $OUTPUT")
-                or die "$0: cannot create $OUTPUT: $!\n";
-        }
-        my (undef, $dir, $file) = File::Spec->splitpath ($SOURCE);
-        my $current = getcwd;
-        chdir $dir or die "$0: cannot chdir to $dir: $!\n";
-        $SOURCE = File::Spec->catpath ('', getcwd, $file);
+    # The arguments depend on whether -f is given.  If it is, just filter
+    # stdin to stdout; otherwise, take the input tree and the output tree on
+    # the command line and process the input into the output.
+    if ($self->{filter}) {
+        if (@args) { die "Usage: $0 -f\n" }
         spin ('-', '-');
     } else {
-        die "$0: no output directory specified\n" if $OUTPUT eq '-';
-        if ($SOURCE !~ m%^/%) {
-            my $current = getcwd;
-            chdir $SOURCE or die "$0: cannot chdir to $SOURCE: $!\n";
-            $SOURCE = getcwd;
-            chdir $current or die "$0: cannot chdir to $current: $!\n";
-        }
-        if ($OUTPUT !~ m%^/%) {
-            unless (-d $OUTPUT) {
-                print "Creating $OUTPUT\n";
-                mkdir ($OUTPUT, 0755) or die "$0: cannot create $OUTPUT: $!\n";
+        die "Usage: $0 <source> [<output>]\n" unless (@args >= 1 && @args <= 2);
+        ($SOURCE, $OUTPUT) = @args;
+        $OUTPUT ||= '-';
+        $OUTPUT =~ s%/+$%%;
+        if (-f $SOURCE) {
+            open (STDIN, $SOURCE) or die "$0: cannot open $SOURCE: $!\n";
+            if ($OUTPUT ne '-') {
+                my (undef, $dir, $file) = File::Spec->splitpath ($OUTPUT);
+                my $current = getcwd;
+                chdir $dir or die "$0: cannot chdir to $dir: $!\n";
+                $OUTPUT = File::Spec->catpath ('', getcwd, $file);
+                chdir $current or die "$0: cannot chdir to $current: $!\n";
+                open (STDOUT, "> $OUTPUT")
+                    or die "$0: cannot create $OUTPUT: $!\n";
             }
-            chdir $OUTPUT or die "$0: cannot chdir to $OUTPUT: $!\n";
-            $OUTPUT = getcwd;
-        }
-        read_sitemap ("$SOURCE/.sitemap");
-        read_versions ("$SOURCE/.versions");
-        if (-d "$SOURCE/.git") {
-            eval {
-                require Git::Repository;
-                $REPO = Git::Repository->new (work_tree => $SOURCE);
-            };
-        }
-        $File::Find::dont_use_nlink = 1;
-        if (-f "$SOURCE/.rss") {
+            my (undef, $dir, $file) = File::Spec->splitpath ($SOURCE);
             my $current = getcwd;
-            chdir $SOURCE or die "$0: cannot chdir to $SOURCE: $!\n";
-            system ('spin-rss', '.rss') == 0
-                or die "$0: running spin-rss on $SOURCE/.rss failed\n";
-            chdir $current or die "$0: cannot chdir to $current: $!\n";
+            chdir $dir or die "$0: cannot chdir to $dir: $!\n";
+            $SOURCE = File::Spec->catpath ('', getcwd, $file);
+            spin ('-', '-');
+        } else {
+            die "$0: no output directory specified\n" if $OUTPUT eq '-';
+            if ($SOURCE !~ m%^/%) {
+                my $current = getcwd;
+                chdir $SOURCE or die "$0: cannot chdir to $SOURCE: $!\n";
+                $SOURCE = getcwd;
+                chdir $current or die "$0: cannot chdir to $current: $!\n";
+            }
+            if ($OUTPUT !~ m%^/%) {
+                unless (-d $OUTPUT) {
+                    print "Creating $OUTPUT\n";
+                    mkdir ($OUTPUT, 0755)
+                      or die "$0: cannot create $OUTPUT: $!\n";
+                }
+                chdir $OUTPUT or die "$0: cannot chdir to $OUTPUT: $!\n";
+                $OUTPUT = getcwd;
+            }
+            read_sitemap ("$SOURCE/.sitemap");
+            read_versions ("$SOURCE/.versions");
+            if (-d "$SOURCE/.git") {
+                eval {
+                    require Git::Repository;
+                    $REPO = Git::Repository->new (work_tree => $SOURCE);
+                };
+            }
+            $File::Find::dont_use_nlink = 1;
+            if (-f "$SOURCE/.rss") {
+                my $current = getcwd;
+                chdir $SOURCE or die "$0: cannot chdir to $SOURCE: $!\n";
+                system ('spin-rss', '.rss') == 0
+                    or die "$0: running spin-rss on $SOURCE/.rss failed\n";
+                chdir $current or die "$0: cannot chdir to $current: $!\n";
+            }
+            find (\&process_file, $SOURCE);
+            finddepth (\&delete_files, $OUTPUT) if $self->{delete};
         }
-        find (\&process_file, $SOURCE);
-        finddepth (\&delete_files, $OUTPUT) if $delete;
     }
 }
+
+##############################################################################
+# Public interface
+##############################################################################
+
+# Create a new App::DocKnot::Spin object, which will be used for subsequent
+# calls.
+#
+# $args  - Anonymous hash of arguments with the following keys:
+#   delete    - Whether to delete files missing from the source tree
+#   exclude   - List of regular expressions matching file names to exclude
+#   filter    - Run spin in filter mode
+#   overrides - A file of Perl code to load into the package
+#   style-url - Partial URL to style sheets
+#
+# Returns: Newly created object
+#  Throws: Text exceptions on invalid metadata directory path
+sub new {
+    my ($class, $args_ref) = @_;
+
+    # Stash constructor arguments.
+    $STYLES = $args_ref->{'style-url'} // q{};
+    $STYLES =~ s{ /+ \z }{}xms;
+    if ($args_ref->{exclude}) {
+        push(@EXCLUDES, map { qr{$_} } $args_ref->{exclude}->@*);
+    }
+
+    # Load overrides if requested.
+    if ($args_ref->{overrides}) {
+        my $overrides = $args_ref->{overrides};
+        if (!do "$overrides") {
+            if ($@) {
+                die "$0: cannot load $overrides: $@\n";
+            } else {
+                die "$0: cannot load $overrides: $!\n";
+            }
+        }
+    }
+
+    # Used to invoke spin as a filter.
+    $FULLPATH = $0;
+
+    # Create and return the object.
+    my $self = {
+        delete => $args_ref->{delete},
+        filter => $args_ref->{filter},
+    };
+    bless($self, $class);
+    return $self;
+}
+
+1;
 
 ##############################################################################
 # Documentation
 ##############################################################################
+
+=for stopwords
+Allbery RCS RSS XHTML YYYY-MM-DD -dhv faq2html respin respun spin-rss
+cl2xhtml cvs2xhtml preformatted
 
 =head1 NAME
 
@@ -1804,7 +1825,7 @@ respun.
 =head2 Block Commands
 
 Block commands are commands that should occur in a paragraph by
-themselves, not containined in a paragraph with other text.  They indicate
+themselves, not contained in a paragraph with other text.  They indicate
 high-level structural elements of the page.  Three of them were already
 discussed above:
 
@@ -2070,7 +2091,7 @@ A string can be defined with the command:
 
 where <string> is the name that will be used (can only be alphanumerics
 plus underscore) and <value> is the value that string will expand into.
-Any later occurrance of \=<string> in the file will be replaced with
+Any later occurrence of \=<string> in the file will be replaced with
 <value>.  For example:
 
     \=[HOME][http://www.stanford.edu/]
@@ -2131,17 +2152,17 @@ cl2xhtml(1), cvs2xhtml(1), faq2html(1), pod2thread(1), spin-rss(1)
 The XHTML 1.0 standard at L<http://www.w3.org/TR/xhtml1/>.
 
 Current versions of this program are available from my web tools page at
-L<http://www.eyrie.org/~eagle/software/web/>, as are copies of all of the
+L<https://www.eyrie.org/~eagle/software/web/>, as are copies of all of the
 above-mentioned programs.
 
 =head1 AUTHOR
 
-Russ Allbery <rra@stanford.edu>
+Russ Allbery <eagle@eyrie.org>
 
 =head1 COPYRIGHT AND LICENSE
 
 Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
-Russ Allbery <rra@stanford.edu>.
+Russ Allbery <eagle@eyrie.org>.
 
 This program is free software; you may redistribute it and/or modify it
 under the same terms as Perl itself.

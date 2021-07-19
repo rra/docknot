@@ -18,6 +18,7 @@ use warnings;
 
 use App::DocKnot::Dist;
 use App::DocKnot::Generate;
+use App::DocKnot::Spin;
 use App::DocKnot::Update;
 use Getopt::Long;
 use Pod::Usage qw(pod2usage);
@@ -74,6 +75,16 @@ our %COMMANDS = (
         module  => 'App::DocKnot::Generate',
         options => ['metadata|m=s', 'width|w=i'],
         maximum => 0,
+    },
+    spin => {
+        method  => 'spin_command',
+        module  => 'App::DocKnot::Spin',
+        options => [
+            'delete|d', 'exclude|e=s@',
+            'filter|f', 'overrides|o=s',
+            'style-url|s=s',
+        ],
+        maximum => 2,
     },
     update => {
         method  => 'update',
