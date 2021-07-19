@@ -39,7 +39,10 @@ my $sourcedir = File::Spec->catfile($dir, 'source');
 my $distdir   = File::Spec->catfile($dir, 'dist');
 
 # Check whether git is available and can be used to initialize a repository.
-eval { systemx('git', 'init', '-q', File::Spec->catfile($dir, 'source')) };
+eval {
+    systemx('git', 'init', '-b', 'master', '-q',
+        File::Spec->catfile($dir, 'source'));
+};
 if ($@) {
     plan skip_all => 'git init failed (possibly no git binary)';
 }
