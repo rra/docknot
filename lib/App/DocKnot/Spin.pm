@@ -504,7 +504,9 @@ sub sitelinks {
 # the top page, nothing is returned.
 sub placement {
     my $file = shift;
-    $file = $File::Find::dir . '/' . $file;
+    if (defined($File::Find::dir)) {
+        $file = $File::Find::dir . '/' . $file;
+    }
     $file =~ s%^\Q$SOURCE%%;
     $file =~ s%/index\.html$%/%;
 
@@ -802,17 +804,16 @@ sub do_heading {
             $output .= qq(        title="$title" />\n);
         }
     }
-    if ($FILE ne '-') {
+    if ($FILE ne '-' && defined($File::Find::dir)) {
         $output .= sitelinks $file;
     }
     $output .= "</head>\n\n";
-    my $version = (split (' ', $ID))[2];
     my $date = strftime ('%Y-%m-%d %T -0000', gmtime);
     $output .= '<!-- Spun' . ($FILE eq '-' ? '' : " from $FILE")
-        . " by spin $version on $date -->\n";
+        . " by spin 1.80 on $date -->\n";
     $output .= "<!-- $DOCID -->\n" if $DOCID;
     $output .= "\n<body>\n";
-    if ($FILE ne '-') {
+    if ($FILE ne '-' && defined($File::Find::dir)) {
         $output .= placement ($file);
     }
     return (1, $output);
@@ -1426,21 +1427,18 @@ sub spin_command {
         $OUTPUT ||= '-';
         $OUTPUT =~ s%/+$%%;
         if (-f $SOURCE) {
-            open (STDIN, $SOURCE) or die "$0: cannot open $SOURCE: $!\n";
             if ($OUTPUT ne '-') {
                 my (undef, $dir, $file) = File::Spec->splitpath ($OUTPUT);
                 my $current = getcwd;
                 chdir $dir or die "$0: cannot chdir to $dir: $!\n";
                 $OUTPUT = File::Spec->catpath ('', getcwd, $file);
                 chdir $current or die "$0: cannot chdir to $current: $!\n";
-                open (STDOUT, "> $OUTPUT")
-                    or die "$0: cannot create $OUTPUT: $!\n";
             }
             my (undef, $dir, $file) = File::Spec->splitpath ($SOURCE);
             my $current = getcwd;
             chdir $dir or die "$0: cannot chdir to $dir: $!\n";
             $SOURCE = File::Spec->catpath ('', getcwd, $file);
-            spin ('-', '-');
+            spin ($file, $OUTPUT);
         } else {
             die "$0: no output directory specified\n" if $OUTPUT eq '-';
             if ($SOURCE !~ m%^/%) {
@@ -1501,7 +1499,7 @@ sub new {
 
     # Stash constructor arguments.
     $STYLES = $args_ref->{'style-url'} // q{};
-    $STYLES =~ s{ /+ \z }{}xms;
+    $STYLES =~ s{ /* \z }{/}xms;
     if ($args_ref->{exclude}) {
         push(@EXCLUDES, map { qr{$_} } $args_ref->{exclude}->@*);
     }
