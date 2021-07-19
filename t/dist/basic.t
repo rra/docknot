@@ -12,8 +12,6 @@ use warnings;
 
 use lib 't/lib';
 
-use Test::RRA qw(use_prereq);
-
 use Capture::Tiny qw(capture_stdout);
 use Cwd qw(getcwd);
 use File::Copy::Recursive qw(dircopy);
