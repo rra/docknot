@@ -81,6 +81,7 @@ our @DIST_IGNORE = (
     qr{ \A _build \z }xms,
     qr{ \A blib \z }xms,
     qr{ \A config[.]h[.]in~ \z }xms,
+    qr{ \A configure~ \z }xms,
     qr{ \A cover_db \z }xms,
     qr{ \A tests/config \z }xms,
     qr{ [.]tar[.][gx]z \z }xms,
