@@ -388,8 +388,11 @@ sub make_distribution {
     }
 
     # Export the Git repository into a new directory.
-    my @git = ('git', 'archive', "--remote=$source", "--prefix=${prefix}/",
-        'master',);
+    my @git = (
+        'git',              'archive',
+        "--remote=$source", "--prefix=${prefix}/",
+        'master',
+    );
     my @tar = qw(tar xf -);
     run(\@git, q{|}, \@tar) or die "@git | @tar failed with status $?\n";
 
