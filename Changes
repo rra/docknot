@@ -6,6 +6,8 @@
    distribution.packaging.debian.personal to specify the package name.  Do
    not generate links to Debian in that case.
 
+ - Ignore configure~ when checking distribution tarballs.
+
 4.01 - 2021-02-27
 
  - DocKnot now supports a global configuration file.  The default location
