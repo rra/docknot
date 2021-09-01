@@ -16,7 +16,7 @@ use Cwd qw(getcwd);
 use File::Spec;
 use File::Temp;
 use Perl6::Slurp qw(slurp);
-use Test::RRA qw(is_file_contents);
+use Test::DocKnot::Spin qw(is_spin_output);
 
 use Test::More tests => 2;
 
@@ -34,11 +34,6 @@ my $spin     = App::DocKnot::Spin->new({ 'style-url' => '/~eagle/styles/' });
 $spin->spin_command($input, $tempfile->filename);
 
 # Go back to the previous working directory, since spin_command currently
-# changes directories.  Strip timestamps before comparing results.
+# changes directories.
 chdir($cwd);
-my $results = slurp($tempfile);
-$results =~ s{
-    [ ] \d{4}-\d\d-\d\d (?: [ ] \d\d:\d\d:\d\d [ ] -0000 )?
-}{ %DATE%}gxms;
-$results =~ s{ spin [ ] \d+ [.] \d+ }{spin %VERSION%}xms;
-is_file_contents($results, $expected, 'Single file conversion');
+is_spin_output($tempfile, $expected, 'Single file conversion');
