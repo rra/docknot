@@ -1489,7 +1489,6 @@ sub spin_command {
 #   delete    - Whether to delete files missing from the source tree
 #   exclude   - List of regular expressions matching file names to exclude
 #   filter    - Run spin in filter mode
-#   overrides - A file of Perl code to load into the package
 #   style-url - Partial URL to style sheets
 #
 # Returns: Newly created object
@@ -1502,18 +1501,6 @@ sub new {
     $STYLES =~ s{ /* \z }{/}xms;
     if ($args_ref->{exclude}) {
         push(@EXCLUDES, map { qr{$_} } $args_ref->{exclude}->@*);
-    }
-
-    # Load overrides if requested.
-    if ($args_ref->{overrides}) {
-        my $overrides = $args_ref->{overrides};
-        if (!do "$overrides") {
-            if ($@) {
-                die "$0: cannot load $overrides: $@\n";
-            } else {
-                die "$0: cannot load $overrides: $!\n";
-            }
-        }
     }
 
     # Used to invoke spin as a filter.
@@ -1544,10 +1531,9 @@ spin - Translate thread, an HTML macro language, into XHTML
 
 =head1 SYNOPSIS
 
-spin [B<-dhv>] [B<-e> I<pattern> ...] [B<-s> I<url>] [B<-o> I<overrides>]
-I<source> [I<output>]
+spin [B<-dhv>] [B<-e> I<pattern> ...] [B<-s> I<url>] I<source> [I<output>]
 
-spin [B<-s> I<url>] [B<-o> I<overrides>] B<-f>
+spin [B<-s> I<url>] B<-f>
 
 =head1 REQUIREMENTS
 
@@ -1701,13 +1687,6 @@ stdout.  The signature and navigation links are disabled.
 
 Print out this documentation (which is done simply by feeding the script
 to C<perldoc -t>).
-
-=item B<-o> I<overrides>, B<--overrides>=I<overrides>
-
-Load the I<overrides> file using the Perl do command.  This file should
-contain Perl code that overrides or adds to the Perl code that's part of
-B<spin>.  It can be used to define new commands or change the behavior of
-existing commands.
 
 =item B<-s> I<url>, B<--style-url>=I<url>
 
