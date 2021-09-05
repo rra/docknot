@@ -68,9 +68,6 @@ sub output {
 # Escapes &, <, and > characters found in a string.
 sub escape { local $_ = shift; s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g; $_ }
 
-# Undo HTML entity escaping.
-sub unescape { local $_ = shift; s/&lt;/</g; s/&gt;/>/g; s/&amp;/&/g; $_ }
-
 # Wrap something in paragraph markers, being careful to get newlines right.
 # Special-case a paragraph consisting entirely of <span> by turning it into a
 # <p> with the same class.
@@ -1048,13 +1045,6 @@ sub do_tablerow {
     return (1, $output);
 }
 
-# Output HTML text completely verbatim.
-sub do_verbatim {
-    my ($format, $text) = @_;
-    $text = unescape ($text);
-    return (1, $text);
-}
-
 # Given the name of a product, return the version number of that product.
 sub do_version {
     my ($format, $product) = @_;
@@ -1105,7 +1095,6 @@ sub do_version {
              tablehead  => [ -1, \&do_tablehead  ],
              tablerow   => [ -1, \&do_tablerow   ],
              under      => [  1, \&do_under      ],
-             verbatim   => [  1, \&do_verbatim   ],
              version    => [  1, \&do_version    ]);
 
 # Add handlers for all the headings.
