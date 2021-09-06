@@ -42,7 +42,7 @@ use subs qw(expand parse parse_context);
 use warnings;
 use vars qw(%DEPEND $DOCID $FILE @FILES $FULLPATH $ID $OUTPUT
             %OUTPUT $REPO @RSS %SITEDESCS %SITELINKS @SITEMAP $SOURCE
-            @STATE $STYLES %VERSIONS %commands %macros %strings);
+            @STATE $STYLES %VERSIONS %commands);
 
 ##############################################################################
 # Output
@@ -217,25 +217,25 @@ sub expand {
         my ($new, $args, $definition);
         ($new, $args, $definition, $text) = $self->extract($text, 3);
         if (defined $definition) {
-            $macros{$new} = [ $args, $definition ];
+            $self->{macros}{$new} = [$args, $definition];
             return ('', 1, $text);
         }
     } elsif ($command eq '=') {
         my ($variable, $value);
         ($variable, $value, $text) = $self->extract($text, 2);
-        $strings{$variable} = $self->parse($value);
+        $self->{strings}{$variable} = $self->parse($value);
         return ('', 1, $text);
     } elsif ($command =~ s/^=//) {
-        if (exists $strings{$command}) {
-            return ($strings{$command}, 0, $text);
+        if (exists($self->{strings}{$command})) {
+            return ($self->{strings}{$command}, 0, $text);
         } else {
             warn "$0:$FILE:$.: unknown string $command\n";
             return ('', 0, $text);
         }
     } elsif ($command eq '\\') {
         return ('\\', 0, $text);
-    } elsif (ref $macros{$command}) {
-        my ($args, $definition) = @{ $macros{$command} };
+    } elsif (exists($self->{macros}{$command})) {
+        my ($args, $definition) = $self->{macros}{$command}->@*;
         my @args;
         if ($args != 0) {
             @args = $self->extract($text, $args, 0);
@@ -1181,7 +1181,9 @@ sub spin {
     @FILES = ([$fh, $thread]);
 
     # Initialize object state for a new document.
-    $self->{space} = q{};
+    $self->{macros}  = {};
+    $self->{space}   = q{};
+    $self->{strings} = {};
 
     # Parse the thread file a paragraph at a time (but pick up macro contents
     # that are continued across paragraphs.  We maintain the stack of files
@@ -1217,8 +1219,6 @@ sub spin {
     }
     print OUT $self->border_clear(), $self->{space};
     close OUT;
-    undef %macros;
-    undef %strings;
     undef $DOCID;
     undef @RSS;
 }
