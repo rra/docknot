@@ -42,7 +42,7 @@ use subs qw(expand parse parse_context);
 use warnings;
 use vars qw(%DEPEND $DOCID $FILE @FILES $FULLPATH $ID $OUTPUT
             %OUTPUT $REPO @RSS %SITEDESCS %SITELINKS @SITEMAP $SOURCE
-            @STATE $STYLES %VERSIONS %commands);
+            @STATE %VERSIONS %commands);
 
 ##############################################################################
 # Output
@@ -835,7 +835,7 @@ sub do_heading {
     $output .= qq( content="text/html; charset=utf-8" />\n);
     if ($style) {
         $style .= '.css';
-        $style = $STYLES . $style if $STYLES;
+        $style = $self->{style_url} . $style if $self->{style_url};
         $output .= qq(  <link rel="stylesheet" href="$style");
         $output .= qq( type="text/css" />\n);
     }
@@ -1285,7 +1285,7 @@ sub run_converter {
 # cl2xhtml output.
 sub cl2xhtml {
     my ($self, $source, $output, $options, $style) = @_;
-    $style = $STYLES . 'changelog.css' unless $style;
+    $style ||= $self->{style_url} . 'changelog.css';
     my $command = "cl2xhtml $options -s $style $source";
     my $footer = sub {
         my ($blurb, $id, $file) = @_;
@@ -1305,7 +1305,7 @@ sub cvs2xhtml {
     my $name = $source;
     $name =~ s%^.*/%%;
     $options .= " -n $name" unless $options =~ /-n /;
-    $style = $STYLES . 'cvs.css' unless $style;
+    $style ||= $self->{style_url} . 'cvs.css';
     $options .= " -s $style";
     my $command = "(cd $dir && cvs log $name) | cvs2xhtml $options";
     my $footer = sub {
@@ -1321,7 +1321,7 @@ sub cvs2xhtml {
 # output.
 sub faq2html {
     my ($self, $source, $output, $options, $style) = @_;
-    $style = $STYLES . 'faq.css' unless $style;
+    $style ||= $self->{style_url} . 'faq.css';
     my $command = "faq2html $options -s $style $source";
     my $footer = sub {
         my ($blurb, $id, $file) = @_;
@@ -1336,7 +1336,7 @@ sub faq2html {
 sub pod2html {
     my ($self, $source, $output, $options, $style) = @_;
     $options = '-n' unless $options;
-    my $styles = ($STYLES ? " -s $STYLES" : '');
+    my $styles = ($self->{style_url} ? " -s $self->{style_url}" : '');
     $style = 'pod' unless $style;
     $options .= " -s $style";
     my $command = "pod2thread $options $source | $FULLPATH spin -f$styles";
@@ -1565,18 +1565,21 @@ sub new {
         push(@excludes, map { qr{$_} } $args_ref->{exclude}->@*);
     }
 
-    # Stash constructor arguments.
-    $STYLES = $args_ref->{'style-url'} // q{};
-    $STYLES =~ s{ /* \z }{/}xms;
+    # Add a trailing slash to the partial URL for style sheets.
+    my $style_url = $args_ref->{'style-url'} // q{};
+    if ($style_url) {
+        $style_url =~ s{ /* \z }{/}xms;
+    }
 
     # Used to invoke spin as a filter.
     $FULLPATH = $0;
 
     # Create and return the object.
     my $self = {
-        delete   => $args_ref->{delete},
-        excludes => [@excludes],
-        filter   => $args_ref->{filter},
+        delete    => $args_ref->{delete},
+        excludes  => [@excludes],
+        filter    => $args_ref->{filter},
+        style_url => $style_url,
     };
     bless($self, $class);
     return $self;
