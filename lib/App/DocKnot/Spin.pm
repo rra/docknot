@@ -49,7 +49,8 @@ use Text::Balanced qw(extract_bracketed);
 # the output string after any close tags.  This gets spacing working properly
 # around boundaries.
 sub output {
-    local $_ = join ('', @_);
+    my ($self, @output) = @_;
+    local $_ = join ('', @output);
     if ($SPACE) {
         my ($close, $body) = m%^(\s*(?:</(?!body)[^>]+>\s*)*)(.*)%s;
         $close .= $SPACE;
@@ -66,13 +67,20 @@ sub output {
 ##############################################################################
 
 # Escapes &, <, and > characters found in a string.
-sub escape { local $_ = shift; s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g; $_ }
+sub escape {
+    my ($self, $string) = @_;
+    local $_ = $string;
+    s/&/&amp;/g;
+    s/</&lt;/g;
+    s/>/&gt;/g;
+    return $_;
+}
 
 # Wrap something in paragraph markers, being careful to get newlines right.
 # Special-case a paragraph consisting entirely of <span> by turning it into a
 # <p> with the same class.
 sub paragraph {
-    my $text = shift;
+    my ($self, $text) = @_;
     $text =~ s/^\n(\s*\n)*//;
     $text =~ s/(\S[ \t]*)\z/$1\n/;
     if ($text =~ m%^(\s*)<span(?!.*<span)([^>]*)>(.*)</span>(\s*)\z%s) {
@@ -89,7 +97,7 @@ sub paragraph {
 # the state and its start and end tags, or takes no arguments to close all
 # open states.
 sub border {
-    my ($border, $start, $end) = @_;
+    my ($self, $border, $start, $end) = @_;
     my $output = '';
     if ($border) {
         if ($STATE[-1] eq 'BLOCK' || $STATE[-1][0] ne $border) {
@@ -110,11 +118,13 @@ sub border {
 # Marks the beginning of major block structure.  Within this structure,
 # borders will only clear to the level of this structure.
 sub border_start {
+    my ($self) = @_;
     push (@STATE, 'BLOCK');
 }
 
 # Clears a major block structure.
 sub border_clear {
+    my ($self) = @_;
     my $output = border;
     pop @STATE;
     return $output;
@@ -125,7 +135,7 @@ sub border_clear {
 # instruction first, returning it as the first result (or undef if it's not
 # found).  If the count is -1, pull off as many arguments as we can find.
 sub extract {
-    my ($text, $count, $format) = @_;
+    my ($self, $text, $count, $format) = @_;
     my (@result, $code);
     $text =~ s/\s*//;
     if ($format && $text =~ /^\(/) {
@@ -162,9 +172,9 @@ sub extract {
 # all the arguments.  Only straight substitution commands are allowed here, of
 # course.
 sub macro {
-    my ($args, $definition, $block) = @_;
-    $definition =~ s/\\(\d+)/($1 > $args) ? "\\$1" : $_[$1 + 2]/ge;
-    return parse_context ($definition, $block);
+    my ($self, $args, $definition, $block, @args) = @_;
+    $definition =~ s/\\(\d+)/($1 > $args) ? "\\$1" : $args[$1 - 1]/ge;
+    return $self->parse_context($definition, $block);
 }
 
 # Expand a given command into its representation.  This function is mutually
@@ -174,18 +184,18 @@ sub macro {
 # command, a flag saying whether the command is block level, and the remaining
 # text in the paragraph.
 sub expand {
-    my ($command, $text, $block) = @_;
+    my ($self, $command, $text, $block) = @_;
     if ($command eq '==') {
         my ($new, $args, $definition);
-        ($new, $args, $definition, $text) = extract ($text, 3);
+        ($new, $args, $definition, $text) = $self->extract($text, 3);
         if (defined $definition) {
             $macros{$new} = [ $args, $definition ];
             return ('', 1, $text);
         }
     } elsif ($command eq '=') {
         my ($variable, $value);
-        ($variable, $value, $text) = extract ($text, 2);
-        $strings{$variable} = parse ($value);
+        ($variable, $value, $text) = $self->extract($text, 2);
+        $strings{$variable} = $self->parse($value);
         return ('', 1, $text);
     } elsif ($command =~ s/^=//) {
         if (exists $strings{$command}) {
@@ -200,11 +210,11 @@ sub expand {
         my ($args, $definition) = @{ $macros{$command} };
         my @args;
         if ($args != 0) {
-            @args = extract ($text, $args, 0);
+            @args = $self->extract($text, $args, 0);
             $text = pop @args;
         }
         my $block = $block && ($text !~ /\S/);
-        return (macro ($args, $definition, $block, @args), $text);
+        return ($self->macro($args, $definition, $block, @args), $text);
     } else {
         if (!ref $commands{$command}) {
             warn "$0:$FILE:$.: bad command $command\n";
@@ -213,12 +223,12 @@ sub expand {
         my ($args, $handler) = @{ $commands{$command} };
         my ($blocktag, $result);
         if ($args == 0) {
-            ($blocktag, $result) = &$handler ();
+            ($blocktag, $result) = $self->$handler();
         } else {
-            my @args = extract ($text, $args, 1);
+            my @args = $self->extract($text, $args, 1);
             $text = pop @args;
             my $format = shift @args;
-            ($blocktag, $result) = &$handler ($format, @args);
+            ($blocktag, $result) = $self->$handler($format, @args);
         }
         return ($result, $blocktag, $text);
     }
@@ -229,10 +239,10 @@ sub expand {
 # we're at the block level.  Returns the expanded text and a flag saying
 # whether the result is suitable for block level.
 sub parse_context {
-    my ($text, $block) = @_;
+    my ($self, $text, $block) = @_;
     if (index ($text, '\\') == -1) {
         my $output = $text;
-        $output = border . paragraph ($output) if $block;
+        $output = $self->border() . $self->paragraph($output) if $block;
         return ($output, $block);
     }
 
@@ -266,7 +276,7 @@ sub parse_context {
             if ($block && $string =~ /^\s+$/ && $paragraph eq '') {
                 $space .= $string;
             } elsif ($block && ($string =~ /\S/ || $paragraph ne '')) {
-                $border = border if $paragraph eq '';
+                $border = $self->border() if $paragraph eq '';
                 $paragraph .= $space . $string;
                 $space = '';
             } else {
@@ -277,10 +287,11 @@ sub parse_context {
             $command = $2;
             my ($result, $blocktag);
             my $force = $block && $paragraph eq '';
-            ($result, $blocktag, $text) = expand ($command, $text, $force);
+            ($result, $blocktag, $text)
+              = $self->expand($command, $text, $force);
             if ($blocktag) {
                 if ($block && $paragraph ne '') {
-                    $output .= $border . paragraph ($space . $paragraph);
+                    $output .= $border . $self->paragraph ($space . $paragraph);
                     $border = '';
                     $paragraph = '';
                 } else {
@@ -288,7 +299,7 @@ sub parse_context {
                 }
                 $output .= $result;
             } elsif ($block) {
-                $border = border if $paragraph eq '';
+                $border = $self->border() if $paragraph eq '';
                 $paragraph .= $space . $result;
                 $nonblock = 1;
             } else {
@@ -311,7 +322,7 @@ sub parse_context {
     # If we were at block level, our output is always suitable for block
     # level.  Otherwise, it's suitable for block level only if all of our
     # output was from block commands.
-    $output .= $border . paragraph ($space . $paragraph)
+    $output .= $border . $self->paragraph($space . $paragraph)
         unless $paragraph eq '';
     return ($output, $block || !$nonblock);
 }
@@ -319,7 +330,8 @@ sub parse_context {
 # A wrapper around parse_context for callers who don't care about the block
 # level of the results.
 sub parse {
-    my ($output) = parse_context (@_);
+    my ($self, @args) = @_;
+    my ($output) = $self->parse_context(@args);
     return $output;
 }
 
@@ -342,7 +354,7 @@ sub parse {
 # related, a line with three dashes should be put between them at the same
 # indentation level.
 sub read_sitemap {
-    my ($map) = @_;
+    my ($self, $map) = @_;
 
     # @indents holds a stack of indentation levels.  @parents is a matching
     # stack of parent URLs for each level of indentation, and @prev is a
@@ -388,7 +400,7 @@ sub read_sitemap {
 
 # Given a date and time in ISO format, convert it to seconds since epoch.
 sub time_to_seconds {
-    my ($date, $time) = @_;
+    my ($self, $date, $time) = @_;
     my @datetime = reverse split (':', $time);
     push (@datetime, reverse split ('-', $date));
     $datetime[4]--;
@@ -405,7 +417,7 @@ sub time_to_seconds {
 # holds a mapping of file names that use a particular version to the timestamp
 # of the last change in that version.
 sub read_versions {
-    my ($versions) = @_;
+    my ($self, $versions) = @_;
     open (VERSIONS, $versions) or return;
     local $_;
     my $last;
@@ -421,7 +433,7 @@ sub read_versions {
             my $timestamp;
             if ($date) {
                 $time ||= '00:00:00';
-                $timestamp = time_to_seconds ($date, $time);
+                $timestamp = $self->time_to_seconds($date, $time);
             } else {
                 $timestamp = 0;
             }
@@ -443,7 +455,7 @@ sub read_versions {
 # Given the partial URL to the current page and the partial URL to another
 # page, generate a relative URL between the two.
 sub relative {
-    my ($start, $end) = @_;
+    my ($self, $start, $end) = @_;
     my @start = split ('/', $start, -1);
     my @end = split ('/', $end, -1);
     while (@start && @end && $start[0] eq $end[0]) {
@@ -462,7 +474,7 @@ sub relative {
 # and %SITELINKS variables.  If the partial URL isn't found in those variables
 # or we're at the top page, nothing is returned.
 sub sitelinks {
-    my $file = shift;
+    my ($self, $file) = @_;
     $file = $File::Find::dir . '/' . $file;
     $file =~ s%^\Q$SOURCE%%;
     $file =~ s%/index\.html$%/%;
@@ -471,8 +483,10 @@ sub sitelinks {
     if ($file ne '/' && $SITELINKS{$file}) {
         my @links = @{ $SITELINKS{$file} };
         my @descs = map { defined ($_) ? $SITEDESCS{$_} : '' } @links;
-        @descs = map { s/\"/&quot;/g; $_ } map { escape $_ } @descs;
-        @links = map { defined ($_) ? relative ($file, $_) : undef } @links;
+        @descs = map { s/\"/&quot;/g; $_ } map { $self->escape($_) } @descs;
+        @links = map {
+            defined ($_) ? $self->relative($file, $_) : undef
+        } @links;
 
         # Make the HTML for the footer.
         my @types = ('previous', 'next', 'up');
@@ -489,7 +503,7 @@ sub sitelinks {
             }
             $output .= $link;
         }
-        my $href = relative ($file, '/');
+        my $href = $self->relative($file, '/');
         $output .= qq(  <link rel="top" href="$href" />\n);
     }
     return $output;
@@ -500,7 +514,7 @@ sub sitelinks {
 # variables.  If the partial URL isn't found in those variables or we're at
 # the top page, nothing is returned.
 sub placement {
-    my $file = shift;
+    my ($self, $file) = @_;
     if (defined($File::Find::dir)) {
         $file = $File::Find::dir . '/' . $file;
     }
@@ -511,8 +525,10 @@ sub placement {
     if ($file ne '/' && $SITELINKS{$file}) {
         my @links = @{ $SITELINKS{$file} };
         my @descs = map { defined ($_) ? $SITEDESCS{$_} : '' } @links;
-        @descs = map { escape $_ } @descs;
-        @links = map { defined ($_) ? relative ($file, $_) : undef } @links;
+        @descs = map { $self->escape($_) } @descs;
+        @links = map {
+            defined ($_) ? $self->relative($file, $_) : undef
+        } @links;
 
         # Build the table for the navigation bar.
         $output = qq(<table class="navbar"><tr>\n);
@@ -548,6 +564,7 @@ sub placement {
 
 # Return the signature file for pages in this directory, if present.
 sub sign {
+    my ($self) = @_;
     my $output = '';
     if (open (SIG, '< .signature') || open (SIG, "< $SOURCE/.signature")) {
         local $/ = "\n";
@@ -568,8 +585,8 @@ sub sign {
 # have the strings %MOD% and %NOW% replaced by the appropriate dates and %URL%
 # with the URL to my HTML generation software..
 sub footer {
-    my ($source, $file, $id, @templates) = @_;
-    my $output = placement $file;
+    my ($self, $source, $file, $id, @templates) = @_;
+    my $output = $self->placement($file);
     $output .= "<address>\n    " . sign;
 
     # Figure out the modified dates.  Use the RCS/CVS Id if available,
@@ -613,7 +630,7 @@ sub footer {
 # that should be used preceeded by a space, or an empty string if none should
 # be used.
 sub format_string {
-    my $format = shift;
+    my ($self, $format) = @_;
     if ($format) {
         if ($format =~ s/^\#//) {
             if ($format =~ /\s/) {
@@ -633,7 +650,7 @@ sub format_string {
 # unbalanced number of open brackets.  Used by containiners like \block that
 # can contain multiple paragraphs.
 sub split_paragraphs {
-    my $text = shift;
+    my ($self, $text) = @_;
     $text =~ s/^\n(\s*\n)+/\n/;
     my @paragraphs;
     while ($text && $text =~ s/^(.*?(?:\n\n+|\s*\z))//s) {
@@ -657,16 +674,17 @@ sub split_paragraphs {
 # argument on paragraph boundaries and surrounding things properly with the
 # tag.
 sub block {
-    my ($tag, $border, $format, $text) = @_;
+    my ($self, $tag, $border, $format, $text) = @_;
     my $output;
-    border_start;
+    $self->border_start();
     if ($format eq 'packed') {
-        $output = parse ($text, 0);
+        $output = $self->parse($text, 0);
     } else {
-        $output = join ('', map { parse ($_, 1) } split_paragraphs ($text));
+        my @paragraphs = $self->split_paragraphs($text);
+        $output = join('', map { $self->parse($_, 1) } @paragraphs);
     }
-    $output .= border_clear;
-    $output = $border . "<$tag" . format_string ($format) . '>' . $output;
+    $output .= $self->border_clear();
+    $output = $border . "<$tag" . $self->format_string($format) . '>' . $output;
     $output =~ s%\s*\z%</$tag>%;
     $output .= "\n" unless $format eq 'packed';
     return (1, $output);
@@ -676,15 +694,15 @@ sub block {
 # tag inside the heading tag to make it a valid target for internal links even
 # in old browsers.
 sub heading {
-    my ($level, $format, $text) = @_;
-    my $output = border;
+    my ($self, $level, $format, $text) = @_;
+    my $output = $self->border();
     if ($format && $format =~ /^\#/) {
         my $tag = $format;
         $tag =~ s/^\#//;
         $text = qq(<a name="$tag">$text</a>);
     }
-    $output .= "<h$level" . format_string ($format) . '>';
-    $output .= parse ($text);
+    $output .= "<h$level" . $self->format_string($format) . '>';
+    $output .= $self->parse($text);
     $output =~ s/\n\z//;
     $output .= "</h$level>\n";
     return (1, $output);
@@ -693,9 +711,9 @@ sub heading {
 # A simple inline element.  Takes the name of the tag, the format, and the
 # body and returns the appropriate list of block level and HTML.
 sub inline {
-    my ($tag, $format, $text) = @_;
-    my $output = "<$tag" . format_string ($format) . '>';
-    $output .= parse ($text) . "</$tag>";
+    my ($self, $tag, $format, $text) = @_;
+    my $output = "<$tag" . $self->format_string($format) . '>';
+    $output .= $self->parse($text) . "</$tag>";
     return (0, $output);
 }
 
@@ -704,7 +722,7 @@ sub inline {
 # options of the <span> or <div> out and instead apply them to the parent tag.
 # Takes the tag and the text to enclose.
 sub enclose {
-    my ($tag, $text) = @_;
+    my ($self, $tag, $text) = @_;
     my $close = $tag;
     $close =~ s/ .*//;
     if ($text =~ m%^(\s*)<span(?!.*<span)([^>]*)>(.*)</span>(\s*)\z%s) {
@@ -723,41 +741,56 @@ sub enclose {
 ##############################################################################
 
 # Basic inline commands.
-sub do_break  { (0, '<br />') }
-sub do_bold   { inline ('b', @_) }
-sub do_cite   { inline ('cite', @_) }
-sub do_class  { inline ('span', @_) }
-sub do_code   { inline ('code', @_) }
-sub do_emph   { inline ('em', @_) }
-sub do_italic { inline ('i', @_) }
-sub do_rule   { return (1, border . "<hr />\n") }
-sub do_strike { inline ('strike', @_) }
-sub do_strong { inline ('strong', @_) }
-sub do_sub    { inline ('sub', @_) }
-sub do_sup    { inline ('sup', @_) }
-sub do_under  { inline ('u', @_) }
+sub do_break  { my ($self, @args) = @_; return (0, '<br />') }
+sub do_bold   { my ($self, @args) = @_; return $self->inline ('b', @args) }
+sub do_cite   { my ($self, @args) = @_; return $self->inline ('cite', @args) }
+sub do_class  { my ($self, @args) = @_; return $self->inline ('span', @args) }
+sub do_code   { my ($self, @args) = @_; return $self->inline ('code', @args) }
+sub do_emph   { my ($self, @args) = @_; return $self->inline ('em', @args) }
+sub do_italic { my ($self, @args) = @_; return $self->inline ('i', @args) }
+sub do_strike { my ($self, @args) = @_; return $self->inline ('strike', @args) }
+sub do_strong { my ($self, @args) = @_; return $self->inline ('strong', @args) }
+sub do_sub    { my ($self, @args) = @_; return $self->inline ('sub', @args) }
+sub do_sup    { my ($self, @args) = @_; return $self->inline ('sup', @args) }
+sub do_under  { my ($self, @args) = @_; return $self->inline ('u', @args) }
 
 # Basic block commands.
-sub do_div    { block ('div', '', @_) }
-sub do_block  { block ('blockquote', '', @_) }
-sub do_bullet { block ('li', border ('bullet', "<ul>\n", "</ul>\n\n"), @_) }
-sub do_number { block ('li', border ('number', "<ol>\n", "</ol>\n\n"), @_) }
+sub do_div {
+    my ($self, @args) = @_;
+    $self->block('div', '', @args);
+}
+sub do_block {
+    my ($self, @args) = @_;
+    $self->block('blockquote', '', @args);
+}
+sub do_bullet {
+    my ($self, @args) = @_;
+    $self->block('li', $self->border('bullet', "<ul>\n", "</ul>\n\n"), @args);
+}
+sub do_rule {
+    my ($self) = @_;
+    return (1, $self->border() . "<hr />\n");
+}
+sub do_number {
+    my ($self, @args) = @_;
+    $self->block('li', $self->border('number', "<ol>\n", "</ol>\n\n"), @args);
+}
 
 # A description list entry, which takes the heading and the body as arguments.
 sub do_desc {
-    my ($format, $heading, $text) = @_;
-    my $initial = border ('desc', "<dl>\n", "</dl>\n\n");
-    $initial .= '<dt' . format_string ($format) . '>' . parse ($heading)
-        . "</dt>\n";
-    return block ('dd', $initial, $format, $text);
+    my ($self, $format, $heading, $text) = @_;
+    my $initial = $self->border('desc', "<dl>\n", "</dl>\n\n");
+    $initial .= '<dt' . $self->format_string($format) . '>'
+      . $self->parse($heading) . "</dt>\n";
+    return $self->block('dd', $initial, $format, $text);
 }
 
 # An HTML entity.  Check for and handle numeric entities properly, including
 # special-casing [ and ] since the user may have needed to use \entity to
 # express text that contains literal brackets.
 sub do_entity {
-    my ($format, $char) = @_;
-    $char = parse ($char);
+    my ($self, $format, $char) = @_;
+    $char = $self->parse($char);
     if ($char eq '91') {
         return (0, '[');
     } elsif ($char eq '93') {
@@ -773,9 +806,9 @@ sub do_entity {
 # the page title and the page style.  This is where the XHTML declarations
 # come from.
 sub do_heading {
-    my ($format, $title, $style) = @_;
-    $title = parse ($title);
-    $style = parse ($style);
+    my ($self, $format, $title, $style) = @_;
+    $title = $self->parse($title);
+    $style = $self->parse($style);
     my $file = $FILE;
     $file =~ s/\.th$/.html/;
     my $output = qq(<?xml version="1.0" encoding="utf-8"?>\n);
@@ -802,7 +835,7 @@ sub do_heading {
         }
     }
     if ($FILE ne '-' && defined($File::Find::dir)) {
-        $output .= sitelinks $file;
+        $output .= $self->sitelinks($file);
     }
     $output .= "</head>\n\n";
     my $date = strftime ('%Y-%m-%d %T -0000', gmtime);
@@ -811,7 +844,7 @@ sub do_heading {
     $output .= "<!-- $DOCID -->\n" if $DOCID;
     $output .= "\n<body>\n";
     if ($FILE ne '-' && defined($File::Find::dir)) {
-        $output .= placement ($file);
+        $output .= $self->placement($file);
     }
     return (1, $output);
 }
@@ -819,7 +852,7 @@ sub do_heading {
 # Used to save the RCS Id for the document.  Doesn't actually output anything
 # (the identifier is later used in do_heading).
 sub do_id {
-    my ($format, $id) = @_;
+    my ($self, $format, $id) = @_;
     $DOCID = $id;
     return (1, '');
 }
@@ -827,15 +860,15 @@ sub do_id {
 # Include an image.  The size is added to the HTML tag automatically.  Takes
 # the relative path to the image and the alt text.
 sub do_image {
-    my ($format, $image, $text) = @_;
-    $image = parse ($image);
-    $text = parse ($text);
+    my ($self, $format, $image, $text) = @_;
+    $image = $self->parse($image);
+    $text = $self->parse($text);
     my $size = '';
     if (-f $image) {
         $size = ' ' . lc html_imgsize ($image);
     }
     my $output = qq(<img src="$image" alt="$text"$size);
-    $output .= format_string ($format) . " />";
+    $output .= $self->format_string($format) . " />";
     return (1, $output);
 }
 
@@ -843,8 +876,8 @@ sub do_image {
 # not immediately at the current point, which may be a bit surprising.
 # Someday, I should fix that.
 sub do_include {
-    my ($format, $file) = @_;
-    $file = parse ($file);
+    my ($self, $format, $file) = @_;
+    $file = $self->parse($file);
     my $fh = FileHandle->new ("< $file")
         or die "$0:$FILE:$.: cannot include $file: $!\n";
     unshift (@FILES, [$fh, $file]);
@@ -853,17 +886,19 @@ sub do_include {
 
 # A link to a URL or partial URL.
 sub do_link {
-    my ($format, $url, $text) = @_;
-    my $output = '<a href="' . parse ($url) . '"';
-    $output .= format_string ($format) . '>' . parse ($text) . '</a>';
+    my ($self, $format, $url, $text) = @_;
+    my $output = '<a href="' . $self->parse($url) . '"';
+    $output .= $self->format_string($format) . '>' . $self->parse($text)
+      . '</a>';
     return (0, $output);
 }
 
 # Preformatted text, the same as the HTML tag.
 sub do_pre {
-    my ($format, $text) = @_;
-    my $output = border;
-    $output .= '<pre' . format_string ($format) . '>' . parse ($text);
+    my ($self, $format, $text) = @_;
+    my $output = $self->border();
+    $output .= '<pre' . $self->format_string($format) . '>';
+    $output .= $self->parse($text);
     $output .= "</pre>\n";
     return (1, $output);
 }
@@ -872,11 +907,12 @@ sub do_pre {
 # quote, the author, and the citation; the citation may be empty.  If the
 # format is "broken", adds line breaks at the end of each line.
 sub do_quote {
-    my ($format, $quote, $author, $cite) = @_;
+    my ($self, $format, $quote, $author, $cite) = @_;
     my $output = border . '<blockquote class="quote">';
-    border_start;
-    $quote = join ('', map { parse ($_, 1) } split_paragraphs ($quote));
-    $quote .= border_clear;
+    $self->border_start();
+    my @paragraphs = $self->split_paragraphs ($quote);
+    $quote = join ('', map { $self->parse($_, 1) } @paragraphs);
+    $quote .= $self->border_clear();
     if ($format && $format eq 'broken') {
         $quote =~ s%(\S *)(\n\s*(?!</p>)\S)%$1<br />$2%g;
         $quote =~ s%\n<br />%\n%g;
@@ -884,12 +920,12 @@ sub do_quote {
     }
     $quote =~ s/\n+$//;
     if ($format) {
-        my $class = format_string ($format);
+        my $class = $self->format_string($format);
         $quote =~ s/<p>/<p$class>/g;
     }
     $output .= $quote;
     if ($author) {
-        $author = parse ($author);
+        $author = $self->parse($author);
         my $prefix = '';
         if ($format && ($format eq 'broken' || $format eq 'short')) {
             $output .= qq(<p class="attribution">\n);
@@ -898,7 +934,7 @@ sub do_quote {
             $prefix = '&mdash; ';
         }
         if ($cite) {
-            $cite = parse ($cite);
+            $cite = $self->parse($cite);
             $output .= "    $prefix$author,\n    $cite\n";
         } else {
             $output .= "    $prefix$author\n";
@@ -913,8 +949,8 @@ sub do_quote {
 
 # Given the name of a product, return the release date of the product.
 sub do_release {
-    my ($format, $product) = @_;
-    $product = parse ($product);
+    my ($self, $format, $product) = @_;
+    $product = $self->parse($product);
     if ($VERSIONS{$product}) {
         my $date = $VERSIONS{$product}[1];
         $date =~ s/ .*//;
@@ -928,9 +964,9 @@ sub do_release {
 # Used to save RSS feed information for the page.  Doesn't output anything
 # directly; the RSS feed information is used later in do_heading.
 sub do_rss {
-    my ($format, $url, $title) = @_;
-    $url = parse ($url);
-    $title = parse ($title);
+    my ($self, $format, $url, $title) = @_;
+    $url = $self->parse($url);
+    $title = $self->parse($title);
     push (@RSS, [ $url, $title ]);
     return (1, '');
 }
@@ -938,7 +974,8 @@ sub do_rss {
 # Used to end each page, this adds the navigation links and my standard
 # address block.
 sub do_signature {
-    my $output = border;
+    my ($self) = @_;
+    my $output = $self->border();
     if ($FILE eq '-') {
         $output .= "</body>\n</html>\n";
         return (1, $output);
@@ -950,9 +987,11 @@ sub do_signature {
     if (defined $File::Find::dir) {
         $source = $File::Find::dir . '/' . $source;
     }
-    $output .= footer ($source, $file, $DOCID,
-                       "Last modified and\n    $link %MOD%",
-                       "Last $link\n    %NOW% from thread modified %MOD%");
+    $output .= $self->footer(
+        $source, $file, $DOCID,
+        "Last modified and\n    $link %MOD%",
+        "Last $link\n    %NOW% from thread modified %MOD%"
+    );
     $output .= "</body>\n</html>\n";
     return (1, $output);
 }
@@ -961,8 +1000,8 @@ sub do_signature {
 # file.  We could use Number::Format here, but what we're doing is simple
 # enough and doesn't seem worth the trouble of another dependency.
 sub do_size {
-    my ($format, $file) = @_;
-    $file = parse ($file);
+    my ($self, $format, $file) = @_;
+    $file = $self->parse($file);
     unless ($file) {
         warn "$0:$FILE:$.: empty file name in \\size\n";
         return (0, '');
@@ -984,11 +1023,12 @@ sub do_size {
 
 # Generates a HTML version of the sitemap and outputs that.
 sub do_sitemap {
+    my ($self) = @_;
     unless (@SITEMAP) {
         warn qq($0:$FILE:$.: No sitemap file found\n);
         return (1, '');
     }
-    my $output = border;
+    my $output = $self->border();
     my @indents = (0);
     for my $page (@SITEMAP) {
         my ($indent, $url, $title) = @$page;
@@ -1018,17 +1058,19 @@ sub do_sitemap {
 # style sheet equivalent that it's unavoidable) and the body of the table
 # (which should consist of \tablehead and \tablerow lines).
 sub do_table {
-    my ($format, $options, $body) = @_;
+    my ($self, $format, $options, $body) = @_;
     my $tag = $options ? "table $options" : 'table';
-    return block ($tag, '', $format, $body);
+    return $self->block($tag, '', $format, $body);
 }
 
 # A heading of a table.  Takes the contents of the cells in that heading.
 sub do_tablehead {
-    my ($format, @cells) = @_;
-    my $output = '  <tr' . format_string ($format) . ">\n";
+    my ($self, $format, @cells) = @_;
+    my $output = '  <tr' . $self->format_string($format) . ">\n";
     for (@cells) {
-        $output .= '    ' . enclose ('th', parse ($_) . border) . "\n";
+        $output .= '    ';
+        $output .= $self->enclose('th', $self->parse ($_) . $self->border());
+        $output .= "\n";
     }
     $output .= "  </tr>\n";
     return (1, $output);
@@ -1036,10 +1078,12 @@ sub do_tablehead {
 
 # A data line of a table.  Takes the contents of the cells in that row.
 sub do_tablerow {
-    my ($format, @cells) = @_;
-    my $output = '  <tr' . format_string ($format) . ">\n";
+    my ($self, $format, @cells) = @_;
+    my $output = '  <tr' . $self->format_string($format) . ">\n";
     for (@cells) {
-        $output .= '    ' . enclose ('td', parse ($_) . border) . "\n";
+        $output .= '    ';
+        $output .= $self->enclose('td', $self->parse($_) . $self->border());
+        $output .= "\n";
     }
     $output .= "  </tr>\n";
     return (1, $output);
@@ -1047,8 +1091,8 @@ sub do_tablerow {
 
 # Given the name of a product, return the version number of that product.
 sub do_version {
-    my ($format, $product) = @_;
-    $product = parse ($product);
+    my ($self, $format, $product) = @_;
+    $product = $self->parse($product);
     if ($VERSIONS{$product}) {
         return (0, $VERSIONS{$product}[0]);
     } else {
@@ -1057,48 +1101,58 @@ sub do_version {
     }
 }
 
+sub do_h1 { my ($self, @args) = @_; $self->heading(1, @args); }
+sub do_h2 { my ($self, @args) = @_; $self->heading(2, @args); }
+sub do_h3 { my ($self, @args) = @_; $self->heading(3, @args); }
+sub do_h4 { my ($self, @args) = @_; $self->heading(4, @args); }
+sub do_h5 { my ($self, @args) = @_; $self->heading(5, @args); }
+sub do_h6 { my ($self, @args) = @_; $self->heading(6, @args); }
+
 # The table of available commands.  First column is the number of arguments,
 # second column is the handler, and the third column is whether this is its
 # own top-level element or whether it needs to be wrapped in <p> tags.  A
 # count of -1 means pull off as many arguments as we can find.
-%commands = (block      => [  1, \&do_block      ],
-             bold       => [  1, \&do_bold       ],
-             break      => [  0, \&do_break      ],
-             bullet     => [  1, \&do_bullet     ],
-             class      => [  1, \&do_class      ],
-             cite       => [  1, \&do_cite       ],
-             code       => [  1, \&do_code       ],
-             desc       => [  2, \&do_desc       ],
-             div        => [  1, \&do_div        ],
-             emph       => [  1, \&do_emph       ],
-             entity     => [  1, \&do_entity     ],
-             heading    => [  2, \&do_heading    ],
-             id         => [  1, \&do_id         ],
-             image      => [  2, \&do_image      ],
-             include    => [  1, \&do_include    ],
-             italic     => [  1, \&do_italic     ],
-             link       => [  2, \&do_link       ],
-             number     => [  1, \&do_number     ],
-             pre        => [  1, \&do_pre        ],
-             quote      => [  3, \&do_quote      ],
-             release    => [  1, \&do_release    ],
-             rss        => [  2, \&do_rss        ],
-             rule       => [  0, \&do_rule       ],
-             signature  => [  0, \&do_signature  ],
-             sitemap    => [  0, \&do_sitemap    ],
-             size       => [  1, \&do_size       ],
-             strike     => [  1, \&do_strike     ],
-             strong     => [  1, \&do_strong     ],
-             sub        => [  1, \&do_sub        ],
-             sup        => [  1, \&do_sup        ],
-             table      => [  2, \&do_table      ],
-             tablehead  => [ -1, \&do_tablehead  ],
-             tablerow   => [ -1, \&do_tablerow   ],
-             under      => [  1, \&do_under      ],
-             version    => [  1, \&do_version    ]);
-
-# Add handlers for all the headings.
-for (1..6) { $commands{"h$_"} = [ 1, eval "sub { heading ($_, \@_) }" ] }
+%commands = (block      => [  1, 'do_block'      ],
+             bold       => [  1, 'do_bold'       ],
+             break      => [  0, 'do_break'      ],
+             bullet     => [  1, 'do_bullet'     ],
+             class      => [  1, 'do_class'      ],
+             cite       => [  1, 'do_cite'       ],
+             code       => [  1, 'do_code'       ],
+             desc       => [  2, 'do_desc'       ],
+             div        => [  1, 'do_div'        ],
+             emph       => [  1, 'do_emph'       ],
+             entity     => [  1, 'do_entity'     ],
+             heading    => [  2, 'do_heading'    ],
+             h1         => [  1, 'do_h1'         ],
+             h2         => [  1, 'do_h2'         ],
+             h3         => [  1, 'do_h3'         ],
+             h4         => [  1, 'do_h4'         ],
+             h5         => [  1, 'do_h5'         ],
+             h6         => [  1, 'do_h6'         ],
+             id         => [  1, 'do_id'         ],
+             image      => [  2, 'do_image'      ],
+             include    => [  1, 'do_include'    ],
+             italic     => [  1, 'do_italic'     ],
+             link       => [  2, 'do_link'       ],
+             number     => [  1, 'do_number'     ],
+             pre        => [  1, 'do_pre'        ],
+             quote      => [  3, 'do_quote'      ],
+             release    => [  1, 'do_release'    ],
+             rss        => [  2, 'do_rss'        ],
+             rule       => [  0, 'do_rule'       ],
+             signature  => [  0, 'do_signature'  ],
+             sitemap    => [  0, 'do_sitemap'    ],
+             size       => [  1, 'do_size'       ],
+             strike     => [  1, 'do_strike'     ],
+             strong     => [  1, 'do_strong'     ],
+             sub        => [  1, 'do_sub'        ],
+             sup        => [  1, 'do_sup'        ],
+             table      => [  2, 'do_table'      ],
+             tablehead  => [ -1, 'do_tablehead'  ],
+             tablerow   => [ -1, 'do_tablerow'   ],
+             under      => [  1, 'do_under'      ],
+             version    => [  1, 'do_version'    ]);
 
 ##############################################################################
 # Interface
@@ -1107,10 +1161,10 @@ for (1..6) { $commands{"h$_"} = [ 1, eval "sub { heading ($_, \@_) }" ] }
 # This function is called, giving an input and an output file name, to spin
 # HTML from thread.
 sub spin {
-    my ($thread, $output) = @_;
+    my ($self, $thread, $output) = @_;
     open (OUT, "> $output") or die "$0: cannott create $output: $!\n";
     my $fh = FileHandle->new ("< $thread")
-        or die "$0: cannott open $thread: $!\n";
+        or die "$0: cannot open $thread: $!\n";
     @FILES = ([$fh, $thread]);
     $SPACE = '';
 
@@ -1122,7 +1176,7 @@ sub spin {
     # current values again each time through the loop.
     local $/ = '';
     local $_;
-    border_start;
+    $self->border_start();
     while (@FILES) {
         ($fh, $FILE) = @{ $FILES[0] };
         while (<$fh>) {
@@ -1138,15 +1192,15 @@ sub spin {
                 $close += ($extra =~ tr/\]//);
                 $_ .= $extra;
             }
-            my $result = parse (escape ($_), 1);
+            my $result = $self->parse($self->escape($_), 1);
             $result =~ s/^(?:\s*\n)+//;
-            output $result unless ($result =~ /^\s*$/);
+            $self->output($result) unless ($result =~ /^\s*$/);
             ($fh, $FILE) = @{ $FILES[0] };
         }
         close $fh;
         shift @FILES;
     }
-    print OUT border_clear, $SPACE;
+    print OUT $self->border_clear(), $SPACE;
     close OUT;
     undef %macros;
     undef %strings;
@@ -1164,7 +1218,7 @@ sub spin {
 # being the base name of the output file, and prints out a last modified line,
 # handle a call to an external converter.
 sub run_converter {
-    my ($command, $output, $footer) = @_;
+    my ($self, $command, $output, $footer) = @_;
     my @page = `$command`;
     if ($? != 0) {
         $command =~ s/ .*//;
@@ -1190,11 +1244,11 @@ sub run_converter {
             $blurb =~ s/ \(\d{4}-\d\d-\d\d\)//;
         }
         if (m%^</head>%) {
-            print OUT sitelinks $file;
+            print OUT $self->sitelinks($file);
         }
         print OUT $_;
         if (m%<body%i) {
-            print OUT placement $file;
+            print OUT $self->placement($file);
             last;
         }
     }
@@ -1206,7 +1260,7 @@ sub run_converter {
     print OUT $_ while (defined ($_ = shift @page) && !m%</body>%i);
 
     # Add the footer and finish with the output.
-    print OUT &$footer ($blurb, $docid, $file);
+    print OUT $footer->($blurb, $docid, $file);
     print OUT $_, @page if defined;
     close OUT;
 }
@@ -1215,22 +1269,22 @@ sub run_converter {
 # a tree being spun.  Adds the navigation links and the signature to the
 # cl2xhtml output.
 sub cl2xhtml {
-    my ($source, $output, $options, $style) = @_;
+    my ($self, $source, $output, $options, $style) = @_;
     $style = $STYLES . 'changelog.css' unless $style;
     my $command = "cl2xhtml $options -s $style $source";
     my $footer = sub {
         my ($blurb, $id, $file) = @_;
         $blurb =~ s%cl2xhtml%\n<a href="$URL">cl2xhtml</a>% if $blurb;
-        footer ($source, $file, $id, $blurb, $blurb);
+        $self->footer($source, $file, $id, $blurb, $blurb);
     };
-    run_converter ($command, $output, $footer);
+    $self->run_converter($command, $output, $footer);
 }
 
 # A wrapper around the cvs2xhtml script, used to handle .log pointers in a
 # tree being spun.  Adds the navigation links and the signature to the
 # cvs2xhtml output.
 sub cvs2xhtml {
-    my ($source, $output, $options, $style) = @_;
+    my ($self, $source, $output, $options, $style) = @_;
     my $dir = $source;
     $dir =~ s%/+[^/]+$%%;
     my $name = $source;
@@ -1242,30 +1296,30 @@ sub cvs2xhtml {
     my $footer = sub {
         my ($blurb, $id, $file) = @_;
         $blurb =~ s%cvs2xhtml%\n<a href="$URL">cvs2xhtml</a>% if $blurb;
-        footer ($source, $file, $id, $blurb, $blurb);
+        $self->footer($source, $file, $id, $blurb, $blurb);
     };
-    run_converter ($command, $output, $footer);
+    $self->run_converter($command, $output, $footer);
 }
 
 # A wrapper around the faq2html script, used to handle .faq pointers in a tree
 # being spun.  Adds the navigation links and the signature to the faq2html
 # output.
 sub faq2html {
-    my ($source, $output, $options, $style) = @_;
+    my ($self, $source, $output, $options, $style) = @_;
     $style = $STYLES . 'faq.css' unless $style;
     my $command = "faq2html $options -s $style $source";
     my $footer = sub {
         my ($blurb, $id, $file) = @_;
         $blurb =~ s%faq2html%\n<a href="$URL">faq2html</a>%;
-        footer ($source, $file, $id, $blurb, $blurb);
+        $self->footer($source, $file, $id, $blurb, $blurb);
     };
-    run_converter ($command, $output, $footer);
+    $self->run_converter($command, $output, $footer);
 }
 
 # A wrapper around pod2thread and spin -f, used to handle .pod pointers in a
 # tree being spun.  Adds the navigation links and the signature to the output.
 sub pod2html {
-    my ($source, $output, $options, $style) = @_;
+    my ($self, $source, $output, $options, $style) = @_;
     $options = '-n' unless $options;
     my $styles = ($STYLES ? " -s $STYLES" : '');
     $style = 'pod' unless $style;
@@ -1274,11 +1328,13 @@ sub pod2html {
     my $footer = sub {
         my ($blurb, $id, $file) = @_;
         my $link = '<a href="%URL%">spun</a>';
-        footer ($source, $file, $id,
-                "Last modified and\n    $link %MOD%",
-                "Last $link\n    %NOW% from POD modified %MOD%");
+        $self->footer(
+            $source, $file, $id,
+            "Last modified and\n    $link %MOD%",
+            "Last $link\n    %NOW% from POD modified %MOD%"
+        );
     };
-    run_converter ($command, $output, $footer);
+    $self->run_converter ($command, $output, $footer);
 }
 
 ##############################################################################
@@ -1288,7 +1344,7 @@ sub pod2html {
 # Given a pointer file, read the master file and any options from that file,
 # returning them as a list with the newlines chomped off.
 sub read_pointer {
-    my $file = shift;
+    my ($self, $file) = @_;
     open (POINTER, $file) or die "$0: cannot open $file: $!\n";
     my $master = <POINTER>;
     my $options = <POINTER>;
@@ -1308,6 +1364,7 @@ sub read_pointer {
 # it.  It's called from within File::Find and therefore uses the standard
 # File::Find variables.
 sub process_file {
+    my ($self) = @_;
     return if ($_ eq '.' || $_ eq '..');
     for my $regex (@EXCLUDES) {
         if (/$regex/) {
@@ -1323,11 +1380,11 @@ sub process_file {
 
     # Conversion rules for pointers.  The key is the extension, the first
     # value is the name of the command for the purposes of output, and the
-    # second is the sub to run.
-    my %rules = (changelog => [ 'cl2xhtml',   \&cl2xhtml  ],
-                 faq       => [ 'faq2html',   \&faq2html  ],
-                 log       => [ 'cvs2xhtml',  \&cvs2xhtml ],
-                 rpod      => [ 'pod2thread', \&pod2html  ]);
+    # second is the method to run.
+    my %rules = (changelog => [ 'cl2xhtml',   'cl2xhtml'  ],
+                 faq       => [ 'faq2html',   'faq2html'  ],
+                 log       => [ 'cvs2xhtml',  'cvs2xhtml' ],
+                 rpod      => [ 'pod2thread', 'pod2html'  ]);
 
     # Figure out what to do with the input.
     if (-d) {
@@ -1353,7 +1410,7 @@ sub process_file {
             return if (-M $_ >= -M $output && (stat $output)[9] >= $time);
         }
         print "Spinning $shortout\n";
-        spin ($_, $output);
+        $self->spin($_, $output);
     } else {
         my ($extension) = (/\.([^.]+)$/);
         if ($extension && $rules{$extension}) {
@@ -1366,7 +1423,7 @@ sub process_file {
                 return if (-M $file >= -M $output && -M $_ >= -M $output);
             }
             print "Running $name for $shortout\n";
-            &$sub ($file, $output, $options, $style);
+            $self->$sub($file, $output, $options, $style);
         } else {
             $OUTPUT{$output} = 1;
             return unless (!-e $output || -M $_ < -M $output);
@@ -1383,6 +1440,7 @@ sub process_file {
 # during spin processing, and if not, removes it.  It's called from within
 # File::Find and therefore uses the standard File::Find variables.
 sub delete_files {
+    my ($self) = @_;
     return if ($_ eq '.' || $_ eq '..');
     my $file = $File::Find::name;
     my $shortfile = $file;
@@ -1409,7 +1467,7 @@ sub spin_command {
     # the command line and process the input into the output.
     if ($self->{filter}) {
         if (@args) { die "Usage: $0 -f\n" }
-        spin ('-', '-');
+        $self->spin('-', '-');
     } else {
         die "Usage: $0 <source> [<output>]\n" unless (@args >= 1 && @args <= 2);
         ($SOURCE, $OUTPUT) = @args;
@@ -1427,7 +1485,7 @@ sub spin_command {
             my $current = getcwd;
             chdir $dir or die "$0: cannot chdir to $dir: $!\n";
             $SOURCE = File::Spec->catpath ('', getcwd, $file);
-            spin ($file, $OUTPUT);
+            $self->spin($file, $OUTPUT);
         } else {
             die "$0: no output directory specified\n" if $OUTPUT eq '-';
             if ($SOURCE !~ m%^/%) {
@@ -1445,8 +1503,8 @@ sub spin_command {
                 chdir $OUTPUT or die "$0: cannot chdir to $OUTPUT: $!\n";
                 $OUTPUT = getcwd;
             }
-            read_sitemap ("$SOURCE/.sitemap");
-            read_versions ("$SOURCE/.versions");
+            $self->read_sitemap("$SOURCE/.sitemap");
+            $self->read_versions("$SOURCE/.versions");
             if (-d "$SOURCE/.git") {
                 eval {
                     require Git::Repository;
@@ -1461,8 +1519,10 @@ sub spin_command {
                     or die "$0: running spin-rss on $SOURCE/.rss failed\n";
                 chdir $current or die "$0: cannot chdir to $current: $!\n";
             }
-            find (\&process_file, $SOURCE);
-            finddepth (\&delete_files, $OUTPUT) if $self->{delete};
+            find (sub { $self->process_file(@_) }, $SOURCE);
+            if ($self->{delete}) {
+                finddepth (sub { $self->delete_files(@_) }, $OUTPUT);
+            }
         }
     }
 }
