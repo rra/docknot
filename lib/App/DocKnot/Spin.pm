@@ -41,29 +41,53 @@ use strict;
 use subs qw(expand parse parse_context);
 use warnings;
 use vars qw(%DEPEND $DOCID $FILE @FILES $FULLPATH $ID $OUTPUT
-            %OUTPUT $REPO @RSS %SITEDESCS %SITELINKS @SITEMAP $SOURCE $SPACE
+            %OUTPUT $REPO @RSS %SITEDESCS %SITELINKS @SITEMAP $SOURCE
             @STATE $STYLES %VERSIONS %commands %macros %strings);
 
 ##############################################################################
 # Output
 ##############################################################################
 
-# Sends something to the output file.  Pull out any trailing space and stash
-# it temporarily, and put any trailing space that we'd previously stashed into
-# the output string after any close tags.  This gets spacing working properly
-# around boundaries.
-sub output {
+# Sends something to the output file with special handling of whitespace for
+# more readable HTML output.
+#
+# @output - Strings to output.
+sub _output {
     my ($self, @output) = @_;
-    local $_ = join ('', @output);
-    if ($SPACE) {
-        my ($close, $body) = m%^(\s*(?:</(?!body)[^>]+>\s*)*)(.*)%s;
-        $close .= $SPACE;
+    my $output = join(q{}, @output);
+
+    # If we have saved whitespace, separate any closing tags at the start of
+    # the output from the rest of the output and insert that saved space
+    # between those closing tags and the rest of the output.
+    #
+    # The effect of this is to move whitespace between element bodies and
+    # their closing tags to outside of the closing tags, which makes the HTML
+    # much more readable.
+    if ($self->{space}) {
+        my ($close, $body) = $output =~ m{
+            \A
+            (\s*
+             (?: </(?!body)[^>]+> \s* )*
+            )
+            (.*)
+        }xms;
+        $close .= $self->{space};
+
+        # Collapse multiple whitespace-only lines into a single blank line.
         $close =~ s/\n\s*\n\s*\n/\n\n/g;
-        $_ = $close . $body;
-        $SPACE = '';
+
+        # Replace the output with added whitespace and clear saved whitespace.
+        $output = $close . $body;
+        $self->{space} = q{};
     }
-    if (s/\n(\s+)\z/\n/) { $SPACE = $1 }
-    print OUT $_;
+
+    # Remove and save any trailing whitespace.
+    if ($output =~ s{ \n (\s+) \z }{\n}xms) {
+        $self->{space} = $1;
+    }
+
+    # Send the results to the output file.
+    print OUT $output;
 }
 
 ##############################################################################
@@ -1155,7 +1179,9 @@ sub spin {
     my $fh = FileHandle->new ("< $thread")
         or die "$0: cannot open $thread: $!\n";
     @FILES = ([$fh, $thread]);
-    $SPACE = '';
+
+    # Initialize object state for a new document.
+    $self->{space} = q{};
 
     # Parse the thread file a paragraph at a time (but pick up macro contents
     # that are continued across paragraphs.  We maintain the stack of files
@@ -1183,13 +1209,13 @@ sub spin {
             }
             my $result = $self->parse($self->escape($_), 1);
             $result =~ s/^(?:\s*\n)+//;
-            $self->output($result) unless ($result =~ /^\s*$/);
+            $self->_output($result) unless ($result =~ /^\s*$/);
             ($fh, $FILE) = @{ $FILES[0] };
         }
         close $fh;
         shift @FILES;
     }
-    print OUT $self->border_clear(), $SPACE;
+    print OUT $self->border_clear(), $self->{space};
     close OUT;
     undef %macros;
     undef %strings;
