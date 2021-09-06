@@ -14,22 +14,6 @@
 
 package App::DocKnot::Spin 4.01;
 
-# The default list of files and/or directories to exclude from spinning.  This
-# can be added to with the -e option.  Each of these should be a regular
-# expression.
-@EXCLUDES = (qr/^\.(?!\.\z)(?!htaccess\z)/, qr/^CVS\z/, qr/^Makefile\z/,
-             qr/^RCS\z/);
-
-# The URL to the software page for all of my web page generation software.
-$URL = 'https://www.eyrie.org/~eagle/software/web/';
-
-use strict;
-use subs qw(expand parse parse_context);
-use warnings;
-use vars qw(%DEPEND $DOCID @EXCLUDES $FILE @FILES $FULLPATH $ID $OUTPUT
-            %OUTPUT $REPO @RSS %SITEDESCS %SITELINKS @SITEMAP $SOURCE $SPACE
-            @STATE $STYLES $URL %VERSIONS %commands %macros %strings);
-
 use Cwd qw(getcwd);
 use FileHandle ();
 use Getopt::Long qw(GetOptions);
@@ -40,6 +24,25 @@ use File::Find qw(find finddepth);
 use File::Spec ();
 use POSIX qw(mktime strftime);
 use Text::Balanced qw(extract_bracketed);
+
+# The default list of files and/or directories to exclude from spinning.  This
+# can be added to (but not removed from) with the --exclude option.  Each of
+# these should be a regular expression.
+my @EXCLUDES = (
+    qr{ ^ [.] (?!htaccess\z) }xms,
+    qr{ ^ (?:CVS|Makefile|RCS) \z }xms,
+);
+
+# The URL to the software page for all of my web page generation software,
+# used to embed a link to the software that generated the page.
+my $URL = 'https://www.eyrie.org/~eagle/software/web/';
+
+use strict;
+use subs qw(expand parse parse_context);
+use warnings;
+use vars qw(%DEPEND $DOCID $FILE @FILES $FULLPATH $ID $OUTPUT
+            %OUTPUT $REPO @RSS %SITEDESCS %SITELINKS @SITEMAP $SOURCE $SPACE
+            @STATE $STYLES %VERSIONS %commands %macros %strings);
 
 ##############################################################################
 # Output
@@ -1351,9 +1354,10 @@ sub read_pointer {
 # File::Find variables.
 sub process_file {
     my ($self) = @_;
-    return if ($_ eq '.' || $_ eq '..');
-    for my $regex (@EXCLUDES) {
-        if (/$regex/) {
+    my $file = $_;
+    return if ($file eq '.' || $file eq '..');
+    for my $regex ($self->{excludes}->@*) {
+        if ($file =~ m{$regex}xms) {
             $File::Find::prune = 1;
             return;
         }
@@ -1528,20 +1532,25 @@ sub spin_command {
 sub new {
     my ($class, $args_ref) = @_;
 
+    # Treat all exclude arguments as regular expressions and add them to the
+    # global exclusion list.
+    my @excludes = @EXCLUDES;
+    if ($args_ref->{exclude}) {
+        push(@excludes, map { qr{$_} } $args_ref->{exclude}->@*);
+    }
+
     # Stash constructor arguments.
     $STYLES = $args_ref->{'style-url'} // q{};
     $STYLES =~ s{ /* \z }{/}xms;
-    if ($args_ref->{exclude}) {
-        push(@EXCLUDES, map { qr{$_} } $args_ref->{exclude}->@*);
-    }
 
     # Used to invoke spin as a filter.
     $FULLPATH = $0;
 
     # Create and return the object.
     my $self = {
-        delete => $args_ref->{delete},
-        filter => $args_ref->{filter},
+        delete   => $args_ref->{delete},
+        excludes => [@excludes],
+        filter   => $args_ref->{filter},
     };
     bless($self, $class);
     return $self;
