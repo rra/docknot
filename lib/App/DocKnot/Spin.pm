@@ -33,6 +33,7 @@ use vars qw(%DEPEND $DOCID @EXCLUDES $FILE @FILES $FULLPATH $ID $OUTPUT
 use Cwd qw(getcwd);
 use FileHandle ();
 use Getopt::Long qw(GetOptions);
+use Git::Repository ();
 use Image::Size qw(html_imgsize);
 use File::Copy qw(copy);
 use File::Find qw(find finddepth);
@@ -1491,10 +1492,7 @@ sub spin_command {
             $self->read_sitemap("$SOURCE/.sitemap");
             $self->read_versions("$SOURCE/.versions");
             if (-d "$SOURCE/.git") {
-                eval {
-                    require Git::Repository;
-                    $REPO = Git::Repository->new (work_tree => $SOURCE);
-                };
+                $REPO = Git::Repository->new(work_tree => $SOURCE);
             }
             $File::Find::dont_use_nlink = 1;
             if (-f "$SOURCE/.rss") {

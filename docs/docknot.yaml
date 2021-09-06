@@ -115,6 +115,8 @@ requirements: |
 
   * File::BaseDir
   * File::ShareDir
+  * Git::Repository
+  * Image::Size
   * IO::Compress::Xz (part of IO-Compress-Lzma)
   * IO::Uncompress::Gunzip (part of IO-Compress)
   * IPC::Run
@@ -124,6 +126,7 @@ requirements: |
   * List::SomeUtils
   * Perl6::Slurp
   * Template (part of Template Toolkit)
+  * Text::Balanced
   * YAML::XS
 
 test:

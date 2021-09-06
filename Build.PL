@@ -63,6 +63,8 @@ my $build = Module::Build->new(
     requires           => {
         'File::BaseDir'          => 0,
         'File::ShareDir'         => 0,
+        'Git::Repository'        => 0,
+        'Image::Size'            => 0,
         'IO::Uncompress::Gunzip' => 0,
         'IO::Compress::Xz'       => 0,
         'IPC::Run'               => 0,
@@ -73,6 +75,7 @@ my $build = Module::Build->new(
         'Perl6::Slurp'           => 0,
         'Pod::Usage'             => 0,
         'Template'               => 0,
+        'Text::Balanced'         => 0,
         'YAML::XS'               => '0.81',
         perl                     => '5.024',
     },

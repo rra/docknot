@@ -106,6 +106,8 @@ The following additional Perl modules are required to use it:
 
 \bullet(packed)[File::BaseDir]
 \bullet(packed)[File::ShareDir]
+\bullet(packed)[Git::Repository]
+\bullet(packed)[Image::Size]
 \bullet(packed)[IO::Compress::Xz (part of IO-Compress-Lzma)]
 \bullet(packed)[IO::Uncompress::Gunzip (part of IO-Compress)]
 \bullet(packed)[IPC::Run]
@@ -115,6 +117,7 @@ The following additional Perl modules are required to use it:
 \bullet(packed)[List::SomeUtils]
 \bullet(packed)[Perl6::Slurp]
 \bullet(packed)[Template (part of Template Toolkit)]
+\bullet(packed)[Text::Balanced]
 \bullet(packed)[YAML::XS]
 
 \h2[Download]

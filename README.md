@@ -65,6 +65,8 @@ The following additional Perl modules are required to use it:
 
 * File::BaseDir
 * File::ShareDir
+* Git::Repository
+* Image::Size
 * IO::Compress::Xz (part of IO-Compress-Lzma)
 * IO::Uncompress::Gunzip (part of IO-Compress)
 * IPC::Run
@@ -74,6 +76,7 @@ The following additional Perl modules are required to use it:
 * List::SomeUtils
 * Perl6::Slurp
 * Template (part of Template Toolkit)
+* Text::Balanced
 * YAML::XS
 
 ## Building and Installation
