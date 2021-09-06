@@ -12,7 +12,6 @@ use warnings;
 
 use lib 't/lib';
 
-use Cwd qw(getcwd);
 use File::Spec;
 use File::Temp;
 use Perl6::Slurp qw(slurp);
@@ -22,9 +21,6 @@ use Test::More tests => 2;
 
 require_ok('App::DocKnot::Spin');
 
-# Record the current working directory, since spin currently changes it.
-my $cwd = getcwd();
-
 # Spin a single file.
 my $tempfile = File::Temp->new();
 my $datadir  = File::Spec->catfile('t',      'data',   'spin');
@@ -32,7 +28,4 @@ my $input    = File::Spec->catfile($datadir, 'input',  'index.th');
 my $expected = File::Spec->catfile($datadir, 'output', 'index.html');
 my $spin     = App::DocKnot::Spin->new({ 'style-url' => '/~eagle/styles/' });
 $spin->spin_file($input, $tempfile->filename);
-
-# Go back to the previous working directory, since spin_command currently
-# changes directories.
 is_spin_output($tempfile, $expected, 'Single file conversion');

@@ -22,7 +22,7 @@ __END__
 
 =for stopwords
 Allbery DocKnot docknot MERCHANTABILITY NONINFRINGEMENT sublicense subcommand
-subcommands distdir pgp-key
+subcommands distdir pgp-key cl2xhtml cvs2xhtml faq2html
 
 =head1 NAME
 
@@ -37,6 +37,11 @@ B<docknot> dist [B<-d> I<distdir>] [B<-m> I<metadata>] [B<-p> I<pgp-key>]
 B<docknot> generate [B<-m> I<metadata>] [B<-w> I<width>] I<template> [I<output>]
 
 B<docknot> generate-all [B<-m> I<metadata>] [B<-w> I<width>]
+
+B<docknot> spin [B<-d>] [B<-e> I<pattern> ...] [B<-s> I<url>] I<source>
+I<output>
+
+B<docknot> spin-file [B<-f>] [B<-s> I<url>] [I<source> [I<output>]]
 
 B<docknot> update [B<-m> I<metadata>] [B<-o> I<output>]
 
@@ -68,6 +73,16 @@ metadata format, configuration files, and paths.
 Like C<generate>, but generates all of the package documentation for which
 default output files are configured.  This is a quick short-cut to generating
 all documentation that's shipped with the package.
+
+=item spin
+
+Spin a tree of files written in the macro language thread into an HTML web
+site.  See L<App::DocKnot::Spin> for documentation on the input format and
+details of the site generation.
+
+=item spin-file
+
+Like C<spin>, but convert a single file written in thread to HTML.
 
 =item update
 
@@ -168,6 +183,62 @@ Column width at which the generated output is wrapped.  Default: 74.
 
 =back
 
+=head2 spin
+
+=over 4
+
+=item B<-d>, B<--delete>
+
+After populating the I<output> tree with the results of converting or copying
+all the files in the I<source> tree, delete all files and directories in the
+I<output> tree that do not have a corresponding file in the I<source> tree.
+
+=item B<-e> I<pattern>, B<--exclude>=I<pattern>
+
+Exclude files matching the given regular expression I<pattern> from being
+converted.  This flag may be used multiple times.
+
+=item B<-s> I<url>, B<--style-url>=I<url>
+
+The base URL for style sheets.  All style sheets specified in C<\heading>
+commands will be considered to be relative to this URL and this URL will be
+prepended to them.  If this option is not given, the name of the style sheet
+will be used verbatim as its URL, except with C<.css> appended.  This will
+also be used as the base URL to style sheets for the output of B<cl2xhtml>,
+B<cvs2xhtml>, and B<faq2html>.
+
+=item I<source>
+
+The input tree of files to spin into a web site.  This must be a directory.
+
+=item I<output>
+
+The output location to write the generated web site.  If this directory does
+not exist, it will be created.  If it exists, it must be a directory.
+
+=back
+
+=head2 spin-file
+
+=over 4
+
+=item B<-s> I<url>, B<--style-url>=I<url>
+
+The base URL for style sheets.  A style sheet specified in a C<\heading>
+command will be considered to be relative to this URL and this URL will be
+prepended to it.  If this option is not given, the name of the style sheet
+will be used verbatim as its URL, except with C<.css> appended.
+
+=item I<source>
+
+The input file.  If not given, standard input will be used.
+
+=item I<output>
+
+The output file.  If not given, standard output will be used.
+
+=back
+
 =head2 update
 
 =over 4
@@ -245,7 +316,7 @@ SOFTWARE.
 =head1 SEE ALSO
 
 L<App::DocKnot::Config>, L<App::DocKnot::Dist>, L<App::DocKnot::Generate>,
-L<App::DocKnot::Update>
+L<App::DocKnot::Spin>, L<App::DocKnot::Update>
 
 This program is part of the App-DocKnot distribution.  The current version of
 DocKnot is available from CPAN, or directly from its web site at

@@ -77,13 +77,16 @@ our %COMMANDS = (
         maximum => 0,
     },
     spin => {
-        method  => 'spin_command',
+        method  => 'spin_tree',
         module  => 'App::DocKnot::Spin',
-        options => [
-            'delete|d', 'exclude|e=s@',
-            'filter|f', 'overrides|o=s',
-            'style-url|s=s',
-        ],
+        options => ['delete|d', 'exclude|e=s@', 'style-url|s=s'],
+        minimum => 2,
+        maximum => 2,
+    },
+    'spin-file' => {
+        method  => 'spin_file',
+        module  => 'App::DocKnot::Spin',
+        options => ['style-url|s=s'],
         maximum => 2,
     },
     update => {
@@ -255,10 +258,11 @@ App::DocKnot::Command - Run DocKnot commands
 =head1 REQUIREMENTS
 
 Perl 5.24 or later and the modules File::BaseDir, File::ShareDir,
-IO::Compress::Xz (part of IO-Compress-Lzma), IO::Uncompress::Gunzip (part of
-IO-Compress), IPC::Run, IPC::System::Simple, JSON::MaybeXS, Kwalify,
-List::SomeUtils, Perl6::Slurp, Template (part of Template Toolkit), and
-YAML::XS, all of which are available from CPAN.
+Git::Repository, Image::Size, IO::Compress::Xz (part of IO-Compress-Lzma),
+IO::Uncompress::Gunzip (part of IO-Compress), IPC::Run, IPC::System::Simple,
+JSON::MaybeXS, Kwalify, List::SomeUtils, Perl6::Slurp, Template (part of
+Template Toolkit), Text::Balanced, and YAML::XS, all of which are available
+from CPAN.
 
 =head1 DESCRIPTION
 

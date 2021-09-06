@@ -1577,14 +1577,14 @@ sub spin_file {
             die "input file $self->{source} must be a regular file";
         }
     } else {
-        $input = '-';
+        $self->{input} = '-';
     }
     if (defined($output)) {
         $self->{output} = realpath($output)
           or die "cannot canonicalize $output: $!\n";
         $self->{output} =~ s{ /+ \z }{}xms;
     } else {
-        $output = '-';
+        $self->{output} = '-';
     }
 
     # Open the output file.
@@ -1793,49 +1793,6 @@ or update files that will then be processed by B<spin> as normal.
 If there is a directory named F<.git> at the top of the source tree,
 B<spin> will assume that the source is a Git repository and will try to
 use C<git log> to determine the last modification date of files.
-
-=head1 OPTIONS
-
-=over 4
-
-=item B<-d>, B<--delete>
-
-After populating the I<output> tree with the results of converting or
-copying all the files in the I<source> tree, delete all regular files in
-the I<output> tree that do not have a corresponding file in the I<source>
-tree.  Directories will be mentioned in B<spin>'s output but will not be
-deleted.
-
-=item B<-e> I<pattern>, B<--exclude>=I<pattern>
-
-Exclude files matching the given regular expression I<pattern> from being
-converted.  This flag may be used multiple times.
-
-=item B<-f>, B<--filter>
-
-Run B<spin> in filter mode rather than converting a whole tree of files.
-Thread source is read from stdin and the XHTML output is written to
-stdout.  The signature and navigation links are disabled.
-
-=item B<-h>, B<--help>
-
-Print out this documentation (which is done simply by feeding the script
-to C<perldoc -t>).
-
-=item B<-s> I<url>, B<--style-url>=I<url>
-
-The base URL for style sheets.  All style sheets specified in \heading
-commands will be considered to be relative to this URL and this URL will
-be prepended to them (otherwise, they'll be referred to as if they're in
-the same directory as the generated file).  This will similarly be used as
-the base URL to style sheets for the output of B<cl2xhtml>, B<cvs2xhtml>,
-and B<faq2html>.
-
-=item B<-v>, B<--version>
-
-Print out the version of B<spin> and exit.
-
-=back
 
 =head1 THREAD LANGUAGE
 
