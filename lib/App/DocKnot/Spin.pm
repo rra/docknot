@@ -562,21 +562,6 @@ sub placement {
     return $output;
 }
 
-# Return the signature file for pages in this directory, if present.
-sub sign {
-    my ($self) = @_;
-    my $output = '';
-    if (open (SIG, '< .signature') || open (SIG, "< $SOURCE/.signature")) {
-        local $/ = "\n";
-        my @signature = <SIG>;
-        chomp @signature;
-        close SIG;
-        $output .= join ("\n    ", @signature);
-        $output .= " <br />\n    ";
-    }
-    return $output;
-}
-
 # Returns the page footer, which consists of the navigation links, the regular
 # signature, and the last modified date.  Takes as arguments the full path to
 # the source file, the name of the destination file, the CVS Id of the source
@@ -587,7 +572,7 @@ sub sign {
 sub footer {
     my ($self, $source, $file, $id, @templates) = @_;
     my $output = $self->placement($file);
-    $output .= "<address>\n    " . sign;
+    $output .= "<address>\n    ";
 
     # Figure out the modified dates.  Use the RCS/CVS Id if available,
     # otherwise use the Git repository if available.
@@ -1671,13 +1656,8 @@ If F<.sitemap> is present, this navigation information will also be put
 into the <head> section of the resulting HTML file as <link> tags.  Some
 browsers will display this information as a navigation toolbar.
 
-B<spin> also looks for a file named F<.signature> in the same directory as
-a thread file (and then at the top of the source tree if none is found in
-the current directory) and copies its contents verbatim into an <address>
-block at the end of the XHTML page (so the contents should be valid
-XHTML).  The contents will be surrounded by an <address> tag, and added to
-the end of the supplied F<.signature> contents will be information about
-when the page was last modified and generated.
+At the bottom of each page, B<spin> will add information about when the file
+was last modified and generated.
 
 B<spin> looks for a file named F<.versions> at the top of the I<source>
 directory and reads it for version information.  If it is present, each
