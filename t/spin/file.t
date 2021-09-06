@@ -31,9 +31,8 @@ my $datadir  = File::Spec->catfile('t',      'data',   'spin');
 my $input    = File::Spec->catfile($datadir, 'input',  'index.th');
 my $expected = File::Spec->catfile($datadir, 'output', 'index.html');
 my $spin     = App::DocKnot::Spin->new({ 'style-url' => '/~eagle/styles/' });
-$spin->spin_command($input, $tempfile->filename);
+$spin->spin_file($input, $tempfile->filename);
 
 # Go back to the previous working directory, since spin_command currently
 # changes directories.
-chdir($cwd);
 is_spin_output($tempfile, $expected, 'Single file conversion');

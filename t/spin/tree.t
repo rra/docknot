@@ -33,7 +33,7 @@ my $datadir  = File::Spec->catfile('t',      'data', 'spin');
 my $input    = File::Spec->catfile($datadir, 'input');
 my $expected = File::Spec->catfile($datadir, 'output');
 my $spin     = App::DocKnot::Spin->new({ 'style-url' => '/~eagle/styles/' });
-$spin->spin_command($input, $output->dirname);
+$spin->spin_tree($input, $output->dirname);
 
 # Holds all the files seen in the output tree.
 my %seen;

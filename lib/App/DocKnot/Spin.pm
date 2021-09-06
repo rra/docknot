@@ -14,11 +14,13 @@
 
 package App::DocKnot::Spin 4.01;
 
-use Cwd qw(getcwd);
+use Cwd qw(getcwd realpath);
 use FileHandle ();
 use Getopt::Long qw(GetOptions);
 use Git::Repository ();
 use Image::Size qw(html_imgsize);
+use IPC::System::Simple qw(systemx);
+use File::Basename qw(fileparse);
 use File::Copy qw(copy);
 use File::Find qw(find finddepth);
 use File::Spec ();
@@ -41,7 +43,7 @@ use strict;
 use subs qw(expand parse parse_context);
 use warnings;
 use vars qw(%DEPEND $DOCID $FILE @FILES $FULLPATH $ID $OUTPUT
-            %OUTPUT $REPO @RSS %SITEDESCS %SITELINKS @SITEMAP $SOURCE
+            @RSS %SITEDESCS %SITELINKS @SITEMAP
             @STATE %VERSIONS %commands);
 
 ##############################################################################
@@ -87,7 +89,13 @@ sub _output {
     }
 
     # Send the results to the output file.
-    print OUT $output;
+    print { $self->{out_fh} } $output;
+}
+
+# Warn about a problem with the current file and line.
+sub _warning {
+    my ($self, $problem) = @_;
+    warn "spin:$FILE:$.: $problem\n";
 }
 
 ##############################################################################
@@ -381,7 +389,7 @@ sub parse {
 # colon, and a page description.  If two pages at the same level aren't
 # related, a line with three dashes should be put between them at the same
 # indentation level.
-sub read_sitemap {
+sub _read_sitemap {
     my ($self, $map) = @_;
 
     # @indents holds a stack of indentation levels.  @parents is a matching
@@ -444,7 +452,7 @@ sub time_to_seconds {
 # and date of the last update.  It also fleshes out the %DEPEND hash, which
 # holds a mapping of file names that use a particular version to the timestamp
 # of the last change in that version.
-sub read_versions {
+sub _read_versions {
     my ($self, $versions) = @_;
     open (VERSIONS, $versions) or return;
     local $_;
@@ -503,8 +511,7 @@ sub relative {
 # or we're at the top page, nothing is returned.
 sub sitelinks {
     my ($self, $file) = @_;
-    $file = $File::Find::dir . '/' . $file;
-    $file =~ s%^\Q$SOURCE%%;
+    $file =~ s%^\Q$self->{source}%%;
     $file =~ s%/index\.html$%/%;
 
     my $output = '';
@@ -543,10 +550,7 @@ sub sitelinks {
 # the top page, nothing is returned.
 sub placement {
     my ($self, $file) = @_;
-    if (defined($File::Find::dir)) {
-        $file = $File::Find::dir . '/' . $file;
-    }
-    $file =~ s%^\Q$SOURCE%%;
+    $file =~ s%^\Q$self->{source}%%;
     $file =~ s%/index\.html$%/%;
 
     my $output = '';
@@ -610,8 +614,9 @@ sub footer {
         if ($date && $date =~ m%^(\d+)[-/](\d+)[-/](\d+)%) {
             $modified = sprintf ("%d-%02d-%02d", $1, $2, $3);
         }
-    } elsif (defined $REPO && $source =~ /^\Q$SOURCE/) {
-        $modified = $REPO->run ('log', '-1', '--format=%ct', $source);
+    } elsif ($self->{repository} && $source =~ /^\Q$self->{source}/) {
+        $modified = $self->{repository}->run(
+          'log', '-1', '--format=%ct', $source);
         if ($modified) {
             $modified = strftime ('%Y-%m-%d', gmtime $modified);
         }
@@ -847,16 +852,16 @@ sub do_heading {
             $output .= qq(        title="$title" />\n);
         }
     }
-    if ($FILE ne '-' && defined($File::Find::dir)) {
+    if ($FILE ne '-') {
         $output .= $self->sitelinks($file);
     }
     $output .= "</head>\n\n";
     my $date = strftime ('%Y-%m-%d %T -0000', gmtime);
-    $output .= '<!-- Spun' . ($FILE eq '-' ? '' : " from $FILE")
+    $output .= '<!-- Spun' . ($FILE eq '-' ? '' : ' from ' . fileparse($FILE))
         . " by spin 1.80 on $date -->\n";
     $output .= "<!-- $DOCID -->\n" if $DOCID;
     $output .= "\n<body>\n";
-    if ($FILE ne '-' && defined($File::Find::dir)) {
+    if ($FILE ne '-') {
         $output .= $self->placement($file);
     }
     return (1, $output);
@@ -997,9 +1002,6 @@ sub do_signature {
     $file =~ s/\.th$/.html/;
     my $link = '<a href="%URL%">spun</a>';
     my $source = $FILE;
-    if (defined $File::Find::dir) {
-        $source = $File::Find::dir . '/' . $source;
-    }
     $output .= $self->footer(
         $source, $file, $DOCID,
         "Last modified and\n    $link %MOD%",
@@ -1171,54 +1173,64 @@ sub do_h6 { my ($self, @args) = @_; $self->heading(6, @args); }
 # Interface
 ##############################################################################
 
-# This function is called, giving an input and an output file name, to spin
-# HTML from thread.
-sub spin {
-    my ($self, $thread, $output) = @_;
-    open (OUT, "> $output") or die "$0: cannott create $output: $!\n";
-    my $fh = FileHandle->new ("< $thread")
-        or die "$0: cannot open $thread: $!\n";
-    @FILES = ([$fh, $thread]);
+# Convert thread to HTML.  Be aware that the working directory from which this
+# function is run matters a great deal, since thread may contain relative
+# paths to files that the spinning process needs to access.
+#
+# $in_fh   - Input file handle of thread
+# $in_path - Input file path, used for error reporting
+# $out_fh  - Output file handle to which to write the HTML
+sub _spin {
+    my ($self, $in_fh, $in_path, $out_fh) = @_;
+    @FILES = ([$in_fh, $in_path]);
 
     # Initialize object state for a new document.
     $self->{macros}  = {};
+    $self->{out_fh}  = $out_fh;
     $self->{space}   = q{};
     $self->{strings} = {};
 
-    # Parse the thread file a paragraph at a time (but pick up macro contents
-    # that are continued across paragraphs.  We maintain the stack of files
-    # that we're parsing in @FILES, and do_include will unshift new file
-    # handle and filename pairs onto that stack.  That means that the top of
-    # the stack may change any time we call parse, so we have to grab our
-    # current values again each time through the loop.
-    local $/ = '';
-    local $_;
+    # Set initial block structure state.
     $self->border_start();
+
+    # Parse the thread file a paragraph at a time (but pick up macro contents
+    # that are continued across paragraphs.
+    #
+    # We maintain the stack of files that we're parsing in @FILES, and
+    # do_include will unshift new file handle and filename pairs onto that
+    # stack.  That means that the top of the stack may change any time we call
+    # parse, so we have to update the input file handle and $FILE (for error
+    # reporting) each time through the loop.
+    local $/ = q{};
     while (@FILES) {
-        ($fh, $FILE) = @{ $FILES[0] };
-        while (<$fh>) {
-            if ("\n" !~ /\015/ && /\015/) {
-                warn "$0:$FILE:$.: found CR characters; are your line endings"
-                    . " correct?\n";
+        ($in_fh, $FILE) = $FILES[0]->@*;
+        while (defined(my $para = <$in_fh>)) {
+            if ("\n" !~ m{ \015 }xms && $para =~ m{ \015 }xms) {
+                $self->_warning(
+                    "found CR characters; are your line endings correct?");
             }
-            my $open = tr/\[//;
-            my $close = tr/\]//;
-            while (!eof && $open > $close) {
-                my $extra = <$fh>;
-                $open += ($extra =~ tr/\[//);
-                $close += ($extra =~ tr/\]//);
-                $_ .= $extra;
+            my $open_count  = ($para =~ tr{\[}{});
+            my $close_count = ($para =~ tr{\]}{});
+            while (!eof && $open_count > $close_count) {
+                my $extra = <$in_fh>;
+                $open_count  += ($extra =~ tr{\[}{});
+                $close_count += ($extra =~ tr{\]}{});
+                $para .= $extra;
             }
-            my $result = $self->parse($self->escape($_), 1);
-            $result =~ s/^(?:\s*\n)+//;
-            $self->_output($result) unless ($result =~ /^\s*$/);
-            ($fh, $FILE) = @{ $FILES[0] };
+            my $result = $self->parse($self->escape($para), 1);
+            $result =~ s{ \A (?:\s*\n)+ }{}xms;
+            if ($result !~ m{ \A \s* \z }xms) {
+                $self->_output($result);
+            }
+            ($in_fh, $FILE) = $FILES[0]->@*;
         }
-        close $fh;
-        shift @FILES;
+        shift(@FILES);
     }
-    print OUT $self->border_clear(), $self->{space};
-    close OUT;
+
+    # Close open tags and print any deferred whitespace.
+    print {$out_fh} $self->border_clear(), $self->{space};
+
+    # Clean up per-file data so that it's not carried to the next file.
     undef $DOCID;
     undef @RSS;
 }
@@ -1259,11 +1271,11 @@ sub run_converter {
             $blurb =~ s/ \(\d{4}-\d\d-\d\d\)//;
         }
         if (m%^</head>%) {
-            print OUT $self->sitelinks($file);
+            print OUT $self->sitelinks($output);
         }
         print OUT $_;
         if (m%<body%i) {
-            print OUT $self->placement($file);
+            print OUT $self->placement($output);
             last;
         }
     }
@@ -1356,188 +1368,149 @@ sub pod2html {
 # Per-file operations
 ##############################################################################
 
-# Given a pointer file, read the master file and any options from that file,
-# returning them as a list with the newlines chomped off.
-sub read_pointer {
+# Given a pointer file, read the master file name and any options, returning
+# them as a list with the newlines chomped off.
+#
+# $file - The path to the file to read
+#
+# Returns: List of the master file, any command-line options, and the style
+#          sheet to use, as strings
+#  Throws: Text exception if no master file is present in the pointer
+#          autodie exception if the pointer file could not be read
+sub _read_pointer {
     my ($self, $file) = @_;
-    open (POINTER, $file) or die "$0: cannot open $file: $!\n";
-    my $master = <POINTER>;
-    my $options = <POINTER>;
-    my $style = <POINTER>;
-    close POINTER;
-    die "$0: no master file specified in $file" unless $master;
-    chomp $master;
-    chomp $options if defined $options;
-    chomp $style if defined $style;
-    $options ||= '';
+
+    # Read the pointer file.
+    open(my $pointer, '<', $file);
+    my $master = <$pointer>;
+    my $options = <$pointer>;
+    my $style = <$pointer>;
+    close($pointer);
+
+    # Clean up the contents.
+    if (!$master) {
+        die "no master file specified in $file";
+    }
+    chomp($master);
+    if (defined($options)) {
+        chomp($options);
+    } else {
+        $options = q{};
+    }
+    if (defined($style)) {
+        chomp($style);
+    }
+
+    # Return the details.
     return ($master, $options, $style);
 }
 
-# This routine is called for every file in the source tree, and references the
-# variables $SOURCE and $OUTPUT to find the roots of the source and output
-# tree.  It decides what to do with each file, whether spinning it or copying
-# it.  It's called from within File::Find and therefore uses the standard
-# File::Find variables.
-sub process_file {
+# This routine is called by File::Find for every file in the source tree.  It
+# decides what to do with each file, whether spinning it or copying it.
+#
+# Throws: Text exception on any processing error
+#         autodie exception if files could not be accessed or written
+sub _process_file {
     my ($self) = @_;
     my $file = $_;
-    return if ($file eq '.' || $file eq '..');
+    return if ($file eq '.');
     for my $regex ($self->{excludes}->@*) {
         if ($file =~ m{$regex}xms) {
             $File::Find::prune = 1;
             return;
         }
     }
-    my $input = $File::Find::name;
+    my $input  = $File::Find::name;
     my $output = $input;
-    $output =~ s/^\Q$SOURCE/$OUTPUT/ or die "$0: $input out of tree?\n";
+    $output =~ s{ \A \Q$self->{source}\E }{$self->{output}}xms
+      or die "$input file out of tree?\n";
     my $shortout = $output;
-    $shortout =~ s/^\Q$OUTPUT/.../;
+    $shortout =~ s{ \A \Q$self->{output}\E }{...}xms;
 
     # Conversion rules for pointers.  The key is the extension, the first
     # value is the name of the command for the purposes of output, and the
-    # second is the method to run.
-    my %rules = (changelog => [ 'cl2xhtml',   'cl2xhtml'  ],
-                 faq       => [ 'faq2html',   'faq2html'  ],
-                 log       => [ 'cvs2xhtml',  'cvs2xhtml' ],
-                 rpod      => [ 'pod2thread', 'pod2html'  ]);
+    # second is the name of the method to run.
+    my %rules = (
+        changelog => ['cl2xhtml',   'cl2xhtml'],
+        faq       => ['faq2html',   'faq2html'],
+        log       => ['cvs2xhtml',  'cvs2xhtml'],
+        rpod      => ['pod2thread', 'pod2html'],
+    );
 
     # Figure out what to do with the input.
-    if (-d) {
-        $OUTPUT{$output} = 1;
+    if (-d $file) {
+        $self->{generated}{$output} = 1;
         if (-e $output && !-d $output) {
-            die "$0: cannot replace $output with a directory\n";
+            die "cannot replace $output with a directory\n";
         } elsif (!-d $output) {
             print "Creating $shortout\n";
-            mkdir ($output, 0755) or die "$0: mkdir $output failed: $!\n";
+            mkdir($output, 0755);
         }
-        if (-f "$_/.rss") {
-            system ('spin-rss', '-b', $_, "$_/.rss") == 0
-                or die "$0: running spin-rss on $input/.rss failed\n";
+        my $rss_path = File::Spec->catfile($file, '.rss');
+        if (-f $rss_path) {
+            systemx('spin-rss', '-b', $file, $rss_path);
         }
-    } elsif (/\.th$/) {
-        $output =~ s/\.th$/.html/;
-        $OUTPUT{$output} = 1;
-        $shortout =~ s/\.th$/.html/;
+    } elsif ($file =~ m{ [.] th \z }xms) {
+        $output   =~ s{ [.] th \z }{.html}xms;
+        $shortout =~ s{ [.] th \z }{.html}xms;
+        $self->{generated}{$output} = 1;
         my $relative = $input;
-        $relative =~ s%^\Q$SOURCE/%%;
+        $relative =~ s{ ^ \Q$self->{source}\E / }{}xms;
         my $time = $DEPEND{$relative} || 0;
         if (-e $output) {
-            return if (-M $_ >= -M $output && (stat $output)[9] >= $time);
+            return if (-M $file >= -M $output && (stat($output))[9] >= $time);
         }
         print "Spinning $shortout\n";
-        $self->spin($_, $output);
+        open(my $in_fh,  '<', $input);
+        open(my $out_fh, '>', $output);
+        $self->_spin($in_fh, $input, $out_fh);
+        close($in_fh);
+        close($out_fh);
     } else {
-        my ($extension) = (/\.([^.]+)$/);
-        if ($extension && $rules{$extension}) {
-            my ($name, $sub) = @{ $rules{$extension} };
-            $output =~ s/\.\Q$extension\E$/.html/;
-            $OUTPUT{$output} = 1;
-            $shortout =~ s/\.\Q$extension\E$/.html/;
-            my ($file, $options, $style) = read_pointer ($input);
+        my ($extension) = ($file =~ m{ [.] ([^.]+) \z }xms);
+        if (defined($extension) && $rules{$extension}) {
+            my ($name, $sub) = $rules{$extension}->@*;
+            $output   =~ s{ [.] \Q$extension\E \z }{.html}xms;
+            $shortout =~ s{ [.] \Q$extension\E \z }{.html}xms;
+            $self->{generated}{$output} = 1;
+            my ($file, $options, $style) = $self->_read_pointer($input);
             if (-e $output && -e $file) {
-                return if (-M $file >= -M $output && -M $_ >= -M $output);
+                return if (-M $file >= -M $output && -M $file >= -M $output);
             }
             print "Running $name for $shortout\n";
-            $self->$sub($file, $output, $options, $style);
+            $sub->($file, $output, $options, $style);
         } else {
-            $OUTPUT{$output} = 1;
-            return unless (!-e $output || -M $_ < -M $output);
-            print "Updating $shortout\n";
-            copy ($_, $output)
-                or die "$0: copy of $input to $output failed: $!\n";
+            $self->{generated}{$output} = 1;
+            if (!-e $output || -M $file > -M $output) {
+                print "Updating $shortout\n";
+                copy($file, $output)
+                  or die "$0: copy of $input to $output failed: $!\n";
+            }
         }
     }
 }
 
-# This routine is called for every file in the destination tree, if the user
-# requested file deletion of files not generated from the source tree.  It
-# checks each file to see if it is in the %OUTPUT hash that was generated
-# during spin processing, and if not, removes it.  It's called from within
-# File::Find and therefore uses the standard File::Find variables.
-sub delete_files {
+# This routine is called by File::Find for every file in the destination tree
+# in depth-first order, if the user requested file deletion of files not
+# generated from the source tree.  It checks each file to see if it is in the
+# $self->{generated} hash that was generated during spin processing, and if
+# not, removes it.
+#
+# Throws: autodie exception on failure of rmdir or unlink
+sub _delete_files {
     my ($self) = @_;
     return if ($_ eq '.' || $_ eq '..');
     my $file = $File::Find::name;
+    return if $self->{generated}{$file};
     my $shortfile = $file;
-    $shortfile =~ s/^\Q$OUTPUT/.../;
-    return if $OUTPUT{$file};
+    $shortfile =~ s{ ^ \Q$self->{output}\E }{...}xms;
     print "Deleting $shortfile\n";
     if (-d $file) {
-        rmdir $file or warn "$0: cannot remove directory $file: $!\n";
-        $File::Find::prune = 1;
+        rmdir($file);
     } else {
-        unlink $file or die "$0: unable to remove $file: $!\n";
+        unlink($file);
     }
-}
-
-##############################################################################
-# Main routine
-##############################################################################
-
-sub spin_command {
-    my ($self, @args) = @_;
-
-    # The arguments depend on whether -f is given.  If it is, just filter
-    # stdin to stdout; otherwise, take the input tree and the output tree on
-    # the command line and process the input into the output.
-    if ($self->{filter}) {
-        if (@args) { die "Usage: $0 -f\n" }
-        $self->spin('-', '-');
-    } else {
-        die "Usage: $0 <source> [<output>]\n" unless (@args >= 1 && @args <= 2);
-        ($SOURCE, $OUTPUT) = @args;
-        $OUTPUT ||= '-';
-        $OUTPUT =~ s%/+$%%;
-        if (-f $SOURCE) {
-            if ($OUTPUT ne '-') {
-                my (undef, $dir, $file) = File::Spec->splitpath ($OUTPUT);
-                my $current = getcwd;
-                chdir $dir or die "$0: cannot chdir to $dir: $!\n";
-                $OUTPUT = File::Spec->catpath ('', getcwd, $file);
-                chdir $current or die "$0: cannot chdir to $current: $!\n";
-            }
-            my (undef, $dir, $file) = File::Spec->splitpath ($SOURCE);
-            my $current = getcwd;
-            chdir $dir or die "$0: cannot chdir to $dir: $!\n";
-            $SOURCE = File::Spec->catpath ('', getcwd, $file);
-            $self->spin($file, $OUTPUT);
-        } else {
-            die "$0: no output directory specified\n" if $OUTPUT eq '-';
-            if ($SOURCE !~ m%^/%) {
-                my $current = getcwd;
-                chdir $SOURCE or die "$0: cannot chdir to $SOURCE: $!\n";
-                $SOURCE = getcwd;
-                chdir $current or die "$0: cannot chdir to $current: $!\n";
-            }
-            if ($OUTPUT !~ m%^/%) {
-                unless (-d $OUTPUT) {
-                    print "Creating $OUTPUT\n";
-                    mkdir ($OUTPUT, 0755)
-                      or die "$0: cannot create $OUTPUT: $!\n";
-                }
-                chdir $OUTPUT or die "$0: cannot chdir to $OUTPUT: $!\n";
-                $OUTPUT = getcwd;
-            }
-            $self->read_sitemap("$SOURCE/.sitemap");
-            $self->read_versions("$SOURCE/.versions");
-            if (-d "$SOURCE/.git") {
-                $REPO = Git::Repository->new(work_tree => $SOURCE);
-            }
-            $File::Find::dont_use_nlink = 1;
-            if (-f "$SOURCE/.rss") {
-                my $current = getcwd;
-                chdir $SOURCE or die "$0: cannot chdir to $SOURCE: $!\n";
-                system ('spin-rss', '.rss') == 0
-                    or die "$0: running spin-rss on $SOURCE/.rss failed\n";
-                chdir $current or die "$0: cannot chdir to $current: $!\n";
-            }
-            find (sub { $self->process_file(@_) }, $SOURCE);
-            if ($self->{delete}) {
-                finddepth (sub { $self->delete_files(@_) }, $OUTPUT);
-            }
-        }
-    }
+    return;
 }
 
 ##############################################################################
@@ -1583,6 +1556,102 @@ sub new {
     };
     bless($self, $class);
     return $self;
+}
+
+# Spin a single file of thread to HTML.
+#
+# $input  - Input file (if not given, assumes standard input)
+# $output - Output file (if not given, assumes standard output)
+#
+# Raises: Text exception on processing error
+sub spin_file {
+    my ($self, $input, $output) = @_;
+    my $cwd = getcwd();
+    my ($in_fh, $out_fh);
+
+    # Canonicalize input and output paths.
+    if (defined($input)) {
+        $self->{source} = realpath($input)
+           or die "cannot canonicalize $input: $!\n";
+        if (!-f $self->{source}) {
+            die "input file $self->{source} must be a regular file";
+        }
+    } else {
+        $input = '-';
+    }
+    if (defined($output)) {
+        $self->{output} = realpath($output)
+          or die "cannot canonicalize $output: $!\n";
+        $self->{output} =~ s{ /+ \z }{}xms;
+    } else {
+        $output = '-';
+    }
+
+    # Open the output file.
+    if ($self->{output} eq '-') {
+        open($out_fh, '>&STDOUT');
+    } else {
+        open($out_fh, '>', $self->{output});
+    }
+
+    # When spinning a single file, the input file must not be a directory.  We
+    # do the work from the directory of the file to ensure that relative file
+    # references resolve properly.
+    if ($self->{source} eq '-') {
+        open($in_fh, '<&STDIN');
+    } else {
+        open($in_fh, '<', $self->{source});
+        my (undef, $input_dir) = fileparse($self->{source});
+        chdir($input_dir);
+    }
+
+    # Do the work.
+    $self->_spin($in_fh, $self->{source}, $out_fh);
+
+    # Clean up and restore the working directory.
+    close($in_fh);
+    close($out_fh);
+    chdir($cwd);
+    return;
+}
+
+# Spin a directory of files into a web site.
+#
+# $input  - The input directory
+# $output - The output directory (which may not exist)
+#
+# Raises: Text exception on processing error
+sub spin_tree {
+    my ($self, $input, $output) = @_;
+
+    # Canonicalize and check input.
+    $input = realpath($input) or die "cannot canonicalize $input: $!\n";
+    if (!-d $input) {
+        die "input tree $input must be a directory";
+    }
+    $self->{source} = $input;
+
+    # Canonicalize and check output.
+    if (!-d $output) {
+        print "Creating $output\n";
+        mkdir($output, 0755);
+    }
+    $output = realpath($output) or die "cannot canonicalize $output: $!\n";
+    $self->{output} = $output;
+
+    # Read metadata from the top of the input directory.
+    $self->_read_sitemap(File::Spec->catfile($input, '.sitemap'));
+    $self->_read_versions(File::Spec->catfile($input, '.versions'));
+    if (-d File::Spec->catdir($input, '.git')) {
+        $self->{repository} = Git::Repository->new(work_tree => $input);
+    }
+
+    # Process the input tree.
+    find(sub { $self->_process_file(@_) }, $input);
+    if ($self->{delete}) {
+        finddepth(sub { $self->_delete_files(@_) }, $output);
+    }
+    return;
 }
 
 1;
