@@ -230,7 +230,11 @@ sub run {
         my $error = $@;
         chomp($error);
         $error =~ s{ \s+ at \s+ \S+ \s+ line \s+ \d+ [.]? \z }{}xms;
-        die "$0 $command: $error\n";
+        if ($error =~ m{ \S+ : \d+ : \s+ \S }xms) {
+            die "$0 $command:$error\n";
+        } else {
+            die "$0 $command: $error\n";
+        }
     }
     return;
 }

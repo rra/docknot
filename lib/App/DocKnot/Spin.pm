@@ -92,7 +92,7 @@ my %COMMANDS = (
     version    => [ 1, '_cmd_version'  ],
 );
 
-use vars qw($FILE @FILES $FULLPATH);
+use vars qw($FULLPATH);
 
 ##############################################################################
 # Utility functions
@@ -168,7 +168,7 @@ sub _output {
 # Throws: Text exception with the provided error
 sub _fatal {
     my ($self, $problem) = @_;
-    die "$0 spin:$FILE:$.: $problem\n";
+    die "$self->{file}:$.: $problem\n";
 }
 
 # Warn about a problem with the current file and line.
@@ -176,7 +176,7 @@ sub _fatal {
 # $problem - Warning message to report
 sub _warning {
     my ($self, $problem) = @_;
-    warn "$0 spin:$FILE:$.: $problem\n";
+    warn "$0 spin:$self->{file}:$.: $problem\n";
     return;
 }
 
@@ -930,7 +930,7 @@ sub _cmd_heading {
     my ($self, $format, $title, $style) = @_;
     $title = $self->_parse($title);
     $style = $self->_parse($style);
-    my $file = $FILE;
+    my $file = $self->{file};
     $file =~ s/\.th$/.html/;
     my $output = qq(<?xml version="1.0" encoding="utf-8"?>\n);
     $output .= qq(<!DOCTYPE html\n);
@@ -958,8 +958,8 @@ sub _cmd_heading {
     }
     $output .= "</head>\n\n";
     my $date = strftime ('%Y-%m-%d %T -0000', gmtime);
-    $output .= '<!-- Spun' . ($FILE eq '-' ? '' : ' from ' . fileparse($FILE))
-        . " by spin 1.80 on $date -->\n";
+    my $from = $self->{file} eq '-' ? q{} : ' from ' . fileparse($self->{file});
+    $output .= "<!-- Spun$from by spin 1.80 on $date -->\n";
     $output .= "<!-- $self->{id} -->\n" if $self->{id};
     $output .= "\n<body>\n";
     if ($self->{source}) {
@@ -999,7 +999,7 @@ sub _cmd_include {
     $file = $self->_parse($file);
     my $fh = FileHandle->new ("< $file")
       or $self->_fatal("cannot include $file: $!");
-    unshift (@FILES, [$fh, $file]);
+    unshift($self->{files}->@*, [$fh, $file]);
     return (1, '');
 }
 
@@ -1095,16 +1095,15 @@ sub _cmd_rss {
 sub _cmd_signature {
     my ($self) = @_;
     my $output = $self->_border();
-    if ($FILE eq '-') {
+    if ($self->{file} eq '-') {
         $output .= "</body>\n</html>\n";
         return (1, $output);
     }
-    my $file = $FILE;
+    my $file = $self->{file};
     $file =~ s/\.th$/.html/;
     my $link = '<a href="%URL%">spun</a>';
-    my $source = $FILE;
     $output .= $self->_footer(
-        $source, $file, $self->{id},
+        $self->{file}, $file, $self->{id},
         "Last modified and\n    $link %MOD%",
         "Last $link\n    %NOW% from thread modified %MOD%"
     );
@@ -1231,9 +1230,9 @@ sub _cmd_version {
 # $out_path - Output file path, used for error reporting
 sub _spin {
     my ($self, $in_fh, $in_path, $out_fh, $out_path) = @_;
-    @FILES = ([$in_fh, $in_path]);
 
     # Initialize object state for a new document.
+    $self->{files}    = [[$in_fh, $in_path]];
     $self->{id}       = undef;
     $self->{macros}   = {};
     $self->{out_fh}   = $out_fh;
@@ -1246,14 +1245,14 @@ sub _spin {
     # Parse the thread file a paragraph at a time (but pick up macro contents
     # that are continued across paragraphs.
     #
-    # We maintain the stack of files that we're parsing in @FILES, and
+    # We maintain the stack of files that we're parsing in $self->{files}, and
     # _cmd_include will unshift new file handle and filename pairs onto that
     # stack.  That means that the top of the stack may change any time we call
-    # _parse, so we have to update the input file handle and $FILE (for error
-    # reporting) each time through the loop.
+    # _parse, so we have to update the input file handle and $self->{file}
+    # each time through the loop.
     local $/ = q{};
-    while (@FILES) {
-        ($in_fh, $FILE) = $FILES[0]->@*;
+    while ($self->{files}->@*) {
+        ($in_fh, $self->{file}) = $self->{files}[0]->@*;
         while (defined(my $para = <$in_fh>)) {
             if ("\n" !~ m{ \015 }xms && $para =~ m{ \015 }xms) {
                 $self->_warning(
@@ -1272,9 +1271,9 @@ sub _spin {
             if ($result !~ m{ \A \s* \z }xms) {
                 $self->_output($result);
             }
-            ($in_fh, $FILE) = $FILES[0]->@*;
+            ($in_fh, $self->{file}) = $self->{files}[0]->@*;
         }
-        shift(@FILES);
+        shift($self->{files}->@*);
     }
 
     # Close open tags and print any deferred whitespace.

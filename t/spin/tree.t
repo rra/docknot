@@ -37,6 +37,9 @@ Updating .../usefor/drafts/draft-ietf-usefor-message-id-01.txt
 Updating .../usefor/drafts/draft-ietf-usefor-posted-mailed-01.txt
 Updating .../usefor/drafts/draft-lindsey-usefor-signed-01.txt
 Updating .../usefor/drafts/draft-ietf-usefor-useage-01.txt
+Creating .../reviews
+Creating .../reviews/books
+Spinning .../reviews/books/0-385-49362-2.html
 OUTPUT
 
 require_ok('App::DocKnot::Spin');
