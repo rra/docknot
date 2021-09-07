@@ -1355,7 +1355,7 @@ sub pod2html {
     my $styles = ($self->{style_url} ? " -s $self->{style_url}" : '');
     $style = 'pod' unless $style;
     $options .= " -s $style";
-    my $command = "pod2thread $options $source | $FULLPATH spin -f$styles";
+    my $command = "pod2thread $options $source | $FULLPATH spin-file$styles";
     my $footer = sub {
         my ($blurb, $id, $file) = @_;
         my $link = '<a href="%URL%">spun</a>';
@@ -1527,7 +1527,6 @@ sub _delete_files {
 # $args  - Anonymous hash of arguments with the following keys:
 #   delete    - Whether to delete files missing from the source tree
 #   exclude   - List of regular expressions matching file names to exclude
-#   filter    - Run spin in filter mode
 #   style-url - Partial URL to style sheets
 #
 # Returns: Newly created object
@@ -1555,7 +1554,6 @@ sub new {
     my $self = {
         delete    => $args_ref->{delete},
         excludes  => [@excludes],
-        filter    => $args_ref->{filter},
         style_url => $style_url,
     };
     bless($self, $class);
@@ -1675,8 +1673,6 @@ spin - Translate thread, an HTML macro language, into XHTML
 =head1 SYNOPSIS
 
 spin [B<-dhv>] [B<-e> I<pattern> ...] [B<-s> I<url>] I<source> [I<output>]
-
-spin [B<-s> I<url>] B<-f>
 
 =head1 REQUIREMENTS
 
