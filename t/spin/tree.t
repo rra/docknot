@@ -53,12 +53,37 @@ my $stdout   = capture_stdout {
 my $count = is_spin_output_tree($output, $expected, 'spin_tree');
 is($stdout, $EXPECTED_OUTPUT, 'Expected spin_tree output');
 
+# Create a bogus file in the output tree.
+my $bogus      = File::Spec->catfile($output->dirname, 'bogus');
+my $bogus_file = File::Spec->catfile($bogus,           'some-file');
+mkdir($bogus);
+open(my $fh, '>', $bogus_file);
+print {$fh} "Some stuff\n" or die "Cannot write to $bogus_file: $!\n";
+close($fh);
+
 # Spinning the same tree of files again should do nothing because of the
 # modification timestamps.
 $stdout = capture_stdout {
     $spin->spin_tree($input, $output->dirname);
 };
 is($stdout, q{}, 'Spinning again does nothing');
+
+# The extra file shouldn't be deleted.
+ok(-d $bogus, 'Stray file and directory not deleted');
+
+# Reconfigure spin to enable deletion, and run it again.  The only action
+# taken should be to delete the stray file.
+$spin
+  = App::DocKnot::Spin->new({ delete => 1, 'style-url' => '/~eagle/styles/' });
+$stdout = capture_stdout {
+    $spin->spin_tree($input, $output->dirname);
+};
+is(
+    $stdout,
+    "Deleting .../bogus/some-file\nDeleting .../bogus\n",
+    'Spinning with delete option cleans up',
+);
+ok(!-e $bogus, 'Stray file and directory was deleted');
 
 # Copy the input tree to a new temporary directory and regenerate output files
 # with the new timestamps.
@@ -89,4 +114,4 @@ is(
 );
 
 # Report the end of testing.
-done_testing($count + 4);
+done_testing($count + 7);
