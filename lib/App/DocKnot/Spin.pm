@@ -42,7 +42,7 @@ my $URL = 'https://www.eyrie.org/~eagle/software/web/';
 use strict;
 use subs qw(expand parse parse_context);
 use warnings;
-use vars qw($DOCID $FILE @FILES $FULLPATH $ID $OUTPUT
+use vars qw($FILE @FILES $FULLPATH $ID $OUTPUT
             @RSS %SITEDESCS %SITELINKS @SITEMAP
             @STATE %VERSIONS %commands);
 
@@ -863,7 +863,7 @@ sub do_heading {
     my $date = strftime ('%Y-%m-%d %T -0000', gmtime);
     $output .= '<!-- Spun' . ($FILE eq '-' ? '' : ' from ' . fileparse($FILE))
         . " by spin 1.80 on $date -->\n";
-    $output .= "<!-- $DOCID -->\n" if $DOCID;
+    $output .= "<!-- $self->{id} -->\n" if $self->{id};
     $output .= "\n<body>\n";
     if ($FILE ne '-') {
         $output .= $self->placement($file);
@@ -875,7 +875,7 @@ sub do_heading {
 # (the identifier is later used in do_heading).
 sub do_id {
     my ($self, $format, $id) = @_;
-    $DOCID = $id;
+    $self->{id} = $id;
     return (1, '');
 }
 
@@ -1007,7 +1007,7 @@ sub do_signature {
     my $link = '<a href="%URL%">spun</a>';
     my $source = $FILE;
     $output .= $self->footer(
-        $source, $file, $DOCID,
+        $source, $file, $self->{id},
         "Last modified and\n    $link %MOD%",
         "Last $link\n    %NOW% from thread modified %MOD%"
     );
@@ -1189,6 +1189,7 @@ sub _spin {
     @FILES = ([$in_fh, $in_path]);
 
     # Initialize object state for a new document.
+    $self->{id}      = undef;
     $self->{macros}  = {};
     $self->{out_fh}  = $out_fh;
     $self->{space}   = q{};
@@ -1235,7 +1236,6 @@ sub _spin {
     print {$out_fh} $self->border_clear(), $self->{space};
 
     # Clean up per-file data so that it's not carried to the next file.
-    undef $DOCID;
     undef @RSS;
 }
 
