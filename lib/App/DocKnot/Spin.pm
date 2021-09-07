@@ -1510,7 +1510,7 @@ sub _process_file {
 # Throws: autodie exception on failure of rmdir or unlink
 sub _delete_files {
     my ($self) = @_;
-    return if ($_ eq '.' || $_ eq '..');
+    return if ($_ eq '.');
     my $file = $File::Find::name;
     return if $self->{generated}{$file};
     my $shortfile = $file;
