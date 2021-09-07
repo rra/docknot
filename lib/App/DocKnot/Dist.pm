@@ -246,8 +246,10 @@ sub _sign_tarballs {
     my @files = $self->_find_matching_tarballs($path, $prefix);
     for my $file (@files) {
         my $tarball_path = File::Spec->catdir($path, $file);
-        systemx($self->{gpg}, '--detach-sign', '--armor', '-u',
-            $self->{pgp_key}, $tarball_path);
+        systemx(
+            $self->{gpg},     '--detach-sign', '--armor', '-u',
+            $self->{pgp_key}, $tarball_path,
+        );
     }
     return;
 }

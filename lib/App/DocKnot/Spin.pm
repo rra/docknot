@@ -24,7 +24,7 @@ use FileHandle ();
 use Getopt::Long qw(GetOptions);
 use Git::Repository ();
 use Image::Size qw(html_imgsize);
-use IPC::System::Simple qw(systemx);
+use IPC::System::Simple qw(capture systemx);
 use File::Basename qw(fileparse);
 use File::Copy qw(copy);
 use File::Find qw(find finddepth);
@@ -91,8 +91,6 @@ my %COMMANDS = (
     under      => [ 1, '_cmd_under'    ],
     version    => [ 1, '_cmd_version'  ],
 );
-
-use vars qw($FULLPATH);
 
 ##############################################################################
 # Utility functions
@@ -595,13 +593,13 @@ sub _relative {
     }
 }
 
-# Given the name of the current file being processed, return the <link> tags
+# Given the path to the output file being generated, return the <link> tags
 # for that file suitable for the <head> section.  Uses the $self->{sitedescs}
 # and $self->{sitelinks} variables.  If the partial URL isn't found in those
 # variables or we're at the top page, nothing is returned.
 sub _sitelinks {
     my ($self, $file) = @_;
-    $file =~ s%^\Q$self->{source}%%;
+    $file =~ s%^\Q$self->{output}%%;
     $file =~ s%/index\.html$%/%;
 
     my $output = '';
@@ -634,13 +632,13 @@ sub _sitelinks {
     return $output;
 }
 
-# Given the name of the current file being processed, return the HTML for the
+# Given the path to the output file being generated, return the HTML for the
 # navigation links for that file.  Uses the $self->{sitedescs} and
 # $self->{sitelinks} variables.  If the partial URL isn't found in those
 # variables or we're at the top page, nothing is returned.
 sub _placement {
     my ($self, $file) = @_;
-    $file =~ s%^\Q$self->{source}%%;
+    $file =~ s%^\Q$self->{output}%%;
     $file =~ s%/index\.html$%/%;
 
     my $output = '';
@@ -692,10 +690,10 @@ sub _placement {
 # have the strings %MOD% and %NOW% replaced by the appropriate dates and %URL%
 # with the URL to my HTML generation software..
 sub _footer {
-    my ($self, $source, $file, $id, @templates) = @_;
+    my ($self, $source, $out_path, $id, @templates) = @_;
     my $output = q{};
-    if ($self->{source}) {
-        $output .= $self->_placement($file);
+    if ($self->{output}) {
+        $output .= $self->_placement($out_path);
     }
     $output .= "<address>\n    ";
 
@@ -930,8 +928,6 @@ sub _cmd_heading {
     my ($self, $format, $title, $style) = @_;
     $title = $self->_parse($title);
     $style = $self->_parse($style);
-    my $file = $self->{file};
-    $file =~ s/\.th$/.html/;
     my $output = qq(<?xml version="1.0" encoding="utf-8"?>\n);
     $output .= qq(<!DOCTYPE html\n);
     $output .= qq(    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"\n);
@@ -953,8 +949,8 @@ sub _cmd_heading {
         $output .= qq( href="$url"\n);
         $output .= qq(        title="$title" />\n);
     }
-    if ($self->{source}) {
-        $output .= $self->_sitelinks($file);
+    if ($self->{output}) {
+        $output .= $self->_sitelinks($self->{out_path});
     }
     $output .= "</head>\n\n";
     my $date = strftime ('%Y-%m-%d %T -0000', gmtime);
@@ -962,8 +958,8 @@ sub _cmd_heading {
     $output .= "<!-- Spun$from by spin 1.80 on $date -->\n";
     $output .= "<!-- $self->{id} -->\n" if $self->{id};
     $output .= "\n<body>\n";
-    if ($self->{source}) {
-        $output .= $self->_placement($file);
+    if ($self->{output}) {
+        $output .= $self->_placement($self->{out_path});
     }
     return (1, $output);
 }
@@ -1099,11 +1095,9 @@ sub _cmd_signature {
         $output .= "</body>\n</html>\n";
         return (1, $output);
     }
-    my $file = $self->{file};
-    $file =~ s/\.th$/.html/;
     my $link = '<a href="%URL%">spun</a>';
     $output .= $self->_footer(
-        $self->{file}, $file, $self->{id},
+        $self->{file}, $self->{out_path}, $self->{id},
         "Last modified and\n    $link %MOD%",
         "Last $link\n    %NOW% from thread modified %MOD%"
     );
@@ -1284,16 +1278,13 @@ sub _spin {
 # External converters
 ##############################################################################
 
-# Given the command to run to generate the page, the file to save the output
-# in, and an anonymous sub that takes three arguments, the first being the
-# captured blurb, the second being the document ID if found, and the third
-# being the base name of the output file, and prints out a last modified line,
-# handle a call to an external converter.
-sub _run_converter {
-    my ($self, $command, $output, $footer) = @_;
-    my @page = capture($command);
-    my $file = $output;
-    $file =~ s%.*/%%;
+# Given the output from a converter, the file to save the output in, and an
+# anonymous sub that takes three arguments, the first being the captured
+# blurb, the second being the document ID if found, and the third being the
+# base name of the output file, and prints out a last modified line, reformat
+# the output of an external converter.
+sub _write_converter_output {
+    my ($self, $page_ref, $output, $footer) = @_;
     open(my $out_fh, '>', $output);
 
     # Grab the first few lines of input, looking for a blurb and Id string.
@@ -1301,37 +1292,42 @@ sub _run_converter {
     # add the navigation link tags before it, if applicable.  Add the
     # navigation bar right at the beginning of the body.
     my ($blurb, $docid);
-    local $_;
-    while (defined ($_ = shift @page)) {
-        if (/<!--\s*(\$Id.*?)\s*-->/) {
+    while (defined(my $line = shift($page_ref->@*))) {
+        if ($line =~ m{ <!-- \s* (\$Id.*?) \s* --> }xms) {
             $docid = $1;
         }
-        if (/<!--\s*((?:Generated|Converted).*?)\s*-->/) {
+        if ($line =~ m{ <!-- \s* ( (?:Generated|Converted) .*? )\s* --> }xms) {
             $blurb = $1;
-            $blurb =~ s/ \d\d:\d\d:\d\d -0000//;
-            $blurb =~ s/ \(\d{4}-\d\d-\d\d\)//;
+
+            # Only show the date of the output, not the time or time zone.
+            $blurb =~ s{ [ ] \d\d:\d\d:\d\d [ ] -0000 }{}xms;
+
+            # Strip the date from the converter version output.
+            $blurb =~ s{ [ ] [(] \d{4}-\d\d-\d\d [)] }{}xms;
         }
-        if (m%^</head>%) {
+        if ($line =~ m{ \A </head> }xmsi) {
             _print_fh($out_fh, $output, $self->_sitelinks($output));
         }
-        _print_fh($out_fh, $output, $_);
-        if (m%<body%i) {
+        _print_fh($out_fh, $output, $line);
+        if ($line =~ m{ <body }xmsi) {
             _print_fh($out_fh, $output, $self->_placement($output));
             last;
         }
     }
-    warn "$0 spin: malformed HTML output from $command\n" unless @page;
+    warn "$0 spin: malformed HTML output for $output\n" unless $page_ref->@*;
 
     # Snarf input and write it to output until we see </body>, which is our
     # signal to start adding things.  We just got very confused if </body> was
     # on the same line as <body>, so don't do that.
-    while (defined ($_ = shift @page) && !m%</body>%i) {
-        _print_fh($out_fh, $output, $_);
+    my $line;
+    while (defined($line = shift($page_ref->@*))) {
+        last if $line =~ m{ </body> }xmsi;
+        _print_fh($out_fh, $output, $line);
     }
 
     # Add the footer and finish with the output.
-    _print_fh($out_fh, $output, $footer->($blurb, $docid, $file));
-    _print_fh($out_fh, $output, $_, @page) if defined;
+    _print_fh($out_fh, $output, $footer->($blurb, $docid));
+    _print_fh($out_fh, $output, $line, $page_ref->@*) if defined;
     close($out_fh);
 }
 
@@ -1341,13 +1337,13 @@ sub _run_converter {
 sub _cl2xhtml {
     my ($self, $source, $output, $options, $style) = @_;
     $style ||= $self->{style_url} . 'changelog.css';
-    my $command = "cl2xhtml $options -s $style $source";
+    my @page = capture("cl2xhtml $options -s $style $source");
     my $footer = sub {
-        my ($blurb, $id, $file) = @_;
+        my ($blurb, $id) = @_;
         $blurb =~ s%cl2xhtml%\n<a href="$URL">cl2xhtml</a>% if $blurb;
-        $self->_footer($source, $file, $id, $blurb, $blurb);
+        $self->_footer($source, $output, $id, $blurb, $blurb);
     };
-    $self->_run_converter($command, $output, $footer);
+    $self->_write_converter_output(\@page, $output, $footer);
 }
 
 # A wrapper around the cvs2xhtml script, used to handle .log pointers in a
@@ -1362,13 +1358,13 @@ sub _cvs2xhtml {
     $options .= " -n $name" unless $options =~ /-n /;
     $style ||= $self->{style_url} . 'cvs.css';
     $options .= " -s $style";
-    my $command = "(cd $dir && cvs log $name) | cvs2xhtml $options";
+    my @page = capture("(cd $dir && cvs log $name) | cvs2xhtml $options");
     my $footer = sub {
         my ($blurb, $id, $file) = @_;
         $blurb =~ s%cvs2xhtml%\n<a href="$URL">cvs2xhtml</a>% if $blurb;
-        $self->_footer($source, $file, $id, $blurb, $blurb);
+        $self->_footer($source, $output, $id, $blurb, $blurb);
     };
-    $self->_run_converter($command, $output, $footer);
+    $self->_write_converter_output(\@page, $output, $footer);
 }
 
 # A wrapper around the faq2html script, used to handle .faq pointers in a tree
@@ -1377,34 +1373,50 @@ sub _cvs2xhtml {
 sub _faq2html {
     my ($self, $source, $output, $options, $style) = @_;
     $style ||= $self->{style_url} . 'faq.css';
-    my $command = "faq2html $options -s $style $source";
+    my @page = capture("faq2html $options -s $style $source");
     my $footer = sub {
         my ($blurb, $id, $file) = @_;
         $blurb =~ s%faq2html%\n<a href="$URL">faq2html</a>%;
-        $self->_footer($source, $file, $id, $blurb, $blurb);
+        $self->_footer($source, $output, $id, $blurb, $blurb);
     };
-    $self->_run_converter($command, $output, $footer);
+    $self->_write_converter_output(\@page, $output, $footer);
 }
 
-# A wrapper around pod2thread and spin -f, used to handle .pod pointers in a
-# tree being spun.  Adds the navigation links and the signature to the output.
+# A wrapper around pod2thread and a nested _spin invocation, used to handle
+# .pod pointers in a tree being spun.  Adds the navigation links and the
+# signature to the output.
 sub _pod2html {
     my ($self, $source, $output, $options, $style) = @_;
     $options = '-n' unless $options;
     my $styles = ($self->{style_url} ? " -s $self->{style_url}" : '');
     $style = 'pod' unless $style;
     $options .= " -s $style";
-    my $command = "pod2thread $options $source | $FULLPATH spin-file$styles";
+
+    # Grab the thread output of pod2thread.
+    my $data = capture("pod2thread $options $source");
+
+    # Run that through spin to convert to HTML.
+    my $page;
+    open(my $in_fh,  '<', \$data);
+    open(my $out_fh, '>', \$page);
+    $self->_spin($in_fh, '-', $out_fh, '-');
+    close($in_fh);
+    close($out_fh);
+
+    # Push the result through _write_converter_output.
+    my $file = $source;
+    $file =~ s{ [.] [^.]+ \z }{.html}xms;
     my $footer = sub {
         my ($blurb, $id, $file) = @_;
         my $link = '<a href="%URL%">spun</a>';
         $self->_footer(
-            $source, $file, $id,
+            $source, $output, $id,
             "Last modified and\n    $link %MOD%",
             "Last $link\n    %NOW% from POD modified %MOD%"
         );
     };
-    $self->_run_converter ($command, $output, $footer);
+    my @page = map { "$_\n" } split(qr{\n}xms, $page);
+    $self->_write_converter_output(\@page, $output, $footer);
 }
 
 ##############################################################################
@@ -1521,7 +1533,7 @@ sub _process_file {
                 return if (-M $file >= -M $output && -M $file >= -M $output);
             }
             print "Running $name for $shortout\n";
-            $sub->($file, $output, $options, $style);
+            $self->$sub($file, $output, $options, $style);
         } else {
             $self->{generated}{$output} = 1;
             if (!-e $output || -M $file < -M $output) {
@@ -1585,9 +1597,6 @@ sub new {
     if ($style_url) {
         $style_url =~ s{ /* \z }{/}xms;
     }
-
-    # Used to invoke spin as a filter.
-    $FULLPATH = $0;
 
     # Create and return the object.
     my $self = {

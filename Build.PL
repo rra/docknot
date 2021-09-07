@@ -73,6 +73,7 @@ my $build = Module::Build->new(
         'Kwalify'                => 0,
         'List::SomeUtils'        => 0,
         'Perl6::Slurp'           => 0,
+        'Pod::Thread'            => '2.00',
         'Pod::Usage'             => 0,
         'Template'               => 0,
         'Text::Balanced'         => 0,

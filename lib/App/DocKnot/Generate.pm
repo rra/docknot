@@ -178,7 +178,7 @@ sub _code_for_to_text {
         my @paragraphs = split(m{ \n\n }xms, $text);
         for my $para (@paragraphs) {
             my %urls;
-            while ($para =~ s{ \[ ([^\]]+) \] [(] (\S+) [)] }{$1 [$ref]}xms) {
+            while ($para =~ s{ \[([^\]]+)\] [(] (\S+) [)] }{$1 [$ref]}xms) {
                 $urls{$ref} = $2;
                 $ref++;
             }

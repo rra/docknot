@@ -13,6 +13,7 @@ use warnings;
 use lib 't/lib';
 
 use Capture::Tiny qw(capture_stdout);
+use Cwd qw(getcwd);
 use File::Copy::Recursive qw(dircopy);
 use File::Spec;
 use File::Temp;
@@ -30,6 +31,8 @@ Creating .../software
 Spinning .../software/index.html
 Creating .../software/docknot
 Spinning .../software/docknot/index.html
+Creating .../software/docknot/api
+Running pod2thread for .../software/docknot/api/app-docknot.html
 Creating .../usefor
 Spinning .../usefor/index.html
 Creating .../usefor/drafts
@@ -88,11 +91,19 @@ is(
 );
 ok(!-e $bogus, 'Stray file and directory was deleted');
 
-# Copy the input tree to a new temporary directory and regenerate output files
-# with the new timestamps.
+# Copy the input tree to a new temporary directory, replace the rpod pointer,
+# and regenerate output files with the new timestamps.
 my $tmpdir = File::Temp->newdir();
 dircopy($input, $tmpdir)
   or die "Cannot copy $input to $tmpdir: $!\n";
+my $rpod_source = File::Spec->catfile(getcwd(), 'lib', 'App', 'DocKnot.pm');
+my $rpod_path   = File::Spec->catfile(
+    $tmpdir->dirname, 'software', 'docknot', 'api',
+    'app-docknot.rpod',
+);
+open($fh, '>', $rpod_path);
+print {$fh} "$rpod_source\n" or die "Cannot write to $rpod_path: $!\n";
+close($fh);
 capture_stdout {
     $spin->spin_tree($tmpdir->dirname, $output->dirname);
 };

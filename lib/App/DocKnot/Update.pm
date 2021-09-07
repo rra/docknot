@@ -29,14 +29,14 @@ use YAML::XS ();
 # configuration in a key of the same name.  If the key contains a slash, like
 # foo/bar, it will be stored as a nested hash, as $data{foo}{bar}.
 our @JSON_METADATA_FILES = qw(
-  bootstrap
-  build/middle
-  build/suffix
-  debian/summary
-  packaging/extra
-  support/extra
-  test/prefix
-  test/suffix
+    bootstrap
+    build/middle
+    build/suffix
+    debian/summary
+    packaging/extra
+    support/extra
+    test/prefix
+    test/suffix
 );
 
 ##############################################################################

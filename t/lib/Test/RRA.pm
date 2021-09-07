@@ -46,7 +46,7 @@ our (@EXPORT_OK, $VERSION);
 # consistency is good).
 BEGIN {
     @EXPORT_OK = qw(
-      is_file_contents skip_unless_author skip_unless_automated use_prereq
+        is_file_contents skip_unless_author skip_unless_automated use_prereq
     );
 
     # This version should match the corresponding rra-c-util release, but with
