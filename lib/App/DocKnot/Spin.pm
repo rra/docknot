@@ -14,6 +14,9 @@
 
 package App::DocKnot::Spin 4.01;
 
+use 5.024;
+use warnings;
+
 use Cwd qw(getcwd realpath);
 use FileHandle ();
 use Getopt::Long qw(GetOptions);
@@ -39,9 +42,6 @@ my @EXCLUDES = (
 # used to embed a link to the software that generated the page.
 my $URL = 'https://www.eyrie.org/~eagle/software/web/';
 
-use strict;
-use subs qw(expand parse parse_context);
-use warnings;
 use vars qw($FILE @FILES $FULLPATH $OUTPUT
             %SITEDESCS %SITELINKS @SITEMAP
             %VERSIONS %commands);
