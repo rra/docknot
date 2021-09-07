@@ -16,7 +16,7 @@ format: v1
 name: DocKnot
 maintainer: Russ Allbery <rra@cpan.org>
 version: '4.01'
-synopsis: Package documentation generator
+synopsis: Static web site and documentation generator
 
 license:
   name: Expat
