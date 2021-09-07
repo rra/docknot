@@ -44,7 +44,7 @@ use subs qw(expand parse parse_context);
 use warnings;
 use vars qw($FILE @FILES $FULLPATH $OUTPUT
             %SITEDESCS %SITELINKS @SITEMAP
-            @STATE %VERSIONS %commands);
+            %VERSIONS %commands);
 
 ##############################################################################
 # Output
@@ -136,17 +136,17 @@ sub border {
     my ($self, $border, $start, $end) = @_;
     my $output = '';
     if ($border) {
-        if ($STATE[-1] eq 'BLOCK' || $STATE[-1][0] ne $border) {
+        my $state = $self->{state}[-1];
+        if ($state eq 'BLOCK' || $state->[0] ne $border) {
             $output .= $start;
-            push (@STATE, [ $border, $end ]);
+            push($self->{state}->@*, [$border, $end]);
         }
     } else {
-        my $state;
-        while (defined ($state = pop @STATE)) {
+        while (defined(my $state = pop($self->{state}->@*))) {
             last if $state eq 'BLOCK';
-            $output .= $$state[1];
+            $output .= $state->[1];
         }
-        push (@STATE, 'BLOCK');
+        push($self->{state}->@*, 'BLOCK');
     }
     return $output;
 }
@@ -155,14 +155,14 @@ sub border {
 # borders will only clear to the level of this structure.
 sub border_start {
     my ($self) = @_;
-    push (@STATE, 'BLOCK');
+    push($self->{state}->@*, 'BLOCK');
 }
 
 # Clears a major block structure.
 sub border_clear {
     my ($self) = @_;
-    my $output = border;
-    pop @STATE;
+    my $output = $self->border();
+    pop($self->{state}->@*);
     return $output;
 }
 
@@ -1192,10 +1192,8 @@ sub _spin {
     $self->{out_fh}  = $out_fh;
     $self->{rss}     = [];
     $self->{space}   = q{};
+    $self->{state}   = ['BLOCK'];
     $self->{strings} = {};
-
-    # Set initial block structure state.
-    $self->border_start();
 
     # Parse the thread file a paragraph at a time (but pick up macro contents
     # that are continued across paragraphs.
