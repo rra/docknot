@@ -45,7 +45,6 @@ my @EXCLUDES = (
 my $URL = 'https://www.eyrie.org/~eagle/software/web/';
 
 use vars qw($FILE @FILES $FULLPATH
-            %SITEDESCS %SITELINKS @SITEMAP
             %commands);
 
 ##############################################################################
@@ -411,14 +410,16 @@ sub parse {
 # Data files
 ##############################################################################
 
-# Read the sitemap file for a site and flesh out the @SITEMAP array and
-# %SITEDESCS and %SITELINKS hashes with information from that file.
+# Read the sitemap file for a site and flesh out the $self->{sitemap} array
+# and $self->{sitedescs} and $self->{sitelinks} hashes with information from
+# that file.
 #
-# @SITEMAP is an array of anonymous arrays holding the complete site map.
-# Each element represents a page.  The element will contain three elements:
-# the numeric indent level, the partial URL, and the description.  %SITEDESCS
-# holds a map of partial URLs to descriptions, and %SITELINKS map partial URLs
-# to a list of other partial URLs (previous, next, and up).
+# $self->{sitemap} is an array of anonymous arrays holding the complete site
+# map.  Each element represents a page.  The element will contain three
+# elements: the numeric indent level, the partial URL, and the description.
+# $self->{sitedescs} holds a map of partial URLs to descriptions, and
+# $self->{sitelinks} map partial URLs to a list of other partial URLs
+# (previous, next, and up).
 #
 # The format of the sitemap file is one line per web page, with indentation
 # showing the tree structure, and with each line formatted as a partial URL, a
@@ -461,11 +462,13 @@ sub _read_sitemap {
             shift @prev;
             shift @parents;
         }
-        $SITELINKS{$url} = [ $prev[0], undef, @parents ];
-        $SITELINKS{$prev[0]}[1] = $url if defined $prev[0];
+        $self->{sitelinks}{$url} = [$prev[0], undef, @parents];
+        if (defined($prev[0])) {
+            $self->{sitelinks}{$prev[0]}[1] = $url;
+        }
         $prev[0] = $url;
-        $SITEDESCS{$url} = $desc;
-        push (@SITEMAP, [ $indent, $url, $desc ]);
+        $self->{sitedescs}{$url} = $desc;
+        push($self->{sitemap}->@*, [$indent, $url, $desc]);
     }
     close($fh);
 }
@@ -546,18 +549,18 @@ sub relative {
 }
 
 # Given the name of the current file being processed, return the <link> tags
-# for that file suitable for the <head> section.  Uses the global %SITEDESCS
-# and %SITELINKS variables.  If the partial URL isn't found in those variables
-# or we're at the top page, nothing is returned.
+# for that file suitable for the <head> section.  Uses the $self->{sitedescs}
+# and $self->{sitelinks} variables.  If the partial URL isn't found in those
+# variables or we're at the top page, nothing is returned.
 sub sitelinks {
     my ($self, $file) = @_;
     $file =~ s%^\Q$self->{source}%%;
     $file =~ s%/index\.html$%/%;
 
     my $output = '';
-    if ($file ne '/' && $SITELINKS{$file}) {
-        my @links = @{ $SITELINKS{$file} };
-        my @descs = map { defined ($_) ? $SITEDESCS{$_} : '' } @links;
+    if ($file ne '/' && $self->{sitelinks}{$file}) {
+        my @links = $self->{sitelinks}{$file}->@*;
+        my @descs = map { defined($_) ? $self->{sitedescs}{$_} : '' } @links;
         @descs = map { s/\"/&quot;/g; $_ } map { $self->escape($_) } @descs;
         @links = map {
             defined ($_) ? $self->relative($file, $_) : undef
@@ -585,18 +588,18 @@ sub sitelinks {
 }
 
 # Given the name of the current file being processed, return the HTML for the
-# navigation links for that file.  Uses the global %SITEDESCS and %SITELINKS
-# variables.  If the partial URL isn't found in those variables or we're at
-# the top page, nothing is returned.
+# navigation links for that file.  Uses the $self->{sitedescs} and
+# $self->{sitelinks} variables.  If the partial URL isn't found in those
+# variables or we're at the top page, nothing is returned.
 sub placement {
     my ($self, $file) = @_;
     $file =~ s%^\Q$self->{source}%%;
     $file =~ s%/index\.html$%/%;
 
     my $output = '';
-    if ($file ne '/' && $SITELINKS{$file}) {
-        my @links = @{ $SITELINKS{$file} };
-        my @descs = map { defined ($_) ? $SITEDESCS{$_} : '' } @links;
+    if ($file ne '/' && $self->{sitelinks}{$file}) {
+        my @links = $self->{sitelinks}{$file}->@*;
+        my @descs = map { defined($_) ? $self->{sitedescs}{$_} : '' } @links;
         @descs = map { $self->escape($_) } @descs;
         @links = map {
             defined ($_) ? $self->relative($file, $_) : undef
@@ -1080,14 +1083,14 @@ sub do_size {
 # Generates a HTML version of the sitemap and outputs that.
 sub do_sitemap {
     my ($self) = @_;
-    unless (@SITEMAP) {
+    if (!$self->{sitemap}->@*) {
         $self->_warning("no sitemap file found");
         return (1, '');
     }
     my $output = $self->border();
     my @indents = (0);
-    for my $page (@SITEMAP) {
-        my ($indent, $url, $title) = @$page;
+    for my $page ($self->{sitemap}->@*) {
+        my ($indent, $url, $title) = $page->@*;
         next if $indent == 0;
         $url =~ s,^/,,;
         if ($indent > $indents[0]) {
