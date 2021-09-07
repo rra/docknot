@@ -42,7 +42,7 @@ my $URL = 'https://www.eyrie.org/~eagle/software/web/';
 use strict;
 use subs qw(expand parse parse_context);
 use warnings;
-use vars qw(%DEPEND $DOCID $FILE @FILES $FULLPATH $ID $OUTPUT
+use vars qw($DOCID $FILE @FILES $FULLPATH $ID $OUTPUT
             @RSS %SITEDESCS %SITELINKS @SITEMAP
             @STATE %VERSIONS %commands);
 
@@ -449,9 +449,9 @@ sub time_to_seconds {
 
 # Read in the .versions file for a site and flesh out the %VERSIONS hash.  It
 # contains a mapping of product name to an anonymous array of version number
-# and date of the last update.  It also fleshes out the %DEPEND hash, which
-# holds a mapping of file names that use a particular version to the timestamp
-# of the last change in that version.
+# and date of the last update.  It also fleshes out the $self->{depends} hash,
+# which holds a mapping of file names that use a particular version to the
+# timestamp of the last change in that version.
 sub _read_versions {
     my ($self, $versions) = @_;
     open (VERSIONS, $versions) or return;
@@ -477,8 +477,12 @@ sub _read_versions {
             $VERSIONS{$product} = [ $version, $date ];
             $last = $timestamp;
         }
-        for (@files) {
-            $DEPEND{$_} = $last if (!$DEPEND{$_} || $DEPEND{$_} < $last);
+
+        # Update dependency timestamps.
+        for my $file (@files) {
+            if (!$self->{depends}{$file} || $self->{depends}{$file} < $last) {
+                $self->{depends}{$file} = $last;
+            }
         }
     }
     close VERSIONS;
@@ -1456,7 +1460,7 @@ sub _process_file {
         $self->{generated}{$output} = 1;
         my $relative = $input;
         $relative =~ s{ ^ \Q$self->{source}\E / }{}xms;
-        my $time = $DEPEND{$relative} || 0;
+        my $time = $self->{depends}{$relative} || 0;
         if (-e $output) {
             return if (-M $file >= -M $output && (stat($output))[9] >= $time);
         }
@@ -1481,7 +1485,7 @@ sub _process_file {
             $sub->($file, $output, $options, $style);
         } else {
             $self->{generated}{$output} = 1;
-            if (!-e $output || -M $file > -M $output) {
+            if (!-e $output || -M $file < -M $output) {
                 print "Updating $shortout\n";
                 copy($file, $output)
                   or die "$0: copy of $input to $output failed: $!\n";
