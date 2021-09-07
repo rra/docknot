@@ -270,7 +270,7 @@ sub update {
     if ($@) {
         my $errors = $@;
         chomp($errors);
-        die "Schema validation failed:\n$errors\n";
+        die "schema validation failed:\n$errors\n";
     }
 
     # Write the new YAML package configuration.

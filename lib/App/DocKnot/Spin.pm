@@ -15,8 +15,10 @@
 package App::DocKnot::Spin 4.01;
 
 use 5.024;
+use autodie;
 use warnings;
 
+use Carp qw(croak);
 use Cwd qw(getcwd realpath);
 use FileHandle ();
 use Getopt::Long qw(GetOptions);
@@ -42,9 +44,29 @@ my @EXCLUDES = (
 # used to embed a link to the software that generated the page.
 my $URL = 'https://www.eyrie.org/~eagle/software/web/';
 
-use vars qw($FILE @FILES $FULLPATH $OUTPUT
+use vars qw($FILE @FILES $FULLPATH
             %SITEDESCS %SITELINKS @SITEMAP
             %commands);
+
+##############################################################################
+# Utility functions
+##############################################################################
+
+# print with error checking and an explicit file handle.  autodie
+# unfortunately can't help us with these because they can't be prototyped and
+# hence can't be overridden.
+#
+# $fh   - Output file handle
+# $file - File name for error reporting
+# @args - Remaining arguments to print
+#
+# Returns: undef
+#  Throws: Text exception on output failure
+sub _print_fh {
+    my ($fh, $file, @args) = @_;
+    print {$fh} @args or croak("cannot write to $file: $!");
+    return;
+}
 
 ##############################################################################
 # Output
@@ -53,7 +75,7 @@ use vars qw($FILE @FILES $FULLPATH $OUTPUT
 # Sends something to the output file with special handling of whitespace for
 # more readable HTML output.
 #
-# @output - Strings to output.
+# @output - Strings to output
 sub _output {
     my ($self, @output) = @_;
     my $output = join(q{}, @output);
@@ -89,13 +111,27 @@ sub _output {
     }
 
     # Send the results to the output file.
-    print { $self->{out_fh} } $output;
+    _print_fh($self->{out_fh}, $self->{out_path}, $output);
+    return;
+}
+
+# Report a fatal problem with the current file and line.
+#
+# $problem - Error message to report
+#
+# Throws: Text exception with the provided error
+sub _fatal {
+    my ($self, $problem) = @_;
+    die "$0 spin:$FILE:$.: $problem\n";
 }
 
 # Warn about a problem with the current file and line.
+#
+# $problem - Warning message to report
 sub _warning {
     my ($self, $problem) = @_;
-    warn "spin:$FILE:$.: $problem\n";
+    warn "$0 spin:$FILE:$.: $problem\n";
+    return;
 }
 
 ##############################################################################
@@ -186,7 +222,7 @@ sub extract {
             if ($result[$_]) {
                 $result[$_] = substr ($result[$_], 1, -1);
             } else {
-                warn "$0:$FILE:$.: cannot find argument $_\n";
+                $self->_warning("cannot find argument $_");
                 $result[$_] = '';
             }
         }
@@ -237,7 +273,7 @@ sub expand {
         if (exists($self->{strings}{$command})) {
             return ($self->{strings}{$command}, 0, $text);
         } else {
-            warn "$0:$FILE:$.: unknown string $command\n";
+            $self->_warning("unknown string $command");
             return ('', 0, $text);
         }
     } elsif ($command eq '\\') {
@@ -253,7 +289,7 @@ sub expand {
         return ($self->macro($args, $definition, $block, @args), $text);
     } else {
         if (!ref $commands{$command}) {
-            warn "$0:$FILE:$.: bad command $command\n";
+            $self->_warning("bad command $command");
             return ('', 1, $text);
         }
         my ($args, $handler) = @{ $commands{$command} };
@@ -304,7 +340,7 @@ sub parse_context {
         unless ($text =~ s/^([^\\]+|\\([\w=]+|.))//) {
             my $error = substr ($text, 0, 20);
             $error =~ s/\n.*//s;
-            die "$0:$FILE:$.: unable to parse at '$error'\n";
+            $self->_fatal(qq(unable to parse at "$error"));
         }
         my $command;
         if (index ($1, '\\') == -1) {
@@ -398,9 +434,9 @@ sub _read_sitemap {
     # $prev[0] is undef, there is no previous page at that level.
     my @indents = (0);
     my (@parents, @prev);
-    open (MAP, $map) or return;
+    open(my $fh, $map) or return;
     local $_;
-    while (<MAP>) {
+    while (<$fh>) {
         next if /^\s*\#/;
         if (/^( *)---$/) {
             my $indent = length ($1);
@@ -431,7 +467,7 @@ sub _read_sitemap {
         $SITEDESCS{$url} = $desc;
         push (@SITEMAP, [ $indent, $url, $desc ]);
     }
-    close MAP;
+    close($fh);
 }
 
 # Given a date and time in ISO format, convert it to seconds since epoch.
@@ -454,10 +490,10 @@ sub time_to_seconds {
 # particular version to the timestamp of the last change in that version.
 sub _read_versions {
     my ($self, $versions) = @_;
-    open (VERSIONS, $versions) or return;
+    open(my $fh, $versions) or return;
     local $_;
     my $last;
-    while (<VERSIONS>) {
+    while (<$fh>) {
         next if /^\s*$/;
         next if /^\s*\#/;
         my @files;
@@ -485,7 +521,7 @@ sub _read_versions {
             }
         }
     }
-    close VERSIONS;
+    close($fh);
 }
 
 ##############################################################################
@@ -607,7 +643,10 @@ sub placement {
 # with the URL to my HTML generation software..
 sub footer {
     my ($self, $source, $file, $id, @templates) = @_;
-    my $output = $self->placement($file);
+    my $output = q{};
+    if ($self->{source}) {
+        $output .= $self->placement($file);
+    }
     $output .= "<address>\n    ";
 
     # Figure out the modified dates.  Use the RCS/CVS Id if available,
@@ -656,7 +695,7 @@ sub format_string {
     if ($format) {
         if ($format =~ s/^\#//) {
             if ($format =~ /\s/) {
-                warn qq($0:$FILE:$.: Space in anchor "$format"\n);
+                $self->_warning(qq(space in anchor "$format"));
             }
             return ' id="' . $format . '"';
         } else {
@@ -854,7 +893,7 @@ sub do_heading {
         $output .= qq( href="$url"\n);
         $output .= qq(        title="$title" />\n);
     }
-    if ($FILE ne '-') {
+    if ($self->{source}) {
         $output .= $self->sitelinks($file);
     }
     $output .= "</head>\n\n";
@@ -863,7 +902,7 @@ sub do_heading {
         . " by spin 1.80 on $date -->\n";
     $output .= "<!-- $self->{id} -->\n" if $self->{id};
     $output .= "\n<body>\n";
-    if ($FILE ne '-') {
+    if ($self->{source}) {
         $output .= $self->placement($file);
     }
     return (1, $output);
@@ -899,7 +938,7 @@ sub do_include {
     my ($self, $format, $file) = @_;
     $file = $self->parse($file);
     my $fh = FileHandle->new ("< $file")
-        or die "$0:$FILE:$.: cannot include $file: $!\n";
+      or $self->_fatal("cannot include $file: $!");
     unshift (@FILES, [$fh, $file]);
     return (1, '');
 }
@@ -976,7 +1015,7 @@ sub do_release {
         $date =~ s/ .*//;
         return (0, $date);
     } else {
-        warn qq($0:$FILE:$.: No release date known for "$product"\n);
+        $self->_warning(qq(no release date known for "$product"));
         return (0, '');
     }
 }
@@ -1020,12 +1059,12 @@ sub do_size {
     my ($self, $format, $file) = @_;
     $file = $self->parse($file);
     unless ($file) {
-        warn "$0:$FILE:$.: empty file name in \\size\n";
+        $self->_warning("empty file name in \\size");
         return (0, '');
     }
     my ($size) = (stat $file)[7];
     unless (defined $size) {
-        warn "$0:$FILE:$.: cannot stat file $file: $!\n";
+        $self->_warning("cannot stat file $file: $!");
         return (0, '');
     }
     my @suffixes = qw(K M G T);
@@ -1042,7 +1081,7 @@ sub do_size {
 sub do_sitemap {
     my ($self) = @_;
     unless (@SITEMAP) {
-        warn qq($0:$FILE:$.: No sitemap file found\n);
+        $self->_warning("no sitemap file found");
         return (1, '');
     }
     my $output = $self->border();
@@ -1113,7 +1152,7 @@ sub do_version {
     if ($self->{versions}{$product}) {
         return (0, $self->{versions}{$product}[0]);
     } else {
-        warn qq($0:$FILE:$.: No version known for "$product"\n);
+        $self->_warning(qq(no version known for "$product"));
         return (0, '');
     }
 }
@@ -1179,21 +1218,23 @@ sub do_h6 { my ($self, @args) = @_; $self->heading(6, @args); }
 # function is run matters a great deal, since thread may contain relative
 # paths to files that the spinning process needs to access.
 #
-# $in_fh   - Input file handle of thread
-# $in_path - Input file path, used for error reporting
-# $out_fh  - Output file handle to which to write the HTML
+# $in_fh    - Input file handle of thread
+# $in_path  - Input file path, used for error reporting
+# $out_fh   - Output file handle to which to write the HTML
+# $out_path - Output file path, used for error reporting
 sub _spin {
-    my ($self, $in_fh, $in_path, $out_fh) = @_;
+    my ($self, $in_fh, $in_path, $out_fh, $out_path) = @_;
     @FILES = ([$in_fh, $in_path]);
 
     # Initialize object state for a new document.
-    $self->{id}      = undef;
-    $self->{macros}  = {};
-    $self->{out_fh}  = $out_fh;
-    $self->{rss}     = [];
-    $self->{space}   = q{};
-    $self->{state}   = ['BLOCK'];
-    $self->{strings} = {};
+    $self->{id}       = undef;
+    $self->{macros}   = {};
+    $self->{out_fh}   = $out_fh;
+    $self->{out_path} = $out_path;
+    $self->{rss}      = [];
+    $self->{space}    = q{};
+    $self->{state}    = ['BLOCK'];
+    $self->{strings}  = {};
 
     # Parse the thread file a paragraph at a time (but pick up macro contents
     # that are continued across paragraphs.
@@ -1230,7 +1271,7 @@ sub _spin {
     }
 
     # Close open tags and print any deferred whitespace.
-    print {$out_fh} $self->border_clear(), $self->{space};
+    _print_fh($out_fh, $out_path, $self->border_clear(), $self->{space});
 }
 
 ##############################################################################
@@ -1244,14 +1285,10 @@ sub _spin {
 # handle a call to an external converter.
 sub run_converter {
     my ($self, $command, $output, $footer) = @_;
-    my @page = `$command`;
-    if ($? != 0) {
-        $command =~ s/ .*//;
-        die "$0: command failed with exit status ", ($? >> 8), "\n";
-    }
-    open (OUT, "> $output") or die "$0: cannot create $output: $!\n";
+    my @page = capture($command);
     my $file = $output;
     $file =~ s%.*/%%;
+    open(my $out_fh, '>', $output);
 
     # Grab the first few lines of input, looking for a blurb and Id string.
     # Give up if we encounter <body> first.  Also look for a </head> tag and
@@ -1269,25 +1306,27 @@ sub run_converter {
             $blurb =~ s/ \(\d{4}-\d\d-\d\d\)//;
         }
         if (m%^</head>%) {
-            print OUT $self->sitelinks($output);
+            _print_fh($out_fh, $output, $self->sitelinks($output));
         }
-        print OUT $_;
+        _print_fh($out_fh, $output, $_);
         if (m%<body%i) {
-            print OUT $self->placement($output);
+            _print_fh($out_fh, $output, $self->placement($output));
             last;
         }
     }
-    warn "$0: malformed HTML output from $command\n" unless @page;
+    warn "$0 spin: malformed HTML output from $command\n" unless @page;
 
     # Snarf input and write it to output until we see </body>, which is our
     # signal to start adding things.  We just got very confused if </body> was
     # on the same line as <body>, so don't do that.
-    print OUT $_ while (defined ($_ = shift @page) && !m%</body>%i);
+    while (defined ($_ = shift @page) && !m%</body>%i) {
+        _print_fh($out_fh, $output, $_);
+    }
 
     # Add the footer and finish with the output.
-    print OUT $footer->($blurb, $docid, $file);
-    print OUT $_, @page if defined;
-    close OUT;
+    _print_fh($out_fh, $output, $footer->($blurb, $docid, $file));
+    _print_fh($out_fh, $output, $_, @page) if defined;
+    close($out_fh);
 }
 
 # A wrapper around the cl2xhtml script, used to handle .changelog pointers in
@@ -1421,7 +1460,7 @@ sub _process_file {
     my $input  = $File::Find::name;
     my $output = $input;
     $output =~ s{ \A \Q$self->{source}\E }{$self->{output}}xms
-      or die "$input file out of tree?\n";
+      or die "input file $file out of tree\n";
     my $shortout = $output;
     $shortout =~ s{ \A \Q$self->{output}\E }{...}xms;
 
@@ -1461,7 +1500,7 @@ sub _process_file {
         print "Spinning $shortout\n";
         open(my $in_fh,  '<', $input);
         open(my $out_fh, '>', $output);
-        $self->_spin($in_fh, $input, $out_fh);
+        $self->_spin($in_fh, $input, $out_fh, $output);
         close($in_fh);
         close($out_fh);
     } else {
@@ -1482,7 +1521,7 @@ sub _process_file {
             if (!-e $output || -M $file < -M $output) {
                 print "Updating $shortout\n";
                 copy($file, $output)
-                  or die "$0: copy of $input to $output failed: $!\n";
+                  or die "copy of $input to $output failed: $!\n";
             }
         }
     }
@@ -1562,47 +1601,37 @@ sub new {
 # Raises: Text exception on processing error
 sub spin_file {
     my ($self, $input, $output) = @_;
-    my $cwd = getcwd();
+    my $cwd = getcwd() or die "cannot get current directory: $!\n";
     my ($in_fh, $out_fh);
-
-    # Canonicalize input and output paths.
-    if (defined($input)) {
-        $self->{source} = realpath($input)
-           or die "cannot canonicalize $input: $!\n";
-        if (!-f $self->{source}) {
-            die "input file $self->{source} must be a regular file";
-        }
-    } else {
-        $self->{input} = '-';
-    }
-    if (defined($output)) {
-        $self->{output} = realpath($output)
-          or die "cannot canonicalize $output: $!\n";
-        $self->{output} =~ s{ /+ \z }{}xms;
-    } else {
-        $self->{output} = '-';
-    }
-
-    # Open the output file.
-    if ($self->{output} eq '-') {
-        open($out_fh, '>&STDOUT');
-    } else {
-        open($out_fh, '>', $self->{output});
-    }
 
     # When spinning a single file, the input file must not be a directory.  We
     # do the work from the directory of the file to ensure that relative file
     # references resolve properly.
-    if ($self->{source} eq '-') {
-        open($in_fh, '<&STDIN');
-    } else {
-        open($in_fh, '<', $self->{source});
-        my (undef, $input_dir) = fileparse($self->{source});
+    if (defined($input)) {
+        $input = realpath($input) or die "cannot canonicalize $input: $!\n";
+        if (!-f $input) {
+            die "input file $input must be a regular file";
+        }
+        open($in_fh, '<', $input);
+        my (undef, $input_dir) = fileparse($input);
         chdir($input_dir);
+    } else {
+        $input = '-';
+        open($in_fh, '<&STDIN');
+    }
+
+    # Open the output file.
+    if (defined($output)) {
+        $output = realpath($output) or die "cannot canonicalize $output: $!\n";
+        $output =~ s{ /+ \z }{}xms;
+        open($out_fh, '>', $output);
+    } else {
+        $output = '-';
+        open($out_fh, '>&STDOUT');
     }
 
     # Do the work.
-    $self->_spin($in_fh, $self->{source}, $out_fh);
+    $self->_spin($in_fh, $input, $out_fh, $output);
 
     # Clean up and restore the working directory.
     close($in_fh);
