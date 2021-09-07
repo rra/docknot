@@ -42,8 +42,8 @@ my $URL = 'https://www.eyrie.org/~eagle/software/web/';
 use strict;
 use subs qw(expand parse parse_context);
 use warnings;
-use vars qw($FILE @FILES $FULLPATH $ID $OUTPUT
-            @RSS %SITEDESCS %SITELINKS @SITEMAP
+use vars qw($FILE @FILES $FULLPATH $OUTPUT
+            %SITEDESCS %SITELINKS @SITEMAP
             @STATE %VERSIONS %commands);
 
 ##############################################################################
@@ -848,13 +848,11 @@ sub do_heading {
         $output .= qq(  <link rel="stylesheet" href="$style");
         $output .= qq( type="text/css" />\n);
     }
-    if (@RSS) {
-        for my $rss (@RSS) {
-            my ($url, $title) = @$rss;
-            $output .= qq(  <link rel="alternate" type="application/rss+xml");
-            $output .= qq( href="$url"\n);
-            $output .= qq(        title="$title" />\n);
-        }
+    for my $rss ($self->{rss}->@*) {
+        my ($url, $title) = $rss->@*;
+        $output .= qq(  <link rel="alternate" type="application/rss+xml");
+        $output .= qq( href="$url"\n);
+        $output .= qq(        title="$title" />\n);
     }
     if ($FILE ne '-') {
         $output .= $self->sitelinks($file);
@@ -989,7 +987,7 @@ sub do_rss {
     my ($self, $format, $url, $title) = @_;
     $url = $self->parse($url);
     $title = $self->parse($title);
-    push (@RSS, [ $url, $title ]);
+    push($self->{rss}->@*, [$url, $title]);
     return (1, '');
 }
 
@@ -1192,6 +1190,7 @@ sub _spin {
     $self->{id}      = undef;
     $self->{macros}  = {};
     $self->{out_fh}  = $out_fh;
+    $self->{rss}     = [];
     $self->{space}   = q{};
     $self->{strings} = {};
 
@@ -1234,9 +1233,6 @@ sub _spin {
 
     # Close open tags and print any deferred whitespace.
     print {$out_fh} $self->border_clear(), $self->{space};
-
-    # Clean up per-file data so that it's not carried to the next file.
-    undef @RSS;
 }
 
 ##############################################################################
