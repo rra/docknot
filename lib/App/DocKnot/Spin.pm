@@ -44,7 +44,7 @@ my $URL = 'https://www.eyrie.org/~eagle/software/web/';
 
 use vars qw($FILE @FILES $FULLPATH $OUTPUT
             %SITEDESCS %SITELINKS @SITEMAP
-            %VERSIONS %commands);
+            %commands);
 
 ##############################################################################
 # Output
@@ -447,11 +447,11 @@ sub time_to_seconds {
     return mktime (@datetime);
 }
 
-# Read in the .versions file for a site and flesh out the %VERSIONS hash.  It
-# contains a mapping of product name to an anonymous array of version number
-# and date of the last update.  It also fleshes out the $self->{depends} hash,
-# which holds a mapping of file names that use a particular version to the
-# timestamp of the last change in that version.
+# Read in the .versions file for a site and flesh out the $self->{versions}
+# hash.  It contains a mapping of product name to an anonymous array of
+# version number and date of the last update.  It also fleshes out the
+# $self->{depends} hash, which holds a mapping of file names that use a
+# particular version to the timestamp of the last change in that version.
 sub _read_versions {
     my ($self, $versions) = @_;
     open (VERSIONS, $versions) or return;
@@ -474,7 +474,7 @@ sub _read_versions {
                 $timestamp = 0;
             }
             $date = strftime ('%Y-%m-%d', gmtime $timestamp);
-            $VERSIONS{$product} = [ $version, $date ];
+            $self->{versions}{$product} = [$version, $date];
             $last = $timestamp;
         }
 
@@ -971,8 +971,8 @@ sub do_quote {
 sub do_release {
     my ($self, $format, $product) = @_;
     $product = $self->parse($product);
-    if ($VERSIONS{$product}) {
-        my $date = $VERSIONS{$product}[1];
+    if ($self->{versions}{$product}) {
+        my $date = $self->{versions}{$product}[1];
         $date =~ s/ .*//;
         return (0, $date);
     } else {
@@ -1110,8 +1110,8 @@ sub do_tablerow {
 sub do_version {
     my ($self, $format, $product) = @_;
     $product = $self->parse($product);
-    if ($VERSIONS{$product}) {
-        return (0, $VERSIONS{$product}[0]);
+    if ($self->{versions}{$product}) {
+        return (0, $self->{versions}{$product}[0]);
     } else {
         warn qq($0:$FILE:$.: No version known for "$product"\n);
         return (0, '');
