@@ -18,6 +18,7 @@ use 5.024;
 use autodie;
 use warnings;
 
+use App::DocKnot::Spin::Versions;
 use Carp qw(croak);
 use Cwd qw(getcwd realpath);
 use FileHandle ();
@@ -29,7 +30,7 @@ use File::Basename qw(fileparse);
 use File::Copy qw(copy);
 use File::Find qw(find finddepth);
 use File::Spec ();
-use POSIX qw(mktime strftime);
+use POSIX qw(strftime);
 use Text::Balanced qw(extract_bracketed);
 
 # The default list of files and/or directories to exclude from spinning.  This
@@ -514,60 +515,6 @@ sub _read_sitemap {
         $prev[0] = $url;
         $self->{sitedescs}{$url} = $desc;
         push($self->{sitemap}->@*, [$indent, $url, $desc]);
-    }
-    close($fh);
-}
-
-# Given a date and time in ISO format, convert it to seconds since epoch.
-sub _time_to_seconds {
-    my ($self, $date, $time) = @_;
-    my @datetime = reverse split (':', $time);
-    push (@datetime, reverse split ('-', $date));
-    $datetime[4]--;
-    $datetime[5] -= 1900;
-    $datetime[6] = 0;
-    $datetime[7] = 0;
-    $datetime[8] = -1;
-    return mktime (@datetime);
-}
-
-# Read in the .versions file for a site and flesh out the $self->{versions}
-# hash.  It contains a mapping of product name to an anonymous array of
-# version number and date of the last update.  It also fleshes out the
-# $self->{depends} hash, which holds a mapping of file names that use a
-# particular version to the timestamp of the last change in that version.
-sub _read_versions {
-    my ($self, $versions) = @_;
-    open(my $fh, $versions) or return;
-    local $_;
-    my $last;
-    while (<$fh>) {
-        next if /^\s*$/;
-        next if /^\s*\#/;
-        my @files;
-        if (/^\s/) {
-            @files = split;
-        } else {
-            my ($product, $version, $date, $time);
-            ($product, $version, $date, $time, @files) = split;
-            my $timestamp;
-            if ($date) {
-                $time ||= '00:00:00';
-                $timestamp = $self->_time_to_seconds($date, $time);
-            } else {
-                $timestamp = 0;
-            }
-            $date = strftime ('%Y-%m-%d', gmtime $timestamp);
-            $self->{versions}{$product} = [$version, $date];
-            $last = $timestamp;
-        }
-
-        # Update dependency timestamps.
-        for my $file (@files) {
-            if (!$self->{depends}{$file} || $self->{depends}{$file} < $last) {
-                $self->{depends}{$file} = $last;
-            }
-        }
     }
     close($fh);
 }
@@ -1064,16 +1011,18 @@ sub _cmd_quote {
 
 # Given the name of a product, return the release date of the product.
 sub _cmd_release {
-    my ($self, $format, $product) = @_;
-    $product = $self->_parse($product);
-    if ($self->{versions}{$product}) {
-        my $date = $self->{versions}{$product}[1];
-        $date =~ s/ .*//;
-        return (0, $date);
-    } else {
-        $self->_warning(qq(no release date known for "$product"));
-        return (0, '');
+    my ($self, undef, $package) = @_;
+    $package = $self->_parse($package);
+    if (!$self->{versions}) {
+        $self->_warning("no package release information available");
+        return (0, q{});
     }
+    my $date = $self->{versions}->release_date($package);
+    if (!defined($date)) {
+        $self->_warning(qq(no release date known for "$package"));
+        return (0, q{});
+    }
+    return (0, $date);
 }
 
 # Used to save RSS feed information for the page.  Doesn't output anything
@@ -1198,16 +1147,20 @@ sub _cmd_tablerow {
     return (1, $output);
 }
 
-# Given the name of a product, return the version number of that product.
+# Given the name of a package, return the version number of its latest
+# release.
 sub _cmd_version {
-    my ($self, $format, $product) = @_;
-    $product = $self->_parse($product);
-    if ($self->{versions}{$product}) {
-        return (0, $self->{versions}{$product}[0]);
-    } else {
-        $self->_warning(qq(no version known for "$product"));
-        return (0, '');
+    my ($self, undef, $package) = @_;
+    if (!$self->{versions}) {
+        $self->_warning("no package version information available");
+        return (0, q{});
     }
+    my $version = $self->{versions}->version($package);
+    if (!defined($version)) {
+        $self->_warning(qq(no version known for "$package"));
+        return (0, q{});
+    }
+    return (0, $version);
 }
 
 ##############################################################################
@@ -1511,7 +1464,10 @@ sub _process_file {
         $self->{generated}{$output} = 1;
         my $relative = $input;
         $relative =~ s{ ^ \Q$self->{source}\E / }{}xms;
-        my $time = $self->{depends}{$relative} || 0;
+        my $time = 0;
+        if ($self->{versions}) {
+            $time = $self->{versions}->latest_release($relative);
+        }
         if (-e $output) {
             return if (-M $file >= -M $output && (stat($output))[9] >= $time);
         }
@@ -1680,8 +1636,12 @@ sub spin_tree {
     $self->{output} = $output;
 
     # Read metadata from the top of the input directory.
+    delete $self->{versions};
+    my $versions_path = File::Spec->catfile($input, '.versions');
+    if (-e $versions_path) {
+        $self->{versions} = App::DocKnot::Spin::Versions->new($versions_path);
+    }
     $self->_read_sitemap(File::Spec->catfile($input, '.sitemap'));
-    $self->_read_versions(File::Spec->catfile($input, '.versions'));
     if (-d File::Spec->catdir($input, '.git')) {
         $self->{repository} = Git::Repository->new(work_tree => $input);
     }

@@ -73,7 +73,7 @@ allow = unless
 
 # The default of 9 is too small and forces weird code contortions.
 [InputOutput::RequireBriefOpen]
-lines = 25
+lines = 40
 
 # This is correct 80% of the time, but it isn't correct for a lot of scripts
 # inside packages, where maintaining $VERSION isn't worth the effort.
@@ -99,10 +99,9 @@ lines = 25
 # independent of the algorithm, but don't do so for mathematical formulae.
 [-ValuesAndExpressions::ProhibitMagicNumbers]
 
-# Increase this to six digits so that I'm not told to add underscores to
-# port numbers (which is just silly).
-[ValuesAndExpressions::RequireNumberSeparators]
-min_value = 100000
+# This has never triggered on anything useful and keeps telling me to add
+# underscores to UNIX timestamps and port numbers, which is just silly.
+[-ValuesAndExpressions::RequireNumberSeparators]
 
 # IO::Uncompress::Gunzip puts the error message in a package variable.
 # Text::Wrap has a broken interface that requires use of package variables.
