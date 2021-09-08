@@ -31,6 +31,7 @@ use File::Basename qw(fileparse);
 use File::Copy qw(copy);
 use File::Find qw(find finddepth);
 use File::Spec ();
+use Pod::Thread ();
 use POSIX qw(strftime);
 use Text::Balanced qw(extract_bracketed);
 
@@ -95,7 +96,7 @@ my %COMMANDS = (
 );
 
 ##############################################################################
-# Utility functions
+# Output
 ##############################################################################
 
 # print with error checking and an explicit file handle.  autodie
@@ -113,10 +114,6 @@ sub _print_fh {
     print {$fh} @args or croak("cannot write to $file: $!");
     return;
 }
-
-##############################################################################
-# Output
-##############################################################################
 
 # Sends something to the output file with special handling of whitespace for
 # more readable HTML output.
@@ -454,66 +451,6 @@ sub _parse {
 }
 
 ##############################################################################
-# Page footers
-##############################################################################
-
-# Returns the page footer, which consists of the navigation links, the regular
-# signature, and the last modified date.  Takes as arguments the full path to
-# the source file, the name of the destination file, the CVS Id of the source
-# file if known, the template to use if the modification and current dates are
-# the same, and the temlate to use if they're different.  The templates will
-# have the strings %MOD% and %NOW% replaced by the appropriate dates and %URL%
-# with the URL to my HTML generation software..
-sub _footer {
-    my ($self, $source, $out_path, $id, @templates) = @_;
-    my $output = q{};
-
-    # Add the end-of-page navbar if we have sitemap information.
-    if ($self->{sitemap} && $self->{output}) {
-        my $page = $out_path;
-        $page =~ s{ \A \Q$self->{output}\E }{}xms;
-        my @navbar = $self->{sitemap}->navbar($page);
-        if (@navbar) {
-            $output .= join(q{}, @navbar);
-        }
-    }
-
-    # Figure out the modified dates.  Use the RCS/CVS Id if available,
-    # otherwise use the Git repository if available.
-    my $modified;
-    if (defined $id) {
-        my $date = (split (' ', $id))[3];
-        if ($date && $date =~ m%^(\d+)[-/](\d+)[-/](\d+)%) {
-            $modified = sprintf ("%d-%02d-%02d", $1, $2, $3);
-        }
-    } elsif ($self->{repository} && $source =~ /^\Q$self->{source}/) {
-        $modified = $self->{repository}->run(
-          'log', '-1', '--format=%ct', $source);
-        if ($modified) {
-            $modified = strftime ('%Y-%m-%d', gmtime $modified);
-        }
-    }
-    if (!$modified) {
-        $modified = strftime ('%Y-%m-%d', gmtime ((stat $source)[9]));
-    }
-    my $now = strftime ('%Y-%m-%d', gmtime);
-
-    # Determine which template to use and substitute in the appropriate times.
-    $output .= "<address>\n    ";
-    my $template = ($modified eq $now) ? $templates[0] : $templates[1];
-    if ($template) {
-        for ($template) {
-            s/%MOD%/$modified/g;
-            s/%NOW%/$now/g;
-            s/%URL%/$URL/g;
-        }
-        $output .= "$template\n";
-    }
-    $output .= "</address>\n";
-    return $output;
-}
-
-##############################################################################
 # Supporting functions
 ##############################################################################
 
@@ -624,6 +561,62 @@ sub _enclose {
     } else {
         return "<$tag>$text</$close>";
     }
+}
+
+# Returns the page footer, which consists of the navigation links, the regular
+# signature, and the last modified date.  Takes as arguments the full path to
+# the source file, the name of the destination file, the CVS Id of the source
+# file if known, the template to use if the modification and current dates are
+# the same, and the temlate to use if they're different.  The templates will
+# have the strings %MOD% and %NOW% replaced by the appropriate dates and %URL%
+# with the URL to my HTML generation software..
+sub _footer {
+    my ($self, $source, $out_path, $id, @templates) = @_;
+    my $output = q{};
+
+    # Add the end-of-page navbar if we have sitemap information.
+    if ($self->{sitemap} && $self->{output}) {
+        my $page = $out_path;
+        $page =~ s{ \A \Q$self->{output}\E }{}xms;
+        my @navbar = $self->{sitemap}->navbar($page);
+        if (@navbar) {
+            $output .= join(q{}, @navbar);
+        }
+    }
+
+    # Figure out the modified dates.  Use the RCS/CVS Id if available,
+    # otherwise use the Git repository if available.
+    my $modified;
+    if (defined $id) {
+        my $date = (split (' ', $id))[3];
+        if ($date && $date =~ m%^(\d+)[-/](\d+)[-/](\d+)%) {
+            $modified = sprintf ("%d-%02d-%02d", $1, $2, $3);
+        }
+    } elsif ($self->{repository} && $source =~ /^\Q$self->{source}/) {
+        $modified = $self->{repository}->run(
+          'log', '-1', '--format=%ct', $source);
+        if ($modified) {
+            $modified = strftime ('%Y-%m-%d', gmtime $modified);
+        }
+    }
+    if (!$modified) {
+        $modified = strftime ('%Y-%m-%d', gmtime ((stat $source)[9]));
+    }
+    my $now = strftime ('%Y-%m-%d', gmtime);
+
+    # Determine which template to use and substitute in the appropriate times.
+    $output .= "<address>\n    ";
+    my $template = ($modified eq $now) ? $templates[0] : $templates[1];
+    if ($template) {
+        for ($template) {
+            s/%MOD%/$modified/g;
+            s/%NOW%/$now/g;
+            s/%URL%/$URL/g;
+        }
+        $output .= "$template\n";
+    }
+    $output .= "</address>\n";
+    return $output;
 }
 
 ##############################################################################
@@ -1172,18 +1165,31 @@ sub _faq2html {
     $self->_write_converter_output(\@page, $output, $footer);
 }
 
-# A wrapper around pod2thread and a nested _spin invocation, used to handle
+# A wrapper around Pod::Thread and a nested _spin invocation, used to handle
 # .pod pointers in a tree being spun.  Adds the navigation links and the
 # signature to the output.
 sub _pod2html {
     my ($self, $source, $output, $options, $style) = @_;
-    $options = '-n' unless $options;
-    my $styles = ($self->{style_url} ? " -s $self->{style_url}" : '');
-    $style = 'pod' unless $style;
-    $options .= " -s $style";
+    $style //= 'pod';
 
-    # Grab the thread output of pod2thread.
-    my $data = capture("pod2thread $options $source");
+    # Construct the Pod::Thread formatter object.
+    my %options = (style => $style);
+    if ($options) {
+        if ($options =~ m{ -c ( \s | \z ) }xms) {
+            $options{contents} = 1;
+        }
+        if ($options =~ m{ -t \s '(.*)' }xms) {
+            $options{title} = $1;
+        }
+    } else {
+        $options{navbar} = 1;
+    }
+    my $podthread = Pod::Thread->new(%options);
+
+    # Grab the thread output.
+    my $data;
+    $podthread->output_string(\$data);
+    $podthread->parse_file($source);
 
     # Run that through spin to convert to HTML.
     my $page;
@@ -1524,9 +1530,9 @@ spin [B<-dhv>] [B<-e> I<pattern> ...] [B<-s> I<url>] I<source> [I<output>]
 =head1 REQUIREMENTS
 
 Perl 5.005 or later and the Image::Size and Text::Balanced modules.  Also
-expects to find B<faq2html>, B<cvs2xhtml>, B<cl2xhtml>, and B<pod2thread>
-to convert certain types of files.  The Git::Repository module is required
-to determine last change dates for thread source from Git history.
+expects to find B<faq2html>, B<cvs2xhtml>, and B<cl2xhtml> to convert certain
+types of files.  The Git::Repository module is required to determine last
+change dates for thread source from Git history.
 
 =head1 DESCRIPTION
 

@@ -73,11 +73,12 @@ The following additional Perl modules are required to use it:
 * IPC::System::Simple
 * JSON::MaybeXS
 * Kwalify
-* List::SomeUtils
+* List::SomeUtils 0.07 or later
 * Perl6::Slurp
+* Pod::Thread 2.00 or later
 * Template (part of Template Toolkit)
 * Text::Balanced
-* YAML::XS
+* YAML::XS 0.81 or later
 
 ## Building and Installation
 

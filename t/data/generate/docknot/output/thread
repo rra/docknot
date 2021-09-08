@@ -114,11 +114,12 @@ The following additional Perl modules are required to use it:
 \bullet(packed)[IPC::System::Simple]
 \bullet(packed)[JSON::MaybeXS]
 \bullet(packed)[Kwalify]
-\bullet(packed)[List::SomeUtils]
+\bullet(packed)[List::SomeUtils 0.07 or later]
 \bullet(packed)[Perl6::Slurp]
+\bullet(packed)[Pod::Thread 2.00 or later]
 \bullet(packed)[Template (part of Template Toolkit)]
 \bullet(packed)[Text::Balanced]
-\bullet(packed)[YAML::XS]
+\bullet(packed)[YAML::XS 0.81 or later]
 
 \h2[Download]
 
