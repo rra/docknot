@@ -18,6 +18,7 @@ use 5.024;
 use autodie;
 use warnings;
 
+use App::DocKnot::Spin::Sitemap;
 use App::DocKnot::Spin::Versions;
 use Carp qw(croak);
 use Cwd qw(getcwd realpath);
@@ -453,181 +454,8 @@ sub _parse {
 }
 
 ##############################################################################
-# Data files
+# Page footers
 ##############################################################################
-
-# Read the sitemap file for a site and flesh out the $self->{sitemap} array
-# and $self->{sitedescs} and $self->{sitelinks} hashes with information from
-# that file.
-#
-# $self->{sitemap} is an array of anonymous arrays holding the complete site
-# map.  Each element represents a page.  The element will contain three
-# elements: the numeric indent level, the partial URL, and the description.
-# $self->{sitedescs} holds a map of partial URLs to descriptions, and
-# $self->{sitelinks} map partial URLs to a list of other partial URLs
-# (previous, next, and up).
-#
-# The format of the sitemap file is one line per web page, with indentation
-# showing the tree structure, and with each line formatted as a partial URL, a
-# colon, and a page description.  If two pages at the same level aren't
-# related, a line with three dashes should be put between them at the same
-# indentation level.
-sub _read_sitemap {
-    my ($self, $map) = @_;
-
-    # @indents holds a stack of indentation levels.  @parents is a matching
-    # stack of parent URLs for each level of indentation, and @prev is a
-    # matching stack of the previous page at each level of indentation.  If
-    # $prev[0] is undef, there is no previous page at that level.
-    my @indents = (0);
-    my (@parents, @prev);
-    open(my $fh, $map) or return;
-    local $_;
-    while (<$fh>) {
-        next if /^\s*\#/;
-        if (/^( *)---$/) {
-            my $indent = length ($1);
-            while ($indents[0] > $indent) {
-                shift @indents;
-                shift @prev;
-                shift @parents;
-            }
-            $prev[0] = undef;
-            next;
-        }
-        my ($indent, $url, $desc) = /^( *)([^\s:]+):\s+(.+)$/;
-        next unless defined $desc;
-        $indent = length ($indent);
-        if ($indent > $indents[0]) {
-            unshift (@parents, $prev[0]);
-            unshift (@indents, $indent);
-            unshift (@prev, undef);
-        }
-        while ($indents[0] > $indent) {
-            shift @indents;
-            shift @prev;
-            shift @parents;
-        }
-        $self->{sitelinks}{$url} = [$prev[0], undef, @parents];
-        if (defined($prev[0])) {
-            $self->{sitelinks}{$prev[0]}[1] = $url;
-        }
-        $prev[0] = $url;
-        $self->{sitedescs}{$url} = $desc;
-        push($self->{sitemap}->@*, [$indent, $url, $desc]);
-    }
-    close($fh);
-}
-
-##############################################################################
-# Page headers and footers
-##############################################################################
-
-# Given the partial URL to the current page and the partial URL to another
-# page, generate a relative URL between the two.
-sub _relative {
-    my ($self, $start, $end) = @_;
-    my @start = split ('/', $start, -1);
-    my @end = split ('/', $end, -1);
-    while (@start && @end && $start[0] eq $end[0]) {
-        shift @start;
-        shift @end;
-    }
-    if (@start == 1 && @end == 1) {
-        return ($end[0] ? $end[0] : './');
-    } else {
-        return ('../' x $#start) . join ('/', @end);
-    }
-}
-
-# Given the path to the output file being generated, return the <link> tags
-# for that file suitable for the <head> section.  Uses the $self->{sitedescs}
-# and $self->{sitelinks} variables.  If the partial URL isn't found in those
-# variables or we're at the top page, nothing is returned.
-sub _sitelinks {
-    my ($self, $file) = @_;
-    $file =~ s%^\Q$self->{output}%%;
-    $file =~ s%/index\.html$%/%;
-
-    my $output = '';
-    if ($file ne '/' && $self->{sitelinks}{$file}) {
-        my @links = $self->{sitelinks}{$file}->@*;
-        my @descs = map { defined($_) ? $self->{sitedescs}{$_} : '' } @links;
-        @descs = map { s/\"/&quot;/g; $_ } map { $self->_escape($_) } @descs;
-        @links = map {
-            defined ($_) ? $self->_relative($file, $_) : undef
-        } @links;
-
-        # Make the HTML for the footer.
-        my @types = ('previous', 'next', 'up');
-        for my $i (0..2) {
-            next unless defined $links[$i];
-            my $link = qq(  <link rel="$types[$i]" href="$links[$i]");
-            if ($descs[$i] ne '') {
-                if (length ($link) + length ($descs[$i]) + 12 > 79) {
-                    $link .= "\n       ";
-                }
-                $link .= qq( title="$descs[$i]" />\n);
-            } else {
-                $link .= " />\n";
-            }
-            $output .= $link;
-        }
-        my $href = $self->_relative($file, '/');
-        $output .= qq(  <link rel="top" href="$href" />\n);
-    }
-    return $output;
-}
-
-# Given the path to the output file being generated, return the HTML for the
-# navigation links for that file.  Uses the $self->{sitedescs} and
-# $self->{sitelinks} variables.  If the partial URL isn't found in those
-# variables or we're at the top page, nothing is returned.
-sub _placement {
-    my ($self, $file) = @_;
-    $file =~ s%^\Q$self->{output}%%;
-    $file =~ s%/index\.html$%/%;
-
-    my $output = '';
-    if ($file ne '/' && $self->{sitelinks}{$file}) {
-        my @links = $self->{sitelinks}{$file}->@*;
-        my @descs = map { defined($_) ? $self->{sitedescs}{$_} : '' } @links;
-        @descs = map { $self->_escape($_) } @descs;
-        @links = map {
-            defined ($_) ? $self->_relative($file, $_) : undef
-        } @links;
-
-        # Build the table for the navigation bar.
-        $output = qq(<table class="navbar"><tr>\n);
-        $output .= qq(  <td class="navleft">);
-        if (defined $links[0]) {
-            $output .= qq(&lt;&nbsp;<a href="$links[0]">$descs[0]</a>);
-        }
-        $output .= qq(</td>\n);
-        if (defined $links[2]) {
-            $output .= qq(  <td>\n);
-            my $first = 1;
-            for my $i (reverse (2 .. $#links)) {
-                next unless defined $links[$i];
-                $output .= '    ';
-                if ($first) {
-                    $first = 0;
-                } else {
-                    $output .= qq(&gt; );
-                }
-                $output .= qq(<a href="$links[$i]">$descs[$i]</a>\n);
-            }
-            $output .= qq(  </td>\n);
-        }
-        $output .= qq(  <td class="navright">);
-        if (defined $links[1]) {
-            $output .= qq(<a href="$links[1]">$descs[1]</a>&nbsp;&gt;);
-        }
-        $output .= qq(</td>\n);
-        $output .= qq(</tr></table>\n\n);
-    }
-    return $output;
-}
 
 # Returns the page footer, which consists of the navigation links, the regular
 # signature, and the last modified date.  Takes as arguments the full path to
@@ -639,10 +467,16 @@ sub _placement {
 sub _footer {
     my ($self, $source, $out_path, $id, @templates) = @_;
     my $output = q{};
-    if ($self->{output}) {
-        $output .= $self->_placement($out_path);
+
+    # Add the end-of-page navbar if we have sitemap information.
+    if ($self->{sitemap} && $self->{output}) {
+        my $page = $out_path;
+        $page =~ s{ \A \Q$self->{output}\E }{}xms;
+        my @navbar = $self->{sitemap}->navbar($page);
+        if (@navbar) {
+            $output .= join(q{}, @navbar);
+        }
     }
-    $output .= "<address>\n    ";
 
     # Figure out the modified dates.  Use the RCS/CVS Id if available,
     # otherwise use the Git repository if available.
@@ -665,6 +499,7 @@ sub _footer {
     my $now = strftime ('%Y-%m-%d', gmtime);
 
     # Determine which template to use and substitute in the appropriate times.
+    $output .= "<address>\n    ";
     my $template = ($modified eq $now) ? $templates[0] : $templates[1];
     if ($template) {
         for ($template) {
@@ -875,6 +710,14 @@ sub _cmd_heading {
     my ($self, $format, $title, $style) = @_;
     $title = $self->_parse($title);
     $style = $self->_parse($style);
+
+    # Get the relative URL of the output page, used for sitemap information.
+    my $page = $self->{out_path};
+    if ($self->{output}) {
+        $page =~ s{ \A \Q$self->{output}\E }{}xms;
+    }
+
+    # Build the page header.
     my $output = qq(<?xml version="1.0" encoding="utf-8"?>\n);
     $output .= qq(<!DOCTYPE html\n);
     $output .= qq(    PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"\n);
@@ -896,8 +739,11 @@ sub _cmd_heading {
         $output .= qq( href="$url"\n);
         $output .= qq(        title="$title" />\n);
     }
-    if ($self->{output}) {
-        $output .= $self->_sitelinks($self->{out_path});
+    if ($self->{sitemap}) {
+        my @links = $self->{sitemap}->links($page);
+        if (@links) {
+            $output .= join(q{}, @links);
+        }
     }
     $output .= "</head>\n\n";
     my $date = strftime ('%Y-%m-%d %T -0000', gmtime);
@@ -905,8 +751,11 @@ sub _cmd_heading {
     $output .= "<!-- Spun$from by spin 1.80 on $date -->\n";
     $output .= "<!-- $self->{id} -->\n" if $self->{id};
     $output .= "\n<body>\n";
-    if ($self->{output}) {
-        $output .= $self->_placement($self->{out_path});
+    if ($self->{sitemap}) {
+        my @navbar = $self->{sitemap}->navbar($page);
+        if (@navbar) {
+            $output .= join(q{}, @navbar);
+        }
     }
     return (1, $output);
 }
@@ -1082,33 +931,11 @@ sub _cmd_size {
 # Generates a HTML version of the sitemap and outputs that.
 sub _cmd_sitemap {
     my ($self) = @_;
-    if (!$self->{sitemap}->@*) {
+    if (!$self->{sitemap}) {
         $self->_warning("no sitemap file found");
         return (1, '');
     }
-    my $output = $self->_border();
-    my @indents = (0);
-    for my $page ($self->{sitemap}->@*) {
-        my ($indent, $url, $title) = $page->@*;
-        next if $indent == 0;
-        $url =~ s,^/,,;
-        if ($indent > $indents[0]) {
-            $output .= (' ' x $indent) . "<ul>\n";
-            unshift (@indents, $indent);
-        } else {
-            while ($indent < $indents[0]) {
-                $output .= (' ' x $indents[0]) . "</ul>\n";
-                shift @indents;
-            }
-        }
-        $output .= ' ' x $indent;
-        $output .= qq(<li><a href="$url">$title</a></li>\n);
-    }
-    for my $indent (@indents) {
-        last if $indent <= 0;
-        $output .= (' ' x $indent) . "</ul>\n";
-    }
-    return (1, $output);
+    return (1, $self->_border() . $self->{sitemap}->sitemap());
 }
 
 # Start a table.  Takes any additional HTML attributes to set for the table
@@ -1238,6 +1065,8 @@ sub _spin {
 # the output of an external converter.
 sub _write_converter_output {
     my ($self, $page_ref, $output, $footer) = @_;
+    my $page = $output;
+    $page =~ s{ \A \Q$self->{output}\E }{}xms;
     open(my $out_fh, '>', $output);
 
     # Grab the first few lines of input, looking for a blurb and Id string.
@@ -1258,12 +1087,20 @@ sub _write_converter_output {
             # Strip the date from the converter version output.
             $blurb =~ s{ [ ] [(] \d{4}-\d\d-\d\d [)] }{}xms;
         }
-        if ($line =~ m{ \A </head> }xmsi) {
-            _print_fh($out_fh, $output, $self->_sitelinks($output));
+        if ($self->{sitemap} && $line =~ m{ \A </head> }xmsi) {
+            my @links = $self->{sitemap}->links($page);
+            if (@links) {
+                _print_fh($out_fh, $output, @links);
+            }
         }
         _print_fh($out_fh, $output, $line);
         if ($line =~ m{ <body }xmsi) {
-            _print_fh($out_fh, $output, $self->_placement($output));
+            if ($self->{sitemap}) {
+                my @navbar = $self->{sitemap}->navbar($page);
+                if (@navbar) {
+                    _print_fh($out_fh, $output, @navbar);
+                }
+            }
             last;
         }
     }
@@ -1575,6 +1412,11 @@ sub spin_file {
     my $cwd = getcwd() or die "cannot get current directory: $!\n";
     my ($in_fh, $out_fh);
 
+    # Reset data from a previous run.
+    delete $self->{repository};
+    delete $self->{sitemap};
+    delete $self->{versions};
+
     # When spinning a single file, the input file must not be a directory.  We
     # do the work from the directory of the file to ensure that relative file
     # references resolve properly.
@@ -1620,6 +1462,11 @@ sub spin_file {
 sub spin_tree {
     my ($self, $input, $output) = @_;
 
+    # Reset data from a previous run.
+    delete $self->{repository};
+    delete $self->{sitemap};
+    delete $self->{versions};
+
     # Canonicalize and check input.
     $input = realpath($input) or die "cannot canonicalize $input: $!\n";
     if (!-d $input) {
@@ -1636,12 +1483,14 @@ sub spin_tree {
     $self->{output} = $output;
 
     # Read metadata from the top of the input directory.
-    delete $self->{versions};
+    my $sitemap_path = File::Spec->catfile($input, '.sitemap');
+    if (-e $sitemap_path) {
+        $self->{sitemap} = App::DocKnot::Spin::Sitemap->new($sitemap_path);
+    }
     my $versions_path = File::Spec->catfile($input, '.versions');
     if (-e $versions_path) {
         $self->{versions} = App::DocKnot::Spin::Versions->new($versions_path);
     }
-    $self->_read_sitemap(File::Spec->catfile($input, '.sitemap'));
     if (-d File::Spec->catdir($input, '.git')) {
         $self->{repository} = Git::Repository->new(work_tree => $input);
     }

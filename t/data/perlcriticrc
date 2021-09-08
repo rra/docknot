@@ -71,9 +71,9 @@ allow = unless
 [-Community::EmptyReturn]
 [-Freenode::EmptyReturn]
 
-# The default of 9 is too small and forces weird code contortions.
-[InputOutput::RequireBriefOpen]
-lines = 40
+# The default of 9 is too small and forces weird code contortions.  After some
+# experimentation, I've never found this helpful in driving useful refactors.
+[-InputOutput::RequireBriefOpen]
 
 # This is correct 80% of the time, but it isn't correct for a lot of scripts
 # inside packages, where maintaining $VERSION isn't worth the effort.
