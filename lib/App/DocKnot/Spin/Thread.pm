@@ -20,6 +20,7 @@ use File::Basename qw(fileparse);
 use File::Spec      ();
 use Git::Repository ();
 use Image::Size qw(html_imgsize);
+use Perl6::Slurp qw(slurp);
 use POSIX qw(strftime);
 use Text::Balanced qw(extract_bracketed);
 
@@ -81,8 +82,33 @@ my %COMMANDS = (
 );
 
 ##############################################################################
-# Output
+# Input and output
 ##############################################################################
+
+# Read a file and return its data in a form suitable for the processing stack.
+#
+# $fh   - Input file handle
+# $path - Input path
+#
+# Returns: List suitable for the processing stack with the following elements:
+#            $paragraphs_ref - The input text split into paragraphs and
+#                              reversed so that it can be used as a stack
+#            $in_path        - Path to the input file
+#            $lineno         - Current processing line number
+sub _read_file {
+    my ($self, $fh, $path) = @_;
+    my $text = slurp($fh);
+
+    # Check for broken line endings.
+    if ("\n" !~ m{ \015 }xms && $text =~ m{ \015 }xms) {
+        my $m = 'found CR characters; are your line endings correct?';
+        $self->_warning($m);
+    }
+
+    # Parse the text into paragraphs and return the data for the files stack.
+    my @paragraphs = reverse($self->_split_paragraphs($text));
+    return [\@paragraphs, $path, 1];
+}
 
 # print with error checking and an explicit file handle.  autodie
 # unfortunately can't help us because print can't be prototyped and hence
@@ -150,7 +176,8 @@ sub _output {
 # Throws: Text exception with the provided error
 sub _fatal {
     my ($self, $problem) = @_;
-    die "$self->{file}:$.: $problem\n";
+    my (undef, $file, $lineno) = $self->{input}[-1]->@*;
+    die "$file:$lineno: $problem\n";
 }
 
 # Warn about a problem with the current file and line.
@@ -158,7 +185,8 @@ sub _fatal {
 # $problem - Warning message to report
 sub _warning {
     my ($self, $problem) = @_;
-    warn "$0 spin:$self->{file}:$.: $problem\n";
+    my (undef, $file, $lineno) = $self->{input}[-1]->@*;
+    warn "$0 spin:$file:$lineno: $problem\n";
     return;
 }
 
@@ -386,8 +414,21 @@ sub _expand {
         # use an inline context.
         $block &&= $text =~ m{ \A \s* \z }xms;
 
-        # Return the macro expansion.
-        return ($self->_macro($definition, $block, @args), $text);
+        # Expand the macro.
+        my ($result, $blocktag) = $self->_macro($definition, $block, @args);
+
+        # We have now double-counted all of the lines in the macro body
+        # itself, so we need to subtract the line count in the macro
+        # definition from the line number.
+        #
+        # This unfortunately means that the line number of errors that happen
+        # inside macro arguments will be somewhat off if the macro definition
+        # itself contains newlines.  I don't see a way to avoid that without
+        # much more complex parsing and state tracking.
+        $self->{input}[-1][2] -= $definition =~ tr{\n}{};
+
+        # Return the macro results.
+        return ($result, $blocktag, $text);
     }
 
     # The normal command-handling case.  Ensure it is a valid command.
@@ -413,6 +454,13 @@ sub _expand {
 # the commands in it, and format the results as HTML.  This function is
 # mutually recursive with _expand and _macro.
 #
+# This function is responsible for maintaining the line number in the file
+# currently being processed, for error reporting.  The strategy used is to
+# increment the line number whenever a newline is seen in processed text.
+# This means that newlines are not seen until the text containing them is
+# parsed, which in turn means that every argument that may contain a newline
+# must be parsed or must update the line number.
+#
 # $text  - Input text to parse
 # $block - True if the parse is done in a block context
 #
@@ -428,6 +476,9 @@ sub _parse_context {
     # paragraph of regular text.
     if (index($text, q{\\}) == -1) {
         my $output = $text;
+
+        # Update the line number.
+        $self->{input}[-1][2] += $text =~ tr{\n}{};
 
         # If we are at block context, we need to make the text into a block
         # element, which means wrapping it in <p> tags.  Since that is a
@@ -478,6 +529,9 @@ sub _parse_context {
             $context =~ s{ \n .* }{}xms;
             $self->_fatal(qq(unable to parse near "$context"));
         }
+
+        # Update the line number.
+        $self->{input}[-1][2] += $string =~ tr{\n}{};
 
         # If this is not a command, and we're not at the block level, just add
         # it verbatim to the output.
@@ -537,11 +591,17 @@ sub _parse_context {
         }
 
         # If the next bit of unparsed text starts with a newline, extract it
-        # and any following whitespace now.  Add it to our paragraph if we're
-        # accumulating one; otherwise, add it to the output, but only add the
-        # newline if we saw inline elements or there is remaining text.  This
-        # suppresses some useless black lines.
+        # and any following whitespace now.
         if ($text =~ s{ \A \n (\s*) }{}xms) {
+            my $spaces = $1;
+
+            # Update the line number.
+            $self->{input}[-1][2] += 1 + $spaces =~ tr{\n}{};
+
+            # Add it to our paragraph if we're accumulating one; otherwise,
+            # add it to the output, but only add the newline if we saw inline
+            # elements or there is remaining text.  This suppresses some
+            # useless black lines.
             if ($paragraph ne q{}) {
                 $paragraph .= "\n$1";
             } else {
@@ -604,8 +664,9 @@ sub _format_attr {
 
 # Split a block of text apart at paired newlines so that it can be reparsed as
 # paragraphs, but combine a paragraph with the next one if it has an
-# unbalanced number of open brackets.  Used by containiners like \block that
-# can contain multiple paragraphs.
+# unbalanced number of open brackets.  Used to parse the top-level structure
+# of a file and by containiners like \block that can contain multiple
+# paragraphs.
 #
 # $text - Text to split
 #
@@ -836,6 +897,10 @@ sub _define_macro {
         }
     }
 
+    # We don't parse the macro definition now but we need to update the line
+    # number for accurate error reporting.
+    $self->{input}[-1][2] += $definition =~ tr{\n}{};
+
     # Define the macro.
     $self->{macro}{$name} = [$args, $definition];
     return (1, q{});
@@ -1004,9 +1069,9 @@ sub _cmd_heading {
     # Add some generator comments.
     my $date = strftime('%Y-%m-%d %T -0000', gmtime());
     my $from
-      = $self->{file} eq q{-}
+      = $self->{input}[-1][1] eq q{-}
       ? q{}
-      : ' from ' . fileparse($self->{file});
+      : ' from ' . fileparse($self->{input}[-1][1]);
     $output .= "<!-- Spun$from by spin 1.80 on $date -->\n";
     if ($self->{id}) {
         $output .= "<!-- $self->{id} -->\n";
@@ -1052,12 +1117,13 @@ sub _cmd_image {
 }
 
 # Include a file.  Note that this includes a file after the current paragraph,
-# not immediately at the current point, which may be a bit surprising.
+# not immediately, which may be a bit surprising.
 sub _cmd_include {
     my ($self, $file) = @_;
-    $file = $self->_parse($file);
+    $file = realpath($self->_parse($file));
     open(my $fh, '<', $file);
-    push($self->{files}->@*, [$fh, $file]);
+    push($self->{input}->@*, $self->_read_file($fh, $file));
+    close($fh);
     return (1, q{});
 }
 
@@ -1186,7 +1252,7 @@ sub _cmd_signature {
 
     # If we're spinning from standard input, don't add any of the standard
     # footer, just close the HTML tags.
-    if ($self->{file} eq q{-}) {
+    if ($self->{input}[-1][1] eq q{-}) {
         $output .= "</body>\n</html>\n";
         return (1, $output);
     }
@@ -1194,7 +1260,7 @@ sub _cmd_signature {
     # Otherwise, _footer does most of the work and we just add the tags.
     my $link = '<a href="%URL%">spun</a>';
     $output .= $self->_footer(
-        $self->{file}, $self->{out_path}, $self->{id},
+        $self->{input}[-1][1], $self->{out_path}, $self->{id},
         "Last modified and\n    $link %MOD%",
         "Last $link\n    %NOW% from thread modified %MOD%",
     );
@@ -1345,7 +1411,7 @@ sub spin_fh {
     my ($self, $in_fh, $in_path, $out_fh, $out_path) = @_;
 
     # Initialize object state for a new document.
-    $self->{files}    = [[$in_fh, $in_path]];
+    $self->{input}    = [$self->_read_file($in_fh, $in_path)];
     $self->{id}       = undef;
     $self->{macro}    = {};
     $self->{out_fh}   = $out_fh;
@@ -1355,44 +1421,27 @@ sub spin_fh {
     $self->{state}    = ['BLOCK'];
     $self->{variable} = {};
 
-    # Parse the thread file a paragraph at a time (but pick up macro contents
-    # that are continued across paragraphs.
+    # Read the entirety of the input file, split into paragraphs, and add it
+    # to the processing stack.
+    push($self->{input}->@*, $self->_read_file($in_fh, $in_path));
+
+    # Parse the thread file a paragraph at a time.  _split_paragraphs takes
+    # care of ensuring that each paragraph contains the complete value of a
+    # command argument.
     #
-    # We maintain the stack of files that we're parsing in $self->{files}, and
-    # _cmd_include will unshift new file handle and filename pairs onto that
-    # stack.  That means that the top of the stack may change any time we call
-    # _parse, so we have to update the input file handle and $self->{file}
-    # each time through the loop.
-    local $/ = q{};
-    while ($self->{files}->@*) {
-        ($in_fh, $self->{file}) = $self->{files}[-1]->@*;
-        while (defined(my $para = <$in_fh>)) {
-            if ("\n" !~ m{ \015 }xms && $para =~ m{ \015 }xms) {
-                my $m = 'found CR characters; are your line endings correct?';
-                $self->_warning($m);
-            }
-            my $open_count  = ($para =~ tr{\[}{});
-            my $close_count = ($para =~ tr{\]}{});
-            while (!eof && $open_count > $close_count) {
-                my $extra = <$in_fh>;
-                $open_count  += ($extra =~ tr{\[}{});
-                $close_count += ($extra =~ tr{\]}{});
-                $para .= $extra;
-            }
+    # The stack of parsed input is maintained in $self->{input} and the file
+    # being parsed at any given point is $self->{input}[-1].  _cmd_include
+    # will push new file information into this stack, and we pop off the top
+    # element of the stack when we exhaust its paragraphs.
+    while ($self->{input}->@*) {
+        while (defined(my $para = pop($self->{input}[-1][0]->@*))) {
             my $result = $self->_parse(_escape($para), 1);
             $result =~ s{ \A (?:\s*\n)+ }{}xms;
             if ($result !~ m{ \A \s* \z }xms) {
                 $self->_output($result);
             }
-            ($in_fh, $self->{file}) = $self->{files}[-1]->@*;
         }
-        pop($self->{files}->@*);
-
-        # Close the input file handle if it was one we opened, which is all of
-        # them except the last one in the stack.
-        if ($self->{files}->@*) {
-            close($in_fh);
-        }
+        pop($self->{input}->@*);
     }
 
     # Close open tags and print any deferred whitespace.

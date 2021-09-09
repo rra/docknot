@@ -1,6 +1,7 @@
 \heading[Errors]
 
-\==[macro]    [1]   [\1 \2]
+\==[macro]    [1]   [\1
+                     \2]
 \==[badcount] [foo] [bar]
 
 \macro[

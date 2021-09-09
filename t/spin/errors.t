@@ -16,18 +16,20 @@ use File::Temp;
 
 use Test::More tests => 2;
 
-# Expected errors from spinning the error file.
+# Expected errors from spinning the error file.  The line numbers are still
+# not entirely correct because line tracking is very complicated and still not
+# entirely correct.
 my $EXPECTED_ERRORS = <<'ERRORS';
 errors.th:1: cannot find argument 2: Did not find opening bracket after prefix: "\s*", detected at offset 2
-errors.th:2: invalid macro placeholder \2 (greater than 1)
-errors.th:2: invalid macro argument count for \badcount
-errors.th:4: unknown variable \=UNKNOWN
-errors.th:4: unknown command or macro \unknown
-errors.th:5: space in anchor "#foo bar"
-errors.th:5: no package release information available
-errors.th:5: no sitemap file found
-errors.th:5: no package version information available
-errors.th:5: cannot stat file nonexistent-file
+errors.th:3: invalid macro placeholder \2 (greater than 1)
+errors.th:5: invalid macro argument count for \badcount
+errors.th:9: unknown variable \=UNKNOWN
+errors.th:11: unknown command or macro \unknown
+errors.th:14: space in anchor "#foo bar"
+errors.th:15: no package release information available
+errors.th:16: no sitemap file found
+errors.th:17: no package version information available
+errors.th:17: cannot stat file nonexistent-file
 ERRORS
 
 require_ok('App::DocKnot::Spin::Thread');
