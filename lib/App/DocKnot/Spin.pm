@@ -22,7 +22,6 @@ use App::DocKnot::Spin::Sitemap;
 use App::DocKnot::Spin::Versions;
 use Carp qw(croak);
 use Cwd qw(getcwd realpath);
-use FileHandle ();
 use Getopt::Long qw(GetOptions);
 use Git::Repository ();
 use Image::Size qw(html_imgsize);
@@ -971,9 +970,8 @@ sub _cmd_image {
 sub _cmd_include {
     my ($self, $file) = @_;
     $file = $self->_parse($file);
-    my $fh = FileHandle->new ("< $file")
-      or $self->_fatal("cannot include $file: $!");
-    unshift($self->{files}->@*, [$fh, $file]);
+    open(my $fh, '<', $file);
+    push($self->{files}->@*, [$fh, $file]);
     return (1, '');
 }
 
@@ -1206,7 +1204,7 @@ sub _spin {
     # each time through the loop.
     local $/ = q{};
     while ($self->{files}->@*) {
-        ($in_fh, $self->{file}) = $self->{files}[0]->@*;
+        ($in_fh, $self->{file}) = $self->{files}[-1]->@*;
         while (defined(my $para = <$in_fh>)) {
             if ("\n" !~ m{ \015 }xms && $para =~ m{ \015 }xms) {
                 $self->_warning(
@@ -1225,9 +1223,15 @@ sub _spin {
             if ($result !~ m{ \A \s* \z }xms) {
                 $self->_output($result);
             }
-            ($in_fh, $self->{file}) = $self->{files}[0]->@*;
+            ($in_fh, $self->{file}) = $self->{files}[-1]->@*;
         }
-        shift($self->{files}->@*);
+        pop($self->{files}->@*);
+
+        # Close the input file handle if it was one we opened, which is all of
+        # them except the last one in the stack.
+        if ($self->{files}->@*) {
+            close($in_fh);
+        }
     }
 
     # Close open tags and print any deferred whitespace.
