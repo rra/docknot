@@ -16,7 +16,6 @@ package App::DocKnot::Spin::Sitemap 4.01;
 
 use 5.024;
 use autodie;
-use utf8;
 use warnings;
 
 use List::SomeUtils qw(pairwise);
@@ -446,6 +445,10 @@ inclusion in a generated web page.  This is used to implement the C<\sitemap>
 thread command.
 
 =back
+
+=head1 AUTHOR
+
+Russ Allbery <rra@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 

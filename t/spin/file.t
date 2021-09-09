@@ -19,13 +19,14 @@ use Test::DocKnot::Spin qw(is_spin_output);
 
 use Test::More tests => 2;
 
-require_ok('App::DocKnot::Spin');
+require_ok('App::DocKnot::Spin::Thread');
 
 # Spin a single file.
 my $tempfile = File::Temp->new();
 my $datadir  = File::Spec->catfile('t',      'data',   'spin');
 my $input    = File::Spec->catfile($datadir, 'input',  'index.th');
 my $expected = File::Spec->catfile($datadir, 'output', 'index.html');
-my $spin     = App::DocKnot::Spin->new({ 'style-url' => '/~eagle/styles/' });
+my $spin
+  = App::DocKnot::Spin::Thread->new({ 'style-url' => '/~eagle/styles/' });
 $spin->spin_file($input, $tempfile->filename);
 is_spin_output($tempfile, $expected, 'Single file conversion');

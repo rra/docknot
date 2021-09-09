@@ -279,6 +279,10 @@ no release information for PACKAGE.
 
 =back
 
+=head1 AUTHOR
+
+Russ Allbery <rra@cpan.org>
+
 =head1 COPYRIGHT AND LICENSE
 
 Copyright 2004, 2021 Russ Allbery <rra@cpan.org>

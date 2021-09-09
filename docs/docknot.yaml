@@ -7,7 +7,7 @@
 #
 # DocKnot is available from <https://www.eyrie.org/~eagle/software/docknot/>.
 #
-# Copyright 2016, 2018-2020 Russ Allbery <rra@cpan.org>
+# Copyright 2016, 2018-2021 Russ Allbery <rra@cpan.org>
 #
 # SPDX-License-Identifier: MIT
 
@@ -22,7 +22,7 @@ license:
   name: Expat
 copyrights:
   - holder: Russ Allbery <rra@cpan.org>
-    years: 2013-2021
+    years: 1999-2011, 2013-2021
 
 build:
   type: Module::Build
@@ -59,6 +59,14 @@ docs:
       title: App::DocKnot::Dist
     - name: api/app-docknot-generate
       title: App::DocKnot::Generate
+    - name: api/app-docknot-spin
+      title: App::DocKnot::Spin
+    - name: api/app-docknot-spin-sitemap
+      title: App::DocKnot::Spin::Sitemap
+    - name: api/app-docknot-spin-thread
+      title: App::DocKnot::Spin::Thread
+    - name: api/app-docknot-spin-versions
+      title: App::DocKnot::Spin::Versions
     - name: api/app-docknot-update
       title: App::DocKnot::Update
   user:

@@ -53,14 +53,14 @@ for my $package (@packages) {
 # changed.
 my $source    = File::Spec->catdir('lib', 'App', 'DocKnot.pm');
 my $podthread = Pod::Thread->new(navbar => 1);
-my $spin      = App::DocKnot::Spin->new();
+my $spin      = App::DocKnot::Spin::Thread->new();
 my $thread;
 $podthread->output_string(\$thread);
 $podthread->parse_file($source);
 my $html;
 open(my $in_fh,  '<', \$thread);
 open(my $out_fh, '>', \$html);
-$spin->_spin($in_fh, q{-}, $out_fh, q{-});
+$spin->spin_fh($in_fh, q{-}, $out_fh, q{-});
 close($in_fh);
 close($out_fh);
 

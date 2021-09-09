@@ -57,10 +57,10 @@ my $input    = File::Spec->catfile($datadir, 'input');
 my $expected = File::Spec->catfile($datadir, 'output');
 my $spin     = App::DocKnot::Spin->new({ 'style-url' => '/~eagle/styles/' });
 my $stdout   = capture_stdout {
-    $spin->spin_tree($input, $output->dirname);
+    $spin->spin($input, $output->dirname);
 };
-my $count = is_spin_output_tree($output, $expected, 'spin_tree');
-is($stdout, $EXPECTED_OUTPUT, 'Expected spin_tree output');
+my $count = is_spin_output_tree($output, $expected, 'spin');
+is($stdout, $EXPECTED_OUTPUT, 'Expected spin output');
 
 # Create a bogus file in the output tree.
 my $bogus      = File::Spec->catfile($output->dirname, 'bogus');
@@ -73,7 +73,7 @@ close($fh);
 # Spinning the same tree of files again should do nothing because of the
 # modification timestamps.
 $stdout = capture_stdout {
-    $spin->spin_tree($input, $output->dirname);
+    $spin->spin($input, $output->dirname);
 };
 is($stdout, q{}, 'Spinning again does nothing');
 
@@ -85,7 +85,7 @@ ok(-d $bogus, 'Stray file and directory not deleted');
 $spin
   = App::DocKnot::Spin->new({ delete => 1, 'style-url' => '/~eagle/styles/' });
 $stdout = capture_stdout {
-    $spin->spin_tree($input, $output->dirname);
+    $spin->spin($input, $output->dirname);
 };
 is(
     $stdout,
@@ -108,7 +108,7 @@ open($fh, '>', $rpod_path);
 print {$fh} "$rpod_source\n" or die "Cannot write to $rpod_path: $!\n";
 close($fh);
 capture_stdout {
-    $spin->spin_tree($tmpdir->dirname, $output->dirname);
+    $spin->spin($tmpdir->dirname, $output->dirname);
 };
 
 # Now, update the .versions file at the top of the input tree to change the
@@ -122,7 +122,7 @@ open(my $versions_fh, '>', $versions_path);
 print {$versions_fh} $versions or die "Cannot write to $versions_path: $!\n";
 close($versions_fh);
 $stdout = capture_stdout {
-    $spin->spin_tree($tmpdir->dirname, $output->dirname);
+    $spin->spin($tmpdir->dirname, $output->dirname);
 };
 is(
     $stdout,

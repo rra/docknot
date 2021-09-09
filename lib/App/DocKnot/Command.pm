@@ -77,15 +77,15 @@ our %COMMANDS = (
         maximum => 0,
     },
     spin => {
-        method  => 'spin_tree',
+        method  => 'spin',
         module  => 'App::DocKnot::Spin',
         options => ['delete|d', 'exclude|e=s@', 'style-url|s=s'],
         minimum => 2,
         maximum => 2,
     },
-    'spin-file' => {
+    'spin-thread' => {
         method  => 'spin_file',
-        module  => 'App::DocKnot::Spin',
+        module  => 'App::DocKnot::Spin::Thread',
         options => ['style-url|s=s'],
         maximum => 2,
     },

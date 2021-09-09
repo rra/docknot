@@ -35,22 +35,24 @@ my $datadir  = File::Spec->catfile('t',      'data',   'spin');
 my $input    = File::Spec->catfile($datadir, 'input',  'index.th');
 my $expected = File::Spec->catfile($datadir, 'output', 'index.html');
 my $output   = File::Spec->catfile($tempdir->dirname, 'index.html');
-$docknot->run('spin-file', '-s', '/~eagle/styles', $input, $output);
-is_spin_output($output, $expected, 'spin-file (output specified)');
+$docknot->run('spin-thread', '-s', '/~eagle/styles', $input, $output);
+is_spin_output($output, $expected, 'spin-thread (output specified)');
 
 # Spin a single file to standard output.
 my $stdout = capture_stdout {
-    $docknot->run('spin-file', '-s', '/~eagle/styles', $input);
+    $docknot->run('spin-thread', '-s', '/~eagle/styles', $input);
 };
 open(my $output_fh, '>', $output);
 print {$output_fh} $stdout or BAIL_OUT("Cannot write to $output: $!");
 close($output_fh);
-is_spin_output($output, $expected, 'spin-file (standard output)');
+is_spin_output($output, $expected, 'spin-thread (standard output)');
 
 # Spin a tree of files.
 $input    = File::Spec->catfile($datadir, 'input');
 $expected = File::Spec->catfile($datadir, 'output');
-$docknot->run('spin', '-s', '/~eagle/styles', $input, $tempdir->dirname);
+capture_stdout {
+    $docknot->run('spin', '-s', '/~eagle/styles', $input, $tempdir->dirname);
+};
 my $count = is_spin_output_tree($tempdir->dirname, $expected, 'spin');
 
 # Report the end of testing.
