@@ -111,7 +111,7 @@ sub _read_data {
 #
 # $desc - The string to escape
 #
-# Returns: $desc escaped so that it's safe to interpolate into an attribute.
+# Returns: $desc escaped so that it's safe to interpolate into an attribute
 sub _escape {
     my ($desc) = @_;
     $desc =~ s{ &  }{&amp;}xmsg;
@@ -219,7 +219,7 @@ sub new {
 #
 # $path - Path to the output, relative to the top of the web site
 #
-# Returns: List of lines to add to the <head> section.
+# Returns: List of lines to add to the <head> section
 sub links {
     my ($self, $path) = @_;
     my @links = $self->_page_links($path);
@@ -260,7 +260,7 @@ sub links {
 #
 # $path - Path to the output, relative to the top of the web site
 #
-# Returns: List of lines that create the navbar.
+# Returns: List of lines that create the navbar
 sub navbar {
     my ($self, $path) = @_;
     my ($prev, $next, @parents) = $self->_page_links($path);
@@ -309,7 +309,7 @@ sub navbar {
 # Return the sitemap formatted as HTML.  The resulting HTML will only be valid
 # from a page at the top of the output tree due to the relative links.
 #
-# Returns: List of lines presenting the sitemap in HTML.
+# Returns: List of lines presenting the sitemap in HTML
 sub sitemap {
     my ($self) = @_;
     my @output;

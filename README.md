@@ -77,7 +77,6 @@ The following additional Perl modules are required to use it:
 * Perl6::Slurp
 * Pod::Thread 2.00 or later
 * Template (part of Template Toolkit)
-* Text::Balanced
 * YAML::XS 0.81 or later
 
 ## Building and Installation

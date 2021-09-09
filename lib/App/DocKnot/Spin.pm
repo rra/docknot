@@ -30,7 +30,7 @@ use IPC::System::Simple qw(capture systemx);
 use File::Basename qw(fileparse);
 use File::Copy qw(copy);
 use File::Find qw(find finddepth);
-use File::Spec ();
+use File::Spec  ();
 use Pod::Thread ();
 use POSIX qw(strftime);
 use Text::Balanced qw(extract_bracketed);
@@ -47,52 +47,57 @@ my @EXCLUDES = (
 # used to embed a link to the software that generated the page.
 my $URL = 'https://www.eyrie.org/~eagle/software/web/';
 
-# The table of available commands.  First column is the number of arguments,
-# second column is the handler, and the third column is whether this is its
-# own top-level element or whether it needs to be wrapped in <p> tags.  A
-# count of -1 means pull off as many arguments as we can find.
+# The table of available commands.  The columns are:
+#
+# 1. Number of arguments or -1 to consume as many arguments as it can find.
+# 2. Name of the method to call with the arguments and (if wanted) format.
+# 3. Whether to look for a format in parens before the arguments.
 my %COMMANDS = (
-    block      => [ 1, '_cmd_block'    ],
-    bold       => [ 1, '_cmd_bold'     ],
-    break      => [ 0, '_cmd_break'    ],
-    bullet     => [ 1, '_cmd_bullet'   ],
-    class      => [ 1, '_cmd_class'    ],
-    cite       => [ 1, '_cmd_cite'     ],
-    code       => [ 1, '_cmd_code'     ],
-    desc       => [ 2, '_cmd_desc'     ],
-    div        => [ 1, '_cmd_div'      ],
-    emph       => [ 1, '_cmd_emph'     ],
-    entity     => [ 1, '_cmd_entity'   ],
-    heading    => [ 2, '_cmd_heading'  ],
-    h1         => [ 1, '_cmd_h1'       ],
-    h2         => [ 1, '_cmd_h2'       ],
-    h3         => [ 1, '_cmd_h3'       ],
-    h4         => [ 1, '_cmd_h4'       ],
-    h5         => [ 1, '_cmd_h5'       ],
-    h6         => [ 1, '_cmd_h6'       ],
-    id         => [ 1, '_cmd_id'       ],
-    image      => [ 2, '_cmd_image'    ],
-    include    => [ 1, '_cmd_include'  ],
-    italic     => [ 1, '_cmd_italic'   ],
-    link       => [ 2, '_cmd_link'     ],
-    number     => [ 1, '_cmd_number'   ],
-    pre        => [ 1, '_cmd_pre'      ],
-    quote      => [ 3, '_cmd_quote'    ],
-    release    => [ 1, '_cmd_release'  ],
-    rss        => [ 2, '_cmd_rss'      ],
-    rule       => [ 0, '_cmd_rule'     ],
-    signature  => [ 0, '_cmd_signature'],
-    sitemap    => [ 0, '_cmd_sitemap'  ],
-    size       => [ 1, '_cmd_size'     ],
-    strike     => [ 1, '_cmd_strike'   ],
-    strong     => [ 1, '_cmd_strong'   ],
-    sub        => [ 1, '_cmd_sub'      ],
-    sup        => [ 1, '_cmd_sup'      ],
-    table      => [ 2, '_cmd_table'    ],
-    tablehead  => [-1, '_cmd_tablehead'],
-    tablerow   => [-1, '_cmd_tablerow' ],
-    under      => [ 1, '_cmd_under'    ],
-    version    => [ 1, '_cmd_version'  ],
+    # name       args  method             want_format
+    block     => [ 1, '_cmd_block',       1],
+    bold      => [ 1, '_cmd_bold',        1],
+    break     => [ 0, '_cmd_break',       0],
+    bullet    => [ 1, '_cmd_bullet',      1],
+    class     => [ 1, '_cmd_class',       1],
+    cite      => [ 1, '_cmd_cite',        1],
+    code      => [ 1, '_cmd_code',        1],
+    desc      => [ 2, '_cmd_desc',        1],
+    div       => [ 1, '_cmd_div',         1],
+    emph      => [ 1, '_cmd_emph',        1],
+    entity    => [ 1, '_cmd_entity',      0],
+    heading   => [ 2, '_cmd_heading',     0],
+    h1        => [ 1, '_cmd_h1',          1],
+    h2        => [ 1, '_cmd_h2',          1],
+    h3        => [ 1, '_cmd_h3',          1],
+    h4        => [ 1, '_cmd_h4',          1],
+    h5        => [ 1, '_cmd_h5',          1],
+    h6        => [ 1, '_cmd_h6',          1],
+    id        => [ 1, '_cmd_id',          0],
+    image     => [ 2, '_cmd_image',       1],
+    include   => [ 1, '_cmd_include',     0],
+    italic    => [ 1, '_cmd_italic',      1],
+    link      => [ 2, '_cmd_link',        1],
+    number    => [ 1, '_cmd_number',      1],
+    pre       => [ 1, '_cmd_pre',         1],
+    quote     => [ 3, '_cmd_quote',       1],
+    release   => [ 1, '_cmd_release',     0],
+    rss       => [ 2, '_cmd_rss',         0],
+    rule      => [ 0, '_cmd_rule',        0],
+    signature => [ 0, '_cmd_signature',   0],
+    sitemap   => [ 0, '_cmd_sitemap',     0],
+    size      => [ 1, '_cmd_size',        0],
+    strike    => [ 1, '_cmd_strike',      1],
+    strong    => [ 1, '_cmd_strong',      1],
+    sub       => [ 1, '_cmd_sub',         1],
+    sup       => [ 1, '_cmd_sup',         1],
+    table     => [ 2, '_cmd_table',       1],
+    tablehead => [-1, '_cmd_tablehead',   1],
+    tablerow  => [-1, '_cmd_tablerow',    1],
+    under     => [ 1, '_cmd_under',       1],
+    version   => [ 1, '_cmd_version',     0],
+    '='       => [ 2, '_define_variable', 0],
+    '=='      => [ 3, '_define_macro',    0],
+    '\\'      => [ 0, '_literal',         0],
 );
 
 ##############################################################################
@@ -181,264 +186,397 @@ sub _warning {
 # Basic parsing
 ##############################################################################
 
-# Escapes &, <, and > characters found in a string.
+# Escapes &, <, and > characters for HTML output.
+#
+# $string - Input string
+#
+# Returns: Escaped string
 sub _escape {
-    my ($self, $string) = @_;
-    local $_ = $string;
-    s/&/&amp;/g;
-    s/</&lt;/g;
-    s/>/&gt;/g;
-    return $_;
+    my ($string) = @_;
+    $string =~ s{ & }{&amp;}xmsg;
+    $string =~ s{ < }{&lt;}xmsg;
+    $string =~ s{ > }{&gt;}xmsg;
+    return $string;
 }
 
 # Wrap something in paragraph markers, being careful to get newlines right.
 # Special-case a paragraph consisting entirely of <span> by turning it into a
 # <p> with the same class.
+#
+# $text - Text to wrap
+#
+# Returns: Text wrapped in <p> tags
 sub _paragraph {
     my ($self, $text) = @_;
-    $text =~ s/^\n(\s*\n)*//;
-    $text =~ s/(\S[ \t]*)\z/$1\n/;
-    if ($text =~ m%^(\s*)<span(?!.*<span)([^>]*)>(.*)</span>(\s*)\z%s) {
-        my ($lead, $class, $text, $trail) = ($1, $2, $3, $4);
-        return "$lead<p$class>$text</p>$trail";
+
+    # Trim leading newline and whitespace and ensure the paragraph ends with a
+    # newline.
+    $text =~ s{ \A \n (\s*\n)* }{}xms;
+    $text =~ s{ ( \S [ \t]* ) \z }{$1\n}xms;
+
+    # If the whole paragraph is wrapped in <span>, lift its attributes into
+    # the <p> tag.  Otherwise, just add the <p> tags.
+    if ($text =~ m{ \A (\s*) <span ([^>]*) > (.*) </span> (\s*) \z }xms) {
+        my ($lead, $attrs, $text, $trail) = ($1, $2, $3, $4);
+        return "$lead<p$attrs>$text</p>$trail";
     } else {
-        $text =~ s/^/<p>\n/;
-        $text =~ s%(\n\s*)\z%\n</p>$1%;
+        $text =~ s{ \A }{<p>\n}xms;
+        $text =~ s{ (\n\s*) \z }{\n</p>$1}xms;
         return $text;
     }
 }
 
-# Opens or closes a border of a continued structure.  Either takes the name of
-# the state and its start and end tags, or takes no arguments to close all
-# open states.
-sub _border {
+# Opens the border of a continued structure.
+#
+# spin, unlike HTML, does not require declaring structures like lists in
+# advance of adding elements to them.  You start a bullet list by simply
+# having a bullet item, and a list is started if one is not already open.
+# This is the method that does that: check whether the desired structure is
+# already open and, if not, open it and add it to the state stack.
+#
+# $border - Name of the border state to open
+# $start  - The opening tag
+# $end    - The closing tag
+#
+# Returns: Output to write to start the structure
+sub _border_start {
     my ($self, $border, $start, $end) = @_;
-    my $output = '';
-    if ($border) {
-        my $state = $self->{state}[-1];
-        if ($state eq 'BLOCK' || $state->[0] ne $border) {
-            $output .= $start;
-            push($self->{state}->@*, [$border, $end]);
-        }
-    } else {
-        while (defined(my $state = pop($self->{state}->@*))) {
-            last if $state eq 'BLOCK';
-            $output .= $state->[1];
-        }
-        push($self->{state}->@*, 'BLOCK');
+    my $state  = $self->{state}[-1];
+    my $output = q{};
+
+    # If we're at the top-level block structure or inside a structure other
+    # than ours, open the structure and add it to the state stack.
+    if ($state eq 'BLOCK' || $state->[0] ne $border) {
+        $output .= $start;
+        push($self->{state}->@*, [$border, $end]);
     }
+
+    return $output;
+}
+
+# Closes the border of any currently-open continued structure.  This is done,
+# for example, when a new block structure is opened or a paragraph of regular
+# text is seen at the same level as the structure elements.
+#
+# Returns: Output to write to close the structure.
+sub _border_end {
+    my ($self) = @_;
+    my $output = q{};
+
+    # Find all open structures up to the first general block structure.  We'll
+    # pop off the block structure so put it back when we're done.
+    while (defined(my $state = pop($self->{state}->@*))) {
+        last if $state eq 'BLOCK';
+        $output .= $state->[1];
+    }
+    push($self->{state}->@*, 'BLOCK');
+
     return $output;
 }
 
 # Marks the beginning of major block structure.  Within this structure,
 # borders will only clear to the level of this structure.
-sub _border_start {
+sub _block_start {
     my ($self) = @_;
     push($self->{state}->@*, 'BLOCK');
 }
 
 # Clears a major block structure.
-sub _border_clear {
+sub _block_end {
     my ($self) = @_;
-    my $output = $self->_border();
+    my $output = $self->_border_end();
     pop($self->{state}->@*);
     return $output;
 }
 
-# Extract some number of arguments from the front of the given string.  If the
-# optional third argument is true, try to pull off a parenthesized formatting
-# instruction first, returning it as the first result (or undef if it's not
-# found).  If the count is -1, pull off as many arguments as we can find.
+# Extract some number of arguments from the front of the given string.
+#
+# $text        - Text to parse arguments from
+# $count       - How many arguments to extract, or -1 for as many as possible
+# $want_format - If true, check for a parenthesized formatting instruction
+#                first and extract it if present
+#
+# Returns: List of the following strings:
+#            $format - Format or empty string, omitted if !$want_format
+#            $text   - The remaining unparsed text
+#            @args   - $count arguments (undef if the argument wasn't found)
 sub _extract {
-    my ($self, $text, $count, $format) = @_;
-    my (@result, $code);
-    $text =~ s/\s*//;
-    if ($format && $text =~ /^\(/) {
-        ($result[0], $text) = extract_bracketed ($text, '()');
-        $result[0] = substr ($result[0], 1, -1);
-    } else {
-        $result[0] = '';
+    my ($self, $text, $count, $want_format) = @_;
+    my $format = q{};
+    my @args;
+
+    # Extract the format string if requested.
+    if ($want_format) {
+        $format = extract_bracketed($text, '()') // q{};
+        if ($format) {
+            $format = substr($format, 1, -1);
+        }
     }
+
+    # Extract the desired number of arguments, or all arguments present if
+    # $count was negative.
     if ($count >= 0) {
-        for (1..$count) {
-            ($result[$_], $text) = extract_bracketed ($text, '[]');
-            if ($result[$_]) {
-                $result[$_] = substr ($result[$_], 1, -1);
+        for my $i (1 .. $count) {
+            my $arg = extract_bracketed($text, '[]');
+            if (defined($arg)) {
+                $arg = substr($arg, 1, -1);
             } else {
-                $self->_warning("cannot find argument $_");
-                $result[$_] = '';
+                $self->_warning("cannot find argument $i: $@");
+                $arg = q{};
             }
+            push(@args, $arg);
         }
     } else {
-        while ($text =~ /^\s*\[/) {
-            my $result;
-            ($result, $text) = extract_bracketed ($text, '[]');
-            last unless $result;
-            $result = substr ($result, 1, -1);
-            push (@result, $result);
+        while (defined(my $arg = extract_bracketed($text, '[]'))) {
+            push(@args, substr($arg, 1, -1));
         }
     }
-    unless ($format) { shift @result }
-    (@result, $text);
+
+    # Return the results.
+    return $want_format ? ($format, $text, @args) : ($text, @args);
 }
 
-# Process a macro.  Takes the number of arguments, the definition of the
-# macro, a flag saying whether we're at a block level, and then the values of
-# all the arguments.  Only straight substitution commands are allowed here, of
-# course.
+# Expand a macro invocation.
+#
+# $definition - Definition of the macro
+# $block      - True if currently in block context
+# @args       - The arguments to the macro
+#
+# Returns: List with the macro expansion and the block context flag
 sub _macro {
-    my ($self, $args, $definition, $block, @args) = @_;
-    $definition =~ s/\\(\d+)/($1 > $args) ? "\\$1" : $args[$1 - 1]/ge;
+    my ($self, $definition, $block, @args) = @_;
+
+    # The function that expands a macro substitution marker.  If the number of
+    # the marker is higher than the number of arguments of the macro, leave it
+    # as-is.  (We will have already warned about this when defining the
+    # macro.)
+    my $expand = sub {
+        my ($n) = @_;
+        return ($n > scalar(@args)) ? "\\$n" : $args[$n - 1];
+    };
+
+    # Replace the substitution markers in the macro definition.
+    $definition =~ s{ \\(\d+) }{ $expand->($1) }xmsge;
+
+    # Now parse the result as if it were input thread and return the results.
     return $self->_parse_context($definition, $block);
 }
 
 # Expand a given command into its representation.  This function is mutually
-# recursive with parse.  Takes a third argument indicating whether this is a
-# top-level element (if it is, and it doesn't generate its own container, it
-# may have to be wrapped in <p>).  Returns the result of expanding the
-# command, a flag saying whether the command is block level, and the remaining
-# text in the paragraph.
+# recursive with _parse_context and _macro.
+#
+# $command - Name of the command
+# $text    - Input text following the command
+# $block   - True if currently in block context (if so, and if the command
+#            doesn't generate its own container, it will need to be wrapped
+#            in <p>
+#
+# Returns: List with the following elements:
+#            $output - Output from expanding the command
+#            $block  - Whether the output is block context
+#            $text   - Remaining unparsed text
 sub _expand {
     my ($self, $command, $text, $block) = @_;
-    if ($command eq '==') {
-        my ($new, $args, $definition);
-        ($new, $args, $definition, $text) = $self->_extract($text, 3);
-        if (defined $definition) {
-            $self->{macros}{$new} = [$args, $definition];
-            return ('', 1, $text);
-        }
-    } elsif ($command eq '=') {
-        my ($variable, $value);
-        ($variable, $value, $text) = $self->_extract($text, 2);
-        $self->{strings}{$variable} = $self->_parse($value);
-        return ('', 1, $text);
-    } elsif ($command =~ s/^=//) {
-        if (exists($self->{strings}{$command})) {
-            return ($self->{strings}{$command}, 0, $text);
+
+    # Special handling for expanding variables.  These references look like
+    # \=NAME and expand to the value of the variable "NAME".
+    if ($command =~ m{ \A = \w }xms) {
+        my $variable = substr($command, 1);
+        if (exists($self->{variable}{$variable})) {
+            return ($self->{variable}{$variable}, 0, $text);
         } else {
-            $self->_warning("unknown string $command");
-            return ('', 0, $text);
+            $self->_warning("unknown variable $variable");
+            return (q{}, 0, $text);
         }
-    } elsif ($command eq '\\') {
-        return ('\\', 0, $text);
-    } elsif (exists($self->{macros}{$command})) {
-        my ($args, $definition) = $self->{macros}{$command}->@*;
+    }
+
+    # Special handling for macros.  Macros shadow commands of the same name.
+    if (exists($self->{macro}{$command})) {
+        my ($args, $definition) = $self->{macro}{$command}->@*;
+
+        # Extract the macro arguments, if any were requested.
         my @args;
         if ($args != 0) {
-            @args = $self->_extract($text, $args, 0);
-            $text = pop @args;
+            ($text, @args) = $self->_extract($text, $args, 0);
         }
-        my $block = $block && ($text !~ /\S/);
-        return ($self->_macro($args, $definition, $block, @args), $text);
+
+        # The macro runs in a block context if we're currently in block
+        # context and there is no remaining non-whitespace text.  Otherwise,
+        # use an inline context.
+        $block &&= $text =~ m{ \A \s* \z }xms;
+
+        # Return the macro expansion.
+        return ($self->_macro($definition, $block, @args), $text);
+    }
+
+    # The normal command-handling case.  Ensure it is a valid command.
+    if (!ref($COMMANDS{$command})) {
+        $self->_warning("unknown command or macro $command");
+        return (q{}, 1, $text);
+    }
+
+    # Dispatch the command to its handler.
+    my ($args, $handler, $want_format) = $COMMANDS{$command}->@*;
+    if ($want_format) {
+        my ($format, $text, @args) = $self->_extract($text, $args, 1);
+        my ($blocktag, $output) = $self->$handler($format, @args);
+        return ($output, $blocktag, $text);
     } else {
-        if (!ref($COMMANDS{$command})) {
-            $self->_warning("bad command $command");
-            return ('', 1, $text);
-        }
-        my ($args, $handler) = $COMMANDS{$command}->@*;
-        my ($blocktag, $result);
-        if ($args == 0) {
-            ($blocktag, $result) = $self->$handler();
-        } else {
-            my @args = $self->_extract($text, $args, 1);
-            $text = pop @args;
-            my $format = shift @args;
-            ($blocktag, $result) = $self->$handler($format, @args);
-        }
-        return ($result, $blocktag, $text);
+        my ($text,     @args)   = $self->_extract($text, $args);
+        my ($blocktag, $output) = $self->$handler(@args);
+        return ($output, $blocktag, $text);
     }
 }
 
-# Given a text string, check it for escape sequences and expand them.  This
-# function is mutually recursive with expand.  Takes one flag, saying whether
-# we're at the block level.  Returns the expanded text and a flag saying
-# whether the result is suitable for block level.
+# This is the heart of the input parser.  Take a string of raw input, expand
+# the commands in it, and format the results as HTML.  This function is
+# mutually recursive with _expand and _macro.
+#
+# $text  - Input text to parse
+# $block - True if the parse is done in a block context
+#
+# Returns: List of the following values:
+#            $output - HTML output corresponding to $text
+#            $block  - Whether the result is suitable for block level
 sub _parse_context {
     my ($self, $text, $block) = @_;
-    if (index ($text, '\\') == -1) {
+
+    # Check if there are any commands in the input.  If not, we have a
+    # paragraph of regular text.
+    if (index($text, '\\') == -1) {
         my $output = $text;
-        $output = $self->_border() . $self->_paragraph($output) if $block;
+
+        # If we are at block context, we need to make the text into a block
+        # element, which means wrapping it in <p> tags.  Since that is a
+        # top-level block construct, also close any open block structure.
+        if ($block) {
+            $output = $self->_border_end() . $self->_paragraph($output);
+        }
+
+        # Return the result.
         return ($output, $block);
     }
 
-    # Chop off everything up to the first backslash and save it in output.
-    # Then grab the escape and figure out what to do with it.
+    # The output seen so far.
+    my $output = q{};
+
+    # Output required to close any open block-level constructs that we saw
+    # prior to the text we're currently parsing.
+    my $border = q{};
+
+    # Output with inline context that needs to be wrapped in <p> tags.
+    my $paragraph = q{};
+
+    # Leading whitespace that should be added to a created paragraph.  This is
+    # only non-empty if $paragraph is empty.
+    my $space = q{};
+
+    # Whether we saw a construct not suitable for block level.
+    my $nonblock = 0;
+
+    # We have at least one command.  Parse the text into sections of regular
+    # text and commands, expand the commands, and glue the results together as
+    # HTML.
     #
     # If we are at block level, we have to distinguish between plain text and
     # inline commands, which have to be wrapped in paragraph tags, and
-    # block-level commands, which shouldn't be.  We accumulate any output that
-    # has to be wrapped in a paragraph in $paragraph (and put the border
-    # before it in $border).  Whenever we see a block-level command, we wrap
-    # anything currently in $paragraph in a paragraph, tack it on to the
-    # output, and then add on the results of the block command.  $space holds
-    # leading space, which we want to add to the paragraph if we end up
-    # creating a paragraph.
-    #
-    # $nonblock is a flag indicating that we saw some construct that wasn't
-    # suitable for block level.
-    my $output = '';
-    my ($border, $paragraph, $space) = ('', '', '');
-    my $nonblock = 0;
-    while ($text ne '') {
-        unless ($text =~ s/^([^\\]+|\\([\w=]+|.))//) {
-            my $error = substr ($text, 0, 20);
-            $error =~ s/\n.*//s;
-            $self->_fatal(qq(unable to parse at "$error"));
+    # block-level commands, which shouldn't be.
+    while ($text ne q{}) {
+        my ($string, $command);
+
+        # Extract text before the next command, or a command name (but none of
+        # its arguments).  I think it's impossible for this regex to fail to
+        # match as long as $text is non-empty, but do error handling just in
+        # case.
+        if ($text =~ s{ \A ( [^\\]+ | \\ ([\w=]+ | .) ) }{}xms) {
+            ($string, $command) = ($1, $2);
+        } else {
+            my $context = substr($text, 0, 20);
+            $context =~ s{ \n .* }{}xms;
+            $self->_fatal(qq(unable to parse near "$context"));
         }
-        my $command;
-        if (index ($1, '\\') == -1) {
-            my $string = $1;
-            if ($block && $string =~ /^\s+$/ && $paragraph eq '') {
-                $space .= $string;
-            } elsif ($block && ($string =~ /\S/ || $paragraph ne '')) {
-                $border = $self->_border() if $paragraph eq '';
-                $paragraph .= $space . $string;
-                $space = '';
+
+        # If this is not a command, and we're not at the block level, just add
+        # it verbatim to the output.
+        #
+        # if we are at the block level, pull off any leading space.  If there
+        # is still remaining text, add it plus any accumulated whitespace to a
+        # new paragraph.
+        if (index($string, '\\') == -1) {
+            if ($block) {
+                if ($string =~ s{ \A (\s+) }{}xms) {
+                    $space .= $1;
+                }
+                if ($paragraph ne q{} || $string ne q{}) {
+                    if ($paragraph eq q{}) {
+                        $border = $self->_border_end();
+                    }
+                    $paragraph .= $space . $string;
+                    $space = q{};
+                }
             } else {
                 $output .= $string;
                 $nonblock = 1;
             }
-        } else {
-            $command = $2;
+        }
+
+        # Otherwise, we have a command.  Expand that command, setting block
+        # context if we haven't seen any inline content so far.
+        else {
             my ($result, $blocktag);
-            my $force = $block && $paragraph eq '';
             ($result, $blocktag, $text)
-              = $self->_expand($command, $text, $force);
+              = $self->_expand($command, $text, $block && $paragraph eq q{});
+
+            # If the result requires block context, output any pending
+            # paragraph and then the result.  Otherwise, if we are already at
+            # block context, start a new paragraph.  Otherwise, just append
+            # the result to our output.
             if ($blocktag) {
-                if ($block && $paragraph ne '') {
-                    $output .= $border . $self->_paragraph($space . $paragraph);
-                    $border = '';
-                    $paragraph = '';
+                if ($block && $paragraph ne q{}) {
+                    $output .= $border . $self->_paragraph($paragraph);
+                    $border    = q{};
+                    $paragraph = q{};
                 } else {
                     $output .= $space;
                 }
                 $output .= $result;
             } elsif ($block) {
-                $border = $self->_border() if $paragraph eq '';
+                if ($paragraph eq q{}) {
+                    $border = $self->_border_end();
+                }
                 $paragraph .= $space . $result;
                 $nonblock = 1;
             } else {
                 $output .= $result;
                 $nonblock = 1;
             }
-            $space = '';
+            $space = q{};
         }
-        if ($text =~ s/^\n(\s*)//) {
-            if ($paragraph ne '') {
+
+        # If the next bit of unparsed text starts with a newline, extract it
+        # and any following whitespace now.  Add it to our paragraph if we're
+        # accumulating one; otherwise, add it to the output, but only add the
+        # newline if we saw inline elements or there is remaining text.  This
+        # suppresses some useless black lines.
+        if ($text =~ s{ \A \n (\s*) }{}xms) {
+            if ($paragraph ne q{}) {
                 $paragraph .= "\n$1";
             } else {
-                $output .= "\n" if $text || $nonblock;
+                if ($text ne q{} || $nonblock) {
+                    $output .= "\n";
+                }
                 $output .= $1;
             }
         }
     }
 
-    # Wrap any remaining output in paragraph tags and then return the output.
-    # If we were at block level, our output is always suitable for block
-    # level.  Otherwise, it's suitable for block level only if all of our
-    # output was from block commands.
-    $output .= $border . $self->_paragraph($space . $paragraph)
-        unless $paragraph eq '';
+    # If there is any remaining paragraph text, wrap it in tags and append it
+    # to the output.  If we were at block level, our output is always suitable
+    # for block level.  Otherwise, it's suitable for block level only if all
+    # of our output was from block commands.
+    if ($paragraph ne q{}) {
+        $output .= $border . $self->_paragraph($paragraph);
+    }
     return ($output, $block || !$nonblock);
 }
 
@@ -504,14 +642,14 @@ sub _split_paragraphs {
 sub _block {
     my ($self, $tag, $border, $format, $text) = @_;
     my $output = $border . "<$tag" . $self->_format_string($format) . '>';
-    $self->_border_start();
+    $self->_block_start();
     if ($format eq 'packed') {
         $output .= $self->_parse($text, 0);
     } else {
         my @paragraphs = $self->_split_paragraphs($text);
         $output .= join('', map { $self->_parse($_, 1) } @paragraphs);
     }
-    $output .= $self->_border_clear();
+    $output .= $self->_block_end();
     $output =~ s%\s*\z%</$tag>%;
     $output .= "\n" unless $format eq 'packed';
     return (1, $output);
@@ -522,7 +660,7 @@ sub _block {
 # in old browsers.
 sub _heading {
     my ($self, $level, $format, $text) = @_;
-    my $output = $self->_border();
+    my $output = $self->_border_end();
     if ($format && $format =~ /^\#/) {
         my $tag = $format;
         $tag =~ s/^\#//;
@@ -620,7 +758,53 @@ sub _footer {
 }
 
 ##############################################################################
-# Commands
+# Special commands
+##############################################################################
+
+# Define a new macro.  This is the command handler for \==.
+#
+# $name       - Name of the macro
+# $args       - Number of arguments
+# $definition - Definition of the macro
+#
+# Returns: Block context, empty output
+sub _define_macro {
+    my ($self, $name, $args, $definition) = @_;
+    $args = $self->_parse($args);
+
+    # Verify the argument count and definition.
+    if ($args !~ m{ \A \d+ \z }xms) {
+        $self->_warning("invalid macro argument count for $name");
+    }
+    for my $arg ($definition =~ m{ \\(\d+) }xmsg) {
+        if ($1 > $args) {
+            my $msg = "invalid macro placeholder \\$1 (greater than $args)";
+            $self->_warning($msg);
+        }
+    }
+
+    # Define the macro.
+    $self->{macro}{$name} = [$self->_parse($args), $definition];
+    return (1, q{});
+}
+
+# Define a new variable.  This is the command handler for \=.
+#
+# $name  - Name of the variable
+# $value - Value of the variable
+#
+# Returns: Block context, empty output
+sub _define_variable {
+    my ($self, $name, $value) = @_;
+    $self->{variable}{$name} = $self->_parse($value);
+    return (1, q{});
+}
+
+# Literal backslash.  This is the command handler for \\.
+sub _literal { return (0, q{\\}) }
+
+##############################################################################
+# Regular commands
 ##############################################################################
 
 # Basic inline commands.
@@ -646,7 +830,10 @@ sub _cmd_h5 { my ($self, @a) = @_; $self->_heading(5, @a); }
 sub _cmd_h6 { my ($self, @a) = @_; $self->_heading(6, @a); }
 
 # A horizontal rule.
-sub _cmd_rule { my ($self) = @_; return (1, $self->_border() . "<hr />\n") }
+sub _cmd_rule {
+    my ($self) = @_;
+    return (1, $self->_border_end() . "<hr />\n");
+}
 
 # Simple block commands.
 sub _cmd_div {
@@ -661,12 +848,14 @@ sub _cmd_block {
 
 sub _cmd_bullet {
     my ($self, @args) = @_;
-    $self->_block('li', $self->_border('bullet', "<ul>\n", "</ul>\n\n"), @args);
+    my $border = $self->_border_start('bullet', "<ul>\n", "</ul>\n\n");
+    $self->_block('li', $border, @args);
 }
 
 sub _cmd_number {
     my ($self, @args) = @_;
-    $self->_block('li', $self->_border('number', "<ol>\n", "</ol>\n\n"), @args);
+    my $border = $self->_border_start('number', "<ol>\n", "</ol>\n\n");
+    $self->_block('li', $border, @args);
 }
 
 # A description list entry, which takes the heading and the body as arguments.
@@ -674,7 +863,7 @@ sub _cmd_desc {
     my ($self, $format, $heading, $text) = @_;
     $heading = $self->_parse($heading);
     my $format_attr = $self->_format_string($format);
-    my $border      = $self->_border('desc', "<dl>\n", "</dl>\n\n");
+    my $border      = $self->_border_start('desc', "<dl>\n", "</dl>\n\n");
     my $initial     = $border . "<dt$format_attr>" . $heading . "</dt>\n";
     return $self->_block('dd', $initial, $format, $text);
 }
@@ -683,7 +872,7 @@ sub _cmd_desc {
 # special-casing [ and ] since the user may have needed to use \entity to
 # express text that contains literal brackets.
 sub _cmd_entity {
-    my ($self, $format, $char) = @_;
+    my ($self, $char) = @_;
     $char = $self->_parse($char);
     if ($char eq '91') {
         return (0, '[');
@@ -700,7 +889,7 @@ sub _cmd_entity {
 # the page title and the page style.  This is where the XHTML declarations
 # come from.
 sub _cmd_heading {
-    my ($self, $format, $title, $style) = @_;
+    my ($self, $title, $style) = @_;
     $title = $self->_parse($title);
     $style = $self->_parse($style);
 
@@ -756,7 +945,7 @@ sub _cmd_heading {
 # Used to save the RCS Id for the document.  Doesn't actually output anything
 # (the identifier is later used in _cmd_heading).
 sub _cmd_id {
-    my ($self, $format, $id) = @_;
+    my ($self, $id) = @_;
     $self->{id} = $id;
     return (1, '');
 }
@@ -780,7 +969,7 @@ sub _cmd_image {
 # not immediately at the current point, which may be a bit surprising.
 # Someday, I should fix that.
 sub _cmd_include {
-    my ($self, $format, $file) = @_;
+    my ($self, $file) = @_;
     $file = $self->_parse($file);
     my $fh = FileHandle->new ("< $file")
       or $self->_fatal("cannot include $file: $!");
@@ -800,7 +989,7 @@ sub _cmd_link {
 # Preformatted text, the same as the HTML tag.
 sub _cmd_pre {
     my ($self, $format, $text) = @_;
-    my $output = $self->_border();
+    my $output = $self->_border_end();
     $output .= '<pre' . $self->_format_string($format) . '>';
     $output .= $self->_parse($text);
     $output .= "</pre>\n";
@@ -812,11 +1001,11 @@ sub _cmd_pre {
 # format is "broken", adds line breaks at the end of each line.
 sub _cmd_quote {
     my ($self, $format, $quote, $author, $cite) = @_;
-    my $output = $self->_border() . '<blockquote class="quote">';
-    $self->_border_start();
+    my $output = $self->_border_end() . '<blockquote class="quote">';
+    $self->_block_start();
     my @paragraphs = $self->_split_paragraphs ($quote);
     $quote = join ('', map { $self->_parse($_, 1) } @paragraphs);
-    $quote .= $self->_border_clear();
+    $quote .= $self->_block_end();
     if ($format && $format eq 'broken') {
         $quote =~ s%(\S *)(\n\s*(?!</p>)\S)%$1<br />$2%g;
         $quote =~ s%\n<br />%\n%g;
@@ -853,7 +1042,7 @@ sub _cmd_quote {
 
 # Given the name of a product, return the release date of the product.
 sub _cmd_release {
-    my ($self, undef, $package) = @_;
+    my ($self, $package) = @_;
     $package = $self->_parse($package);
     if (!$self->{versions}) {
         $self->_warning("no package release information available");
@@ -870,7 +1059,7 @@ sub _cmd_release {
 # Used to save RSS feed information for the page.  Doesn't output anything
 # directly; the RSS feed information is used later in _cmd_heading.
 sub _cmd_rss {
-    my ($self, $format, $url, $title) = @_;
+    my ($self, $url, $title) = @_;
     $url = $self->_parse($url);
     $title = $self->_parse($title);
     push($self->{rss}->@*, [$url, $title]);
@@ -881,7 +1070,7 @@ sub _cmd_rss {
 # address block.
 sub _cmd_signature {
     my ($self) = @_;
-    my $output = $self->_border();
+    my $output = $self->_border_end();
     if ($self->{file} eq '-') {
         $output .= "</body>\n</html>\n";
         return (1, $output);
@@ -900,7 +1089,7 @@ sub _cmd_signature {
 # file.  We could use Number::Format here, but what we're doing is simple
 # enough and doesn't seem worth the trouble of another dependency.
 sub _cmd_size {
-    my ($self, $format, $file) = @_;
+    my ($self, $file) = @_;
     $file = $self->_parse($file);
     unless ($file) {
         $self->_warning("empty file name in \\size");
@@ -928,7 +1117,7 @@ sub _cmd_sitemap {
         $self->_warning("no sitemap file found");
         return (1, '');
     }
-    return (1, $self->_border() . $self->{sitemap}->sitemap());
+    return (1, $self->_border_end() . $self->{sitemap}->sitemap());
 }
 
 # Start a table.  Takes any additional HTML attributes to set for the table
@@ -946,9 +1135,8 @@ sub _cmd_tablehead {
     my ($self, $format, @cells) = @_;
     my $output = '  <tr' . $self->_format_string($format) . ">\n";
     for (@cells) {
-        $output .= '    ';
-        $output .= $self->_enclose('th', $self->_parse ($_) . $self->_border());
-        $output .= "\n";
+        my $text = $self->_parse($_) . $self->_border_end();
+        $output .= (q{ } x 4) . $self->_enclose('th', $text) . "\n";
     }
     $output .= "  </tr>\n";
     return (1, $output);
@@ -959,9 +1147,8 @@ sub _cmd_tablerow {
     my ($self, $format, @cells) = @_;
     my $output = '  <tr' . $self->_format_string($format) . ">\n";
     for (@cells) {
-        $output .= '    ';
-        $output .= $self->_enclose('td', $self->_parse($_) . $self->_border());
-        $output .= "\n";
+        my $text = $self->_parse($_) . $self->_border_end();
+        $output .= (q{ } x 4) . $self->_enclose('td', $text) . "\n";
     }
     $output .= "  </tr>\n";
     return (1, $output);
@@ -970,7 +1157,7 @@ sub _cmd_tablerow {
 # Given the name of a package, return the version number of its latest
 # release.
 sub _cmd_version {
-    my ($self, undef, $package) = @_;
+    my ($self, $package) = @_;
     if (!$self->{versions}) {
         $self->_warning("no package version information available");
         return (0, q{});
@@ -1001,13 +1188,13 @@ sub _spin {
     # Initialize object state for a new document.
     $self->{files}    = [[$in_fh, $in_path]];
     $self->{id}       = undef;
-    $self->{macros}   = {};
+    $self->{macro}    = {};
     $self->{out_fh}   = $out_fh;
     $self->{out_path} = $out_path;
     $self->{rss}      = [];
     $self->{space}    = q{};
     $self->{state}    = ['BLOCK'];
-    $self->{strings}  = {};
+    $self->{variable} = {};
 
     # Parse the thread file a paragraph at a time (but pick up macro contents
     # that are continued across paragraphs.
@@ -1033,7 +1220,7 @@ sub _spin {
                 $close_count += ($extra =~ tr{\]}{});
                 $para .= $extra;
             }
-            my $result = $self->_parse($self->_escape($para), 1);
+            my $result = $self->_parse(_escape($para), 1);
             $result =~ s{ \A (?:\s*\n)+ }{}xms;
             if ($result !~ m{ \A \s* \z }xms) {
                 $self->_output($result);
@@ -1044,7 +1231,7 @@ sub _spin {
     }
 
     # Close open tags and print any deferred whitespace.
-    _print_fh($out_fh, $out_path, $self->_border_clear(), $self->{space});
+    _print_fh($out_fh, $out_path, $self->_block_end(), $self->{space});
 }
 
 ##############################################################################
