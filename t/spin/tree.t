@@ -43,6 +43,9 @@ Updating .../usefor/drafts/draft-ietf-usefor-useage-01.txt
 Creating .../reviews
 Creating .../reviews/books
 Spinning .../reviews/books/0-385-49362-2.html
+Creating .../journal
+Creating .../journal/2011-08
+Spinning .../journal/2011-08/006.html
 OUTPUT
 
 require_ok('App::DocKnot::Spin');
