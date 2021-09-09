@@ -333,7 +333,7 @@ sub _macro {
     # macro.)
     my $expand = sub {
         my ($n) = @_;
-        return ($n > scalar(@args)) ? "\\$n" : $args[$n - 1];
+        return ($n > scalar(@args)) ? "\\\\$n" : $args[$n - 1];
     };
 
     # Replace the substitution markers in the macro definition.
@@ -366,7 +366,7 @@ sub _expand {
         if (exists($self->{variable}{$variable})) {
             return ($self->{variable}{$variable}, 0, $text);
         } else {
-            $self->_warning("unknown variable $variable");
+            $self->_warning("unknown variable \\=$variable");
             return (q{}, 0, $text);
         }
     }
@@ -392,7 +392,7 @@ sub _expand {
 
     # The normal command-handling case.  Ensure it is a valid command.
     if (!ref($COMMANDS{$command})) {
-        $self->_warning("unknown command or macro $command");
+        $self->_warning("unknown command or macro \\$command");
         return (q{}, 1, $text);
     }
 
@@ -826,17 +826,18 @@ sub _define_macro {
 
     # Verify the argument count and definition.
     if ($args !~ m{ \A \d+ \z }xms) {
-        $self->_warning("invalid macro argument count for $name");
+        $self->_warning("invalid macro argument count for \\$name");
+        return (1, q{});
     }
     for my $arg ($definition =~ m{ \\(\d+) }xmsg) {
-        if ($1 > $args) {
-            my $msg = "invalid macro placeholder \\$1 (greater than $args)";
+        if ($arg > $args) {
+            my $msg = "invalid macro placeholder \\$arg (greater than $args)";
             $self->_warning($msg);
         }
     }
 
     # Define the macro.
-    $self->{macro}{$name} = [$self->_parse($args), $definition];
+    $self->{macro}{$name} = [$args, $definition];
     return (1, q{});
 }
 
@@ -1548,14 +1549,14 @@ data for the C<\release> and C<\version> commands.
 
 =over 4
 
-=item spin_file(INPUT, OUTPUT)
+=item spin_file([INPUT[, OUTPUT]])
 
 Convert a single thread file to HTML.  INPUT is the path of the thread file
-and OUTPUT is the path of the output file.  Either INPUT or OUTPUT may be
-C<->, in which case standard input or standard output, respectively, will be
-used.  If OUTPUT is C<->, App::DocKnot::Spin::Thread will not be able to
-obtain sitemap information even if a sitemap was provided and therefore will
-not add inter-page links.
+and OUTPUT is the path of the output file.  OUTPUT or both INPUT and OUTPUT
+may be omitted, in which case standard input or standard output, respectively,
+will be used.  If OUTPUT is omitted, App::DocKnot::Spin::Thread will not be
+able to obtain sitemap information even if a sitemap was provided and
+therefore will not add inter-page links.
 
 =back
 
