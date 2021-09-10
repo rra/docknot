@@ -61,6 +61,7 @@ my $build = Module::Build->new(
     # Other package relationships.
     configure_requires => { 'Module::Build' => 0.4004 },
     requires           => {
+        'Date::Parse'            => 0,
         'File::BaseDir'          => 0,
         'File::ShareDir'         => 0,
         'Git::Repository'        => 0,

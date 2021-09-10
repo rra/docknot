@@ -19,6 +19,8 @@ use warnings;
 use App::DocKnot::Dist;
 use App::DocKnot::Generate;
 use App::DocKnot::Spin;
+use App::DocKnot::Spin::RSS;
+use App::DocKnot::Spin::Thread;
 use App::DocKnot::Update;
 use Getopt::Long;
 use Pod::Usage qw(pod2usage);
@@ -82,6 +84,13 @@ our %COMMANDS = (
         options => ['delete|d', 'exclude|e=s@', 'style-url|s=s'],
         minimum => 2,
         maximum => 2,
+    },
+    'spin-rss' => {
+        method  => 'generate',
+        module  => 'App::DocKnot::Spin::RSS',
+        options => ['base|b=s'],
+        minimum => 1,
+        maximum => 1,
     },
     'spin-thread' => {
         method  => 'spin_thread_file',
@@ -248,7 +257,7 @@ __END__
 
 =for stopwords
 Allbery DocKnot docknot MERCHANTABILITY NONINFRINGEMENT sublicense Kwalify
-IO-Compress-Lzma
+IO-Compress-Lzma TimeDate
 
 =head1 NAME
 
@@ -261,12 +270,12 @@ App::DocKnot::Command - Run DocKnot commands
 
 =head1 REQUIREMENTS
 
-Perl 5.24 or later and the modules File::BaseDir, File::ShareDir,
-Git::Repository, Image::Size, IO::Compress::Xz (part of IO-Compress-Lzma),
-IO::Uncompress::Gunzip (part of IO-Compress), IPC::Run, IPC::System::Simple,
-JSON::MaybeXS, Kwalify, List::SomeUtils, Perl6::Slurp, Template (part of
-Template Toolkit), Text::Balanced, and YAML::XS, all of which are available
-from CPAN.
+Perl 5.24 or later and the modules Date::Parse (part of TimeDate),
+File::BaseDir, File::ShareDir, Git::Repository, Image::Size, IO::Compress::Xz
+(part of IO-Compress-Lzma), IO::Uncompress::Gunzip (part of IO-Compress),
+IPC::Run, IPC::System::Simple, JSON::MaybeXS, Kwalify, List::SomeUtils,
+Perl6::Slurp, Template (part of Template Toolkit), and YAML::XS, all of which
+are available from CPAN.
 
 =head1 DESCRIPTION
 

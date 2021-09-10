@@ -63,6 +63,7 @@ framework, time permitting.
 Perl 5.24 or later and Module::Build are required to build this module.
 The following additional Perl modules are required to use it:
 
+* Date::Parse (part of TimeDate)
 * File::BaseDir
 * File::ShareDir
 * Git::Repository

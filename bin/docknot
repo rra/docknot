@@ -22,7 +22,7 @@ __END__
 
 =for stopwords
 Allbery DocKnot docknot MERCHANTABILITY NONINFRINGEMENT sublicense subcommand
-subcommands distdir pgp-key cl2xhtml cvs2xhtml faq2html
+subcommands distdir pgp-key cl2xhtml cvs2xhtml faq2html spin-rss
 
 =head1 NAME
 
@@ -41,7 +41,9 @@ B<docknot> generate-all [B<-m> I<metadata>] [B<-w> I<width>]
 B<docknot> spin [B<-d>] [B<-e> I<pattern> ...] [B<-s> I<url>] I<source>
 I<output>
 
-B<docknot> spin-file [B<-f>] [B<-s> I<url>] [I<source> [I<output>]]
+B<docknot> spin-rss [B<-b> I<base>] I<file>
+
+B<docknot> spin-thread [B<-f>] [B<-s> I<url>] [I<source> [I<output>]]
 
 B<docknot> update [B<-m> I<metadata>] [B<-o> I<output>]
 
@@ -81,7 +83,13 @@ Spin a tree of files written in the macro language thread into an HTML web
 site.  See L<App::DocKnot::Spin> for documentation on the input format and
 details of the site generation.
 
-=item spin-file
+=item spin-rss
+
+Process a single F<.rss> file with L<App::DocKnot::Spin::RSS> (normally done
+as part of using C<spin> to process a tree of files).  See that module's
+documentation for more details.
+
+=item spin-thread
 
 Like C<spin>, but convert a single file written in thread to HTML.
 
@@ -220,7 +228,24 @@ not exist, it will be created.  If it exists, it must be a directory.
 
 =back
 
-=head2 spin-file
+=head2 spin-rss
+
+=over 4
+
+=item B<-b> I<base>, B<--base>=I<base>
+
+By default, output files are relative to the current working directory.  If
+this option is given, output files will be relative to I<base> instead.
+Output files specified as absolute paths will not be affected.
+
+=item I<file>
+
+The F<.rss> file to process.  See L<App::DocKnot::Spin::RSS> for the details
+of the file format.
+
+=back
+
+=head2 spin-thread
 
 =over 4
 
@@ -318,7 +343,8 @@ SOFTWARE.
 =head1 SEE ALSO
 
 L<App::DocKnot::Config>, L<App::DocKnot::Dist>, L<App::DocKnot::Generate>,
-L<App::DocKnot::Spin>, L<App::DocKnot::Update>
+L<App::DocKnot::Spin>, L<App::DocKnot::Spin::RSS>,
+L<App::DocKnot::Spin::Thread>, L<App::DocKnot::Update>
 
 This program is part of the App-DocKnot distribution.  The current version of
 DocKnot is available from CPAN, or directly from its web site at
