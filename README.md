@@ -8,8 +8,8 @@ version](https://img.shields.io/cpan/v/App-DocKnot)](https://metacpan.org/releas
 [![Debian
 package](https://img.shields.io/debian/v/docknot/unstable)](https://tracker.debian.org/pkg/docknot)
 
-Copyright 1999-2011, 2013-2021 Russ Allbery <rra@cpan.org>.  This software
-is distributed under a BSD-style license.  Please see the section
+Copyright 1999-2021 Russ Allbery <rra@cpan.org>.  This software is
+distributed under a BSD-style license.  Please see the section
 [License](#license) below for more information.
 
 ## Blurb
@@ -163,7 +163,7 @@ requests are gratefully reviewed and normally accepted.
 The DocKnot package as a whole is covered by the following copyright
 statement and license:
 
-> Copyright 1999-2011, 2013-2021
+> Copyright 1999-2021
 >     Russ Allbery <rra@cpan.org>
 >
 > Permission is hereby granted, free of charge, to any person obtaining a

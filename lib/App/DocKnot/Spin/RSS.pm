@@ -1,22 +1,25 @@
-#!/usr/bin/perl -w
-our $ID = q$Id$;
+# Generate RSS and thread from a feed description file.
 #
-# spin-rss -- Generate RSS and thread from a feed description file.
+# This module generates RSS feeds and thread indexes of newly-published pages
+# or change notes for a web site maintained with App::DocKnot::Spin.
 #
-# Copyright 2008 Russ Allbery <rra@stanford.edu>
-#
-# This program is free software; you may redistribute it and/or modify it
-# under the same terms as Perl itself.
+# SPDX-License-Identifier: MIT
 
 ##############################################################################
 # Modules and declarations
 ##############################################################################
 
-require 5.006;
+package App::DocKnot::Spin::RSS 4.01;
 
-use strict;
+use 5.024;
+use autodie;
+use warnings;
+
+use App::DocKnot::Spin::Thread;
+use Cwd qw(getcwd);
 use Date::Parse qw(str2time);
-use Getopt::Long qw(GetOptions);
+use File::Basename qw(fileparse);
+use Perl6::Slurp qw(slurp);
 use POSIX qw(strftime);
 
 ##############################################################################
@@ -76,12 +79,12 @@ sub relative_url {
 # will be a hash with keys title, date, link, and description.
 sub parse_changes {
     my ($file, $metadata, $changes) = @_;
-    open (CHANGES, '<', $file) or die "$0: cannot open $file: $!\n";
+    open (my $fh, '<', $file) or die "$0: cannot open $file: $!\n";
     local $_;
     my ($last, @blocks);
     push (@blocks, {});
     my $current = $blocks[0];
-    while (<CHANGES>) {
+    while (<$fh>) {
         if (/^\s*$/) {
             push (@blocks, {});
             $current = $blocks[$#blocks];
@@ -106,7 +109,7 @@ sub parse_changes {
             $current->{$last} .= $value;
         }
     }
-    close CHANGES;
+    close($fh);
     pop @blocks unless $last;
     %$metadata = %{ shift @blocks };
     $metadata->{recent} = 15 unless defined $metadata->{recent};
@@ -157,10 +160,14 @@ sub xml_escape {
 # Format a journal post into HTML for inclusion in an RSS feed.
 sub rss_journal {
     my ($file) = @_;
-    my @page = `spin '$file'`;
-    if ($? != 0) {
-        die "$0: spin of $file failed with status ", ($? >> 8), "\n";
-    }
+    my $spin = App::DocKnot::Spin::Thread->new();
+    my $source = slurp($file);
+    my $cwd = getcwd();
+    my (undef, $dir) = fileparse($file);
+    chdir($dir);
+    my $page = $spin->spin_thread($source);
+    chdir($cwd);
+    my @page = map { "$_\n" } split(m{ \n }xms, $page);
     shift @page while (@page and $page[0] !~ /<h1>/);
     shift @page;
     shift @page while (@page and $page[0] =~ /^\s*$/);
@@ -179,10 +186,14 @@ sub rss_review {
     my $class = ($dir =~ /magazines/) ? 'magazines' : 'books';
     my $base = $metadata->{base} . ($metadata->{base} =~ m%/$% ? '' : '/')
         . 'reviews';
-    my @page = `spin '$file'`;
-    if ($? != 0) {
-        die "$0: spin of $file failed with status ", ($? >> 8), "\n";
-    }
+    my $spin = App::DocKnot::Spin::Thread->new();
+    my $source = slurp($file);
+    my $cwd = getcwd();
+    my (undef, $threaddir) = fileparse($file);
+    chdir($threaddir);
+    my $page = $spin->spin_thread($source);
+    chdir($cwd);
+    my @page = map { "$_\n" } split(m{ \n }xms, $page);
     my ($title, $author);
     while (@page and $page[0] !~ /<table class=\"info\">/) {
         if ($page[0] =~ m{<h1><cite>(.*)</cite></h1>}) {
@@ -207,7 +218,7 @@ sub rss_review {
     }
     splice (@page, $buy, 2) if $buy;
     splice (@page, $ebook, 4) if $ebook;
-    my $page = join ('', @page);
+    $page = join ('', @page);
     $page =~ s/^\s*<table[^>]+>/<table>/mg;
     $page =~ s/^\s*<tr/  <tr/mg;
     $page =~ s/^\s*<td[^>]+>/    <td>/mg;
@@ -236,7 +247,7 @@ sub rss_output {
     } else {
         $last = $date;
     }
-    my $version = (split (' ', $ID))[2];
+    my $version = '1.25';
     print $file <<"EOC";
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
@@ -426,154 +437,185 @@ sub index_output {
 }
 
 ##############################################################################
-# Main routine
+# Public interface
 ##############################################################################
 
-$| = 1;
-my $fullpath = $0;
-$0 =~ s%.*/%%;
+# Create a new RSS generator object.
+#
+# $args - Anonymous hash of arguments with the following keys:
+#   base - Base path for output files
+#
+# Returns: Newly created object
+sub new {
+    my ($class, $args_ref) = @_;
 
-# Parse command-line options.
-my ($base, $help, $version);
-Getopt::Long::config ('bundling');
-GetOptions ('b|base=s'  => \$base,
-            'h|help'    => \$help,
-            'v|version' => \$version) or exit 1;
-if ($help) {
-    print "Feeding myself to perldoc, please wait....\n";
-    exec ('perldoc', '-t', $fullpath);
-} elsif ($version) {
-    my $version = join (' ', (split (' ', $ID))[1..3]);
-    $version =~ s/,v\b//;
-    $version =~ s/(\S+)$/($1)/;
-    $version =~ tr%/%-%;
-    print $version, "\n";
-    exit;
+    # Canonicalize the base path to have a single trailing slash.
+    my $base = $args_ref->{base};
+    if ($base) {
+        $base =~ s{ /* \z}{/}xms;
+    }
+
+    # Create and return the object.
+    my $self = { base => $base };
+    bless($self, $class);
+    return $self;
 }
-$base =~ s,/*$,/, if $base;
-my ($source) = @ARGV;
-die "Usage: $0 [-hv] [-b <base>] <source>\n" unless $source;
 
-# Read in the changes.
-my (%metadata, @changes);
-parse_changes ($source, \%metadata, \@changes);
+# Generate specified output files from an .rss input file.
+#
+# $source - Path to the .rss file
+# $base   - Optional base path for output
+sub generate {
+    my ($self, $source, $base) = @_;
+    if ($base) {
+        $base =~ s{ /* \z}{/}xms;
+    }
+    $base //= $self->{base};
 
-# Now, the output key tells us what files to write out.
-my @output;
-if ($metadata{output}) {
-    @output = split (' ', $metadata{output});
-} else {
-    @output = ('*:rss:index.rss');
-}
-for my $output (@output) {
-    my ($tags, $format, $file) = split (':', $output);
-    my $path;
-    if ($base && $file !~ m,^/,) {
-        $path = "$base$file";
+    # Read in the changes.
+    my (%metadata, @changes);
+    parse_changes ($source, \%metadata, \@changes);
+
+    # Now, the output key tells us what files to write out.
+    my @output;
+    if ($metadata{output}) {
+        @output = split (' ', $metadata{output});
     } else {
-        $path = $file;
+        @output = ('*:rss:index.rss');
     }
-    my $prettyfile = $path;
-    $prettyfile = ".../$prettyfile" unless $prettyfile =~ m,^/,;
-    next if (-f $path && -M $path <= -M $source);
-    my @tags = split (',', $tags);
-    my @interest;
-    for my $change (@changes) {
-        if ($tags eq '*' || intersect ($change->{tags}, \@tags)) {
-            push (@interest, $change);
+    for my $output (@output) {
+        my ($tags, $format, $file) = split (':', $output);
+        my $path;
+        if ($base && $file !~ m,^/,) {
+            $path = "$base$file";
+        } else {
+            $path = $file;
         }
-    }
-    if ($format eq 'thread') {
-        print "Generating thread file $prettyfile\n";
-        open (THREAD, '>', $path) or die "$0: cannot create $path: $!\n";
-        thread_output (\*THREAD, \%metadata, \@interest);
-        close THREAD;
-    } elsif ($format eq 'rss') {
-        if (@interest > $metadata{recent}) {
-            splice (@interest, $metadata{recent});
+        my $prettyfile = $path;
+        $prettyfile = ".../$prettyfile" unless $prettyfile =~ m,^/,;
+        next if (-f $path && -M $path <= -M $source);
+        my @tags = split (',', $tags);
+        my @interest;
+        for my $change (@changes) {
+            if ($tags eq '*' || intersect ($change->{tags}, \@tags)) {
+                push (@interest, $change);
+            }
         }
-        print "Generating RSS file $prettyfile\n";
-        open (RSS, '>', $path) or die "$0: cannot create $path: $!\n";
-        rss_output (\*RSS, $file, \%metadata, \@interest);
-        close RSS;
-    } elsif ($format eq 'index') {
-        if (@interest > $metadata{recent}) {
-            splice (@interest, $metadata{recent});
+        if ($format eq 'thread') {
+            print "Generating thread file $prettyfile\n";
+            open (THREAD, '>', $path) or die "$0: cannot create $path: $!\n";
+            thread_output (\*THREAD, \%metadata, \@interest);
+            close THREAD;
+        } elsif ($format eq 'rss') {
+            if (@interest > $metadata{recent}) {
+                splice (@interest, $metadata{recent});
+            }
+            print "Generating RSS file $prettyfile\n";
+            open (RSS, '>', $path) or die "$0: cannot create $path: $!\n";
+            rss_output (\*RSS, $file, \%metadata, \@interest);
+            close RSS;
+        } elsif ($format eq 'index') {
+            if (@interest > $metadata{recent}) {
+                splice (@interest, $metadata{recent});
+            }
+            print "Generating index file $prettyfile\n";
+            open (INDEX, '>', $path) or die "$0: cannot create $path: $!\n";
+            index_output (\*INDEX, \%metadata, \@interest);
+            close INDEX;
         }
-        print "Generating index file $prettyfile\n";
-        open (INDEX, '>', $path) or die "$0: cannot create $path: $!\n";
-        index_output (\*INDEX, \%metadata, \@interest);
-        close INDEX;
     }
 }
 
 ##############################################################################
-# Documentation
+# Module return value and documentation
 ##############################################################################
+
+1;
+__END__
+
+=for stopwords
+Allbery DocKnot MERCHANTABILITY NONINFRINGEMENT RSS TimeDate YYYY-MM-DD
+sublicense hoc rss
 
 =head1 NAME
 
-spin-rss - Generate RSS and thread from a feed description file
+App::DocKnot::Spin::RSS - Generate RSS and thread from a feed description file
 
 =head1 SYNOPSIS
 
-B<spin-rss> [B<-hv>] [B<-b> I<base>] I<file>
+    use App::DocKnot::Spin::RSS;
+
+    my $rss = App::DocKnot::Spin::RSS->new({ base => 'path/to/tree' });
+    $rss->generate('path/to/tree/.rss');
 
 =head1 REQUIREMENTS
 
-Perl 5.006 or later and the Date::Parse module, which is part of the
-TimeDate distribution on CPAN.  B<spin> is required for anything other
-than simple entries with the text of the entry inline in the feed
-description file.
+Perl 5.006 or later and the modules Date::Parse (part of the TimeDate
+distribution) and Perl6::Slurp, both of which are available from CPAN.
 
 =head1 DESCRIPTION
 
-B<spin-rss> reads as input a feed description file consisting of simple
-key/value pairs and writes out either thread (for input to B<spin>) or
-RSS.  The feed description consists of a leading block of metadata and
-then one block per entry in the feed.  Each block can either include the
-content of the entry or can reference an external thread file, in several
-formats, for the content.  The feed description file defines one or more
-output files in the Output field of the metadata.
+App::DocKnot::Spin::RSS reads as input a feed description file consisting of
+simple key/value pairs and writes out either thread (for input to
+App::DocKnot::Spin::Thread) or RSS.  The feed description consists of a
+leading block of metadata and then one block per entry in the feed.  Each
+block can either include the content of the entry or can reference an external
+thread file, in several formats, for the content.  The feed description file
+defines one or more output files in the Output field of the metadata.
 
 Output files are only regenerated if they are older than the input feed
 description file.
 
-B<spin-rss> is designed for use with B<spin>.  It relies on B<spin> to
-convert thread to HTML, both for inclusion in RSS feeds and for
-post-processing of generated thread files.  B<spin-rss> is invoked
-automatically by B<spin> when B<spin> encounters an F<.rss> file in a
-directory it is processing.
+App::DocKnot::Spin::RSS is designed for use with App::DocKnot::Spin.  It
+relies on App::DocKnot::Spin::Thread to convert thread to HTML, both for
+inclusion in RSS feeds and for post-processing of generated thread files.
+App::DocKnot::Spin::RSS is invoked automatically by App::DocKnot::Spin when it
+encounters an F<.rss> file in a directory it is processing.
 
-=head1 OPTIONS
+See L<INPUT LANGUAGE> for the details of the language in which F<.rss> files
+are written.
+
+=head1 CLASS METHODS
 
 =over 4
 
-=item B<-b> I<base>, B<--base>=I<base>
+=item new(ARGS)
 
-By default, B<spin-rss> output files are relative to the current working
-directory.  If the B<-b> option is given, output files will be relative to
-I<base> instead.  Output files specified as absolute paths will not be
-affected.  B<spin> always passes this option to B<spin-rss>.
+Create a new App::DocKnot::Spin::RSS object.  ARGS should be a hash reference
+with one or more of the following keys, all of which are optional:
 
-=item B<-h>, B<--help>
+=over 4
 
-Print out this documentation (which is done simply by feeding the script
-to C<perldoc -t>).
+=item base
 
-=item B<-v>, B<--version>
+By default, App::DocKnot::Spin::RSS output files are relative to the current
+working directory.  If the C<base> argument is given, output files will be
+relative to the value of C<base> instead.  Output files specified as absolute
+paths will not be affected.
 
-Print out the version of B<spin-rss> and exit.
+=back
+
+=back
+
+=head1 INSTANCE METHODS
+
+=over 4
+
+=item generate(FILE[, BASE])
+
+Parse the input file FILE and generate the output files that it specifies.
+BASE, if given, specifies the root directory for output files specified with
+relative paths, and overrides any C<base> argument given to new().
 
 =back
 
 =head1 INPUT LANGUAGE
 
-The input for B<spin-rss> is normally a F<.rss> file in a tree being
-processed by B<spin>, but may be any file name passed to B<spin-rss>.  The
-file consists of one or more blocks of RFC-2822-style fields with values,
-each separated by a blank line.  Each field and value looks like an e-mail
-header field, including possible continuation lines:
+The input for App::DocKnot::Spin::RSS is normally a F<.rss> file in a tree
+being processed by App::DocKnot::Spin.  The file consists of one or more
+blocks of RFC-2822-style fields with values, each separated by a blank line.
+Each field and value looks like an e-mail header field, including possible
+continuation lines:
 
     Field: value
      continuation of value
@@ -667,9 +709,9 @@ file, see the C<thread> output type.
 
 =item rss
 
-Output an RSS file.  B<spin-rss> only understands the RSS 2.0 output
-format.  The Description, Language, RSS-Base, and Title fields should be
-set to provide additional metadata for the output file.
+Output an RSS file.  App::DocKnot::Spin::RSS only understands the RSS 2.0
+output format.  The Description, Language, RSS-Base, and Title fields should
+be set to provide additional metadata for the output file.
 
 =item thread
 
@@ -744,12 +786,12 @@ One and only one of this field, Description, or Review should be present.
 =item Link
 
 The link to the page referenced by this entry.  The link is relative to
-the Base field set in the input filel metadata.  This field is required.
+the Base field set in the input file metadata.  This field is required.
 
 =item Review
 
 Specifies that the content of this entry should be read from an external
-thread file given by the value ofo this field.  The contents of that file
+thread file given by the value of this field.  The contents of that file
 are expected to be in the thread format used by my book reviews.
 
 Many transformations are applied to entries of this sort based on the
@@ -796,19 +838,42 @@ entries separate from the entry URLs and hence supports multiple entries
 for the same URL, something that I needed for an RSS feed of recent
 changes to my entire site.
 
-=head1 SEE ALSO
-
-spin(1)
-
 =head1 AUTHOR
 
-Russ Allbery <rra@stanford.edu>
+Russ Allbery <rra@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2008 Russ Allbery <rra@stanford.edu>.
+Copyright 2008, 2010-2012, 2021 Russ Allbery <rra@cpan.org>
 
-This program is free software; you may redistribute it and/or modify it
-under the same terms as Perl itself.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+=head1 SEE ALSO
+
+L<docknot(1)>, L<App::DocKnot::Spin>, L<App::DocKnot::Spin::Thread>
+
+This module is part of the App-DocKnot distribution.  The current version of
+DocKnot is available from CPAN, or directly from its web site at
+L<https://www.eyrie.org/~eagle/software/docknot/>.
 
 =cut
+
+# Local Variables:
+# copyright-at-end-flag: t
+# End:

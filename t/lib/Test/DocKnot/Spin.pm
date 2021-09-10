@@ -44,6 +44,9 @@ sub is_spin_output {
         [ ] \d{4}-\d\d-\d\d (?: [ ] \d\d:\d\d:\d\d [ ] -0000 )?
     }{ %DATE%}gxms;
     $results =~ s{
+        \w{3}, [ ] \d\d [ ] \w{3} [ ] \d{4} [ ] \d\d:\d\d:\d\d [ ] -\d{4}
+    }{%DATE%}gxms;
+    $results =~ s{
         Last [ ] modified [ ] and \s+ (<a[^>]+>spun</a>) [ ] [%]DATE[%]
     }{Last $1\n    %DATE% from thread modified %DATE%}gxms;
 
@@ -85,7 +88,7 @@ sub is_spin_output_tree {
 
         # Compare HTML output using is_spin_output and all other files as
         # copies.
-        if ($file =~ m{ [.] html \z }xms) {
+        if ($file =~ m{ [.] (?: html | rss ) \z }xms) {
             is_spin_output($file, $expected_file, "$message ($path)");
         } else {
             is(compare($file, $expected_file), 0, "$message ($path)");

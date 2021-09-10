@@ -15,8 +15,8 @@ use lib 't/lib';
 use Capture::Tiny qw(capture_stdout);
 use Cwd qw(getcwd);
 use File::Copy::Recursive qw(dircopy);
-use File::Spec;
-use File::Temp;
+use File::Spec ();
+use File::Temp ();
 use Perl6::Slurp qw(slurp);
 use POSIX qw(strftime);
 use Test::DocKnot::Spin qw(is_spin_output_tree);
@@ -25,8 +25,26 @@ use Test::More;
 
 # Expected output when spinning our tree of input files.
 my $EXPECTED_OUTPUT = <<'OUTPUT';
+Generating thread file .../changes.th
+Generating RSS file .../changes.rss
+Updating .../changes.rss
+Spinning .../changes.html
 Spinning .../index.html
 Updating .../names.png
+Creating .../journal
+Generating index file .../journal/index.th
+Generating RSS file .../journal/index.rss
+Generating RSS file .../journal/debian.rss
+Generating RSS file .../journal/reviews.rss
+Updating .../journal/debian.rss
+Updating .../journal/index.rss
+Spinning .../journal/index.html
+Updating .../journal/reviews.rss
+Creating .../journal/2011-08
+Spinning .../journal/2011-08/006.html
+Creating .../reviews
+Creating .../reviews/books
+Spinning .../reviews/books/0-385-49362-2.html
 Creating .../software
 Spinning .../software/index.html
 Creating .../software/docknot
@@ -38,26 +56,35 @@ Spinning .../usefor/index.html
 Creating .../usefor/drafts
 Updating .../usefor/drafts/draft-ietf-usefor-message-id-01.txt
 Updating .../usefor/drafts/draft-ietf-usefor-posted-mailed-01.txt
-Updating .../usefor/drafts/draft-lindsey-usefor-signed-01.txt
 Updating .../usefor/drafts/draft-ietf-usefor-useage-01.txt
-Creating .../reviews
-Creating .../reviews/books
-Spinning .../reviews/books/0-385-49362-2.html
-Creating .../journal
-Creating .../journal/2011-08
-Spinning .../journal/2011-08/006.html
+Updating .../usefor/drafts/draft-lindsey-usefor-signed-01.txt
 OUTPUT
 
 require_ok('App::DocKnot::Spin');
 
+# Copy the input tree to a new temporary directory since .rss files generate
+# additional thread files.  Replace the rpod pointer since it points to a
+# relative path in the source tree.
+my $tmpdir  = File::Temp->newdir();
+my $datadir = File::Spec->catfile('t', 'data', 'spin');
+my $input   = File::Spec->catfile($datadir, 'input');
+dircopy($input, $tmpdir->dirname)
+  or die "Cannot copy $input to $tmpdir: $!\n";
+my $rpod_source = File::Spec->catfile(getcwd(), 'lib', 'App', 'DocKnot.pm');
+my $rpod_path   = File::Spec->catfile(
+    $tmpdir->dirname, 'software', 'docknot', 'api',
+    'app-docknot.rpod',
+);
+open(my $fh, '>', $rpod_path);
+print {$fh} "$rpod_source\n" or die "Cannot write to $rpod_path: $!\n";
+close($fh);
+
 # Spin a tree of files.
 my $output   = File::Temp->newdir();
-my $datadir  = File::Spec->catfile('t',      'data', 'spin');
-my $input    = File::Spec->catfile($datadir, 'input');
 my $expected = File::Spec->catfile($datadir, 'output');
 my $spin     = App::DocKnot::Spin->new({ 'style-url' => '/~eagle/styles/' });
 my $stdout   = capture_stdout {
-    $spin->spin($input, $output->dirname);
+    $spin->spin($tmpdir->dirname, $output->dirname);
 };
 my $count = is_spin_output_tree($output, $expected, 'spin');
 is($stdout, $EXPECTED_OUTPUT, 'Expected spin output');
@@ -66,14 +93,14 @@ is($stdout, $EXPECTED_OUTPUT, 'Expected spin output');
 my $bogus      = File::Spec->catfile($output->dirname, 'bogus');
 my $bogus_file = File::Spec->catfile($bogus,           'some-file');
 mkdir($bogus);
-open(my $fh, '>', $bogus_file);
+open($fh, '>', $bogus_file);
 print {$fh} "Some stuff\n" or die "Cannot write to $bogus_file: $!\n";
 close($fh);
 
 # Spinning the same tree of files again should do nothing because of the
 # modification timestamps.
 $stdout = capture_stdout {
-    $spin->spin($input, $output->dirname);
+    $spin->spin($tmpdir->dirname, $output->dirname);
 };
 is($stdout, q{}, 'Spinning again does nothing');
 
@@ -85,7 +112,7 @@ ok(-d $bogus, 'Stray file and directory not deleted');
 $spin
   = App::DocKnot::Spin->new({ delete => 1, 'style-url' => '/~eagle/styles/' });
 $stdout = capture_stdout {
-    $spin->spin($input, $output->dirname);
+    $spin->spin($tmpdir->dirname, $output->dirname);
 };
 is(
     $stdout,
@@ -93,23 +120,6 @@ is(
     'Spinning with delete option cleans up',
 );
 ok(!-e $bogus, 'Stray file and directory was deleted');
-
-# Copy the input tree to a new temporary directory, replace the rpod pointer,
-# and regenerate output files with the new timestamps.
-my $tmpdir = File::Temp->newdir();
-dircopy($input, $tmpdir)
-  or die "Cannot copy $input to $tmpdir: $!\n";
-my $rpod_source = File::Spec->catfile(getcwd(), 'lib', 'App', 'DocKnot.pm');
-my $rpod_path   = File::Spec->catfile(
-    $tmpdir->dirname, 'software', 'docknot', 'api',
-    'app-docknot.rpod',
-);
-open($fh, '>', $rpod_path);
-print {$fh} "$rpod_source\n" or die "Cannot write to $rpod_path: $!\n";
-close($fh);
-capture_stdout {
-    $spin->spin($tmpdir->dirname, $output->dirname);
-};
 
 # Now, update the .versions file at the top of the input tree to change the
 # timestamp to a second into the future.  This should force regeneration of

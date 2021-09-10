@@ -13,8 +13,10 @@ use warnings;
 use lib 't/lib';
 
 use Capture::Tiny qw(capture_stdout);
-use File::Temp;
-use File::Spec;
+use Cwd qw(getcwd);
+use File::Copy::Recursive qw(dircopy);
+use File::Spec ();
+use File::Temp ();
 use Test::RRA qw(is_file_contents);
 use Test::DocKnot::Spin qw(is_spin_output is_spin_output_tree);
 
@@ -47,11 +49,29 @@ print {$output_fh} $stdout or BAIL_OUT("Cannot write to $output: $!");
 close($output_fh);
 is_spin_output($output, $expected, 'spin-thread (standard output)');
 
+# Copy the input tree to a new temporary directory since .rss files generate
+# additional thread files.  Replace the rpod pointer since it points to a
+# relative path in the source tree.
+my $indir = File::Temp->newdir();
+$input = File::Spec->catfile($datadir, 'input');
+dircopy($input, $indir->dirname)
+  or die "Cannot copy $input to $indir: $!\n";
+my $rpod_source = File::Spec->catfile(getcwd(), 'lib', 'App', 'DocKnot.pm');
+my $rpod_path   = File::Spec->catfile(
+    $indir->dirname, 'software', 'docknot', 'api',
+    'app-docknot.rpod',
+);
+open(my $fh, '>', $rpod_path);
+print {$fh} "$rpod_source\n" or die "Cannot write to $rpod_path: $!\n";
+close($fh);
+
 # Spin a tree of files.
-$input    = File::Spec->catfile($datadir, 'input');
 $expected = File::Spec->catfile($datadir, 'output');
 capture_stdout {
-    $docknot->run('spin', '-s', '/~eagle/styles', $input, $tempdir->dirname);
+    $docknot->run(
+        'spin', '-s', '/~eagle/styles', $indir->dirname,
+        $tempdir->dirname,
+    );
 };
 my $count = is_spin_output_tree($tempdir->dirname, $expected, 'spin');
 

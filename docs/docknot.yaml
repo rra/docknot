@@ -22,7 +22,7 @@ license:
   name: Expat
 copyrights:
   - holder: Russ Allbery <rra@cpan.org>
-    years: 1999-2011, 2013-2021
+    years: 1999-2021
 
 build:
   type: Module::Build

@@ -17,11 +17,12 @@ use 5.024;
 use autodie;
 use warnings;
 
+use App::DocKnot::Spin::RSS;
 use App::DocKnot::Spin::Sitemap;
 use App::DocKnot::Spin::Thread;
 use App::DocKnot::Spin::Versions;
 use Carp qw(croak);
-use Cwd qw(realpath);
+use Cwd qw(getcwd realpath);
 use File::Basename qw(fileparse);
 use File::Copy qw(copy);
 use File::Find qw(find finddepth);
@@ -405,7 +406,7 @@ sub _process_file {
         }
         my $rss_path = File::Spec->catfile($file, '.rss');
         if (-e $rss_path) {
-            systemx('spin-rss', '-b', $file, $rss_path);
+            $self->{rss}->generate($rss_path, $file);
         }
     } elsif ($file =~ m{ [.] th \z }xms) {
         $output   =~ s{ [.] th \z }{.html}xms;
@@ -506,6 +507,7 @@ sub new {
     my $self = {
         delete    => $args_ref->{delete},
         excludes  => [@excludes],
+        rss       => App::DocKnot::Spin::RSS->new(),
         style_url => $style_url,
     };
     bless($self, $class);
@@ -554,6 +556,15 @@ sub spin {
         $self->{repository} = Git::Repository->new(work_tree => $input);
     }
 
+    # Process an .rss file at the top of the tree, if present.
+    my $rss_path = File::Spec->catfile($input, '.rss');
+    if (-e $rss_path) {
+        my $cwd = getcwd();
+        chdir($input);
+        $self->{rss}->generate($rss_path);
+        chdir($cwd);
+    }
+
     # Create a new thread converter object.
     $self->{thread} = App::DocKnot::Spin::Thread->new(
         {
@@ -566,7 +577,13 @@ sub spin {
     );
 
     # Process the input tree.
-    find(sub { $self->_process_file(@_) }, $input);
+    find(
+        {
+            preprocess => sub { my @files = sort(@_); return @files },
+            wanted     => sub { $self->_process_file(@_) },
+        },
+        $input,
+    );
     if ($self->{delete}) {
         finddepth(sub { $self->_delete_files(@_) }, $output);
     }
