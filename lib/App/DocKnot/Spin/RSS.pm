@@ -26,122 +26,211 @@ use POSIX qw(strftime);
 # Utility functions
 ##############################################################################
 
-# Returns the intersection of two arrays as a list.
-sub intersect {
-    my ($a, $b) = @_;
-    my %a = map { $_ => 1 } @$a;
-    return grep { $a{$_} } @$b;
+# List intersection.
+#
+# $one - First list
+# $two - Second list
+#
+# Returns: Common elements of both lists as a list
+sub _intersect {
+    my ($one, $two) = @_;
+    my %one = map { $_ => 1 } $one->@*;
+    return grep { $one{$_} } $two->@*;
 }
 
-# Construct an absolute URL from a relative URL and a base URL.
-sub absolute_url {
+# Construct an absolute URL from a relative URL and a base URL.  This plays
+# fairly fast and loose with schemes and the like, since we don't need to be
+# precise for our purposes.
+#
+# $url  - Relative URL
+# $base - Base URL to which it is relative
+#
+# Returns: Absolute URL
+sub _absolute_url {
     my ($url, $base) = @_;
-    $base =~ s,[^/]+$,,;
-    if ($url =~ /^[a-z]+:/) {
-        return $url;
-    } elsif ($url =~ m,^/,) {
-        $base =~ s,^(https?://[^/]+).*,$1,;
-        return "$base$url";
+
+    # If $url is already absolute, return it.
+    return $url if $url =~ m{ \A [[:lower:]]+ : }xms;
+
+    # If $url starts with /, take only the scheme and host from the base URL.
+    if ($url =~ m{ \A / }xms) {
+        $base =~ s{ \A ( [[:lower:]]+ :// [^/]+ ) .* }{$1}xms;
+        return $base . $url;
+    }
+
+    # Otherwise, strip the last component off the base URL, and then strip
+    # more trailing components off the base URL for every ../ element in the
+    # relative URL.  Then glue them together.  This does not deal with the
+    # case where there are more ../ elements than there are elements in the
+    # base URL.
+    $base =~ s{ [^/]+ \z }{}xms;
+    while ($url =~ s{ \A [.][.]/+ }{}xms) {
+        $base =~ s{ [^/]+ /+ \z }{}xms;
+    }
+    return $base . $url;
+}
+
+# Construct a relative URL from an absolute URL and a base URL.  If there is
+# no base URL or if the URLs cannot be made relative to each other, return the
+# relative URL unchanged.
+#
+# $url  - Absolute URL
+# $base - URL to which it should be relative
+#
+# Returns: Relative URL
+sub _relative_url {
+    my ($url, $base) = @_;
+    return $url if !$base;
+
+    # Remove the protocol and host portion from the base URL and ensure that
+    # portion matches.
+    if ($base =~ s{ \A ( https?:// [^/]+ ) /* }{}xms) {
+        my $host = $1;
+        if ($url !~ s{ \A \Q$host\E /* }{}xms) {
+            return $url;
+        }
     } else {
-        while ($url =~ s,^\.\./+,,) {
-            $base =~ s,[^/]+/+$,,;
-        }
-        return "$base$url";
-    }
-}
-
-# Construct a relative URL from an absolute URL and a base URL.
-sub relative_url {
-    my ($url, $base) = @_;
-    return $url unless $base;
-    $base =~ s,^(https?://[^/]+/)/*,,;
-    my $host = $1;
-    if (!$host || index ($url, $host) != 0) {
         return $url;
     }
-    $url =~ s,^\Q$host\E/*,,;
-    my @base = split (m,/+,, $base);
-    while ($url and @base) {
-        my $segment = shift @base;
-        unless ($url =~ s,^\Q$segment\E/*,,) {
-            return ('../' x (@base + 1)) . $url;
+
+    # Split the base URL into path segments.  While the input URL starts with
+    # a matching segment, remove it.  When we run out of matching segments,
+    # the relative URL is a number of ../ strings equal to the number of
+    # remaining base segments, plus the remaining input URL.
+    my @base = split(m{ /+ }xms, $base);
+    while ($url && @base) {
+        my $segment = shift(@base);
+        if ($url !~ s{ \A \Q$segment\E (?: /+ | \z ) }{}xms) {
+            return ('../' x (scalar(@base) + 1)) . $url;
         }
     }
-    return ('../' x @base) . $url;
+    return ('../' x scalar(@base)) . $url;
 }
 
 ##############################################################################
 # Parsing
 ##############################################################################
 
-# Parse a change file.  Save the metadata into the provided hash reference and
-# the changes into the provided array reference.  Each element of the array
-# will be a hash with keys title, date, link, and description.
-sub parse_changes {
-    my ($file, $metadata, $changes) = @_;
-    open (my $fh, '<', $file) or die "$0: cannot open $file: $!\n";
-    local $_;
-    my ($last, @blocks);
-    push (@blocks, {});
+# Read key/value blocks in an RFC-2822-style file.
+#
+# $file - File to read
+#
+# Returns: List of hashes corresponding to the blocks in the file.
+sub _read_rfc2822_file {
+    my ($self, $file) = @_;
+    my $key;
+    my @blocks  = ({});
     my $current = $blocks[0];
-    while (<$fh>) {
-        if (/^\s*$/) {
-            push (@blocks, {});
-            $current = $blocks[$#blocks];
-            undef $last;
-        } elsif (/^(\S+):[ \t]+(.+)/) {
-            my ($key, $value) = ($1, $2);
-            die "$0: cannot parse $file at line $.\n" unless $value;
-            $value =~ s/\s+$//;
-            $last = lc $key;
-            $current->{$last} = $value;
-        } elsif (/^(\S+):/) {
-            $last = lc $1;
-            $current->{$last} ||= '';
-        } elsif (/^\s/) {
-            die "$0: cannot parse $file at line $.\n" unless $last;
-            my $value = $_;
-            $value =~ s/^\s//;
-            $value = "\n" if $value =~ /^\.\s*\n/;
-            if ($current->{$last} and $current->{$last} !~ /\n\z/) {
-                $current->{$last} .= "\n";
+
+    # Parse the file.  $key holds the last key seen, used to append
+    # continuation values to the previous key.  $current holds the current
+    # block being parsed and @blocks all blocks seen so far.
+    open(my $fh, '<', $file);
+    while (defined(my $line = <$fh>)) {
+        if ($line =~ m{ \A \s* \z }xms) {
+            if ($key) {
+                $current = {};
+                push(@blocks, $current);
+                undef $key;
             }
-            $current->{$last} .= $value;
+        } elsif ($line =~ m{ \A (\S+): [ \t]+ ([^\n]+) \Z }xms) {
+            my ($new_key, $value) = ($1, $2);
+            $value =~ s{ \s+ \z }{}xms;
+            $key = lc($new_key);
+            $current->{$key} = $value;
+        } elsif ($line =~ m{ \A (\S+): \s* \z }xms) {
+            my $new_key = $1;
+            $key = lc($new_key);
+            $current->{$key} //= q{};
+        } elsif ($line =~ m{ \A \s }xms) {
+            if (!$key) {
+                die "$file:$.: invalid continuation line\n";
+            }
+            my $value = $line;
+            $value =~ s{ \A \s }{}xms;
+            if ($value =~ m{ \A [.] \s* \Z }xms) {
+                $value = "\n";
+            }
+            if ($current->{$key} && $current->{$key} !~ m{ \n\z }xms) {
+                $current->{$key} .= "\n";
+            }
+            $current->{$key} .= $value;
+        } else {
+            die "$file:$.: cannot parse line\n";
         }
     }
     close($fh);
-    pop @blocks unless $last;
-    %$metadata = %{ shift @blocks };
-    $metadata->{recent} = 15 unless defined $metadata->{recent};
-    my %guids;
-    for my $block (@blocks) {
-        $block->{date} = str2time ($block->{date})
-            or die "$0: cannot parse date $block->{date}\n";
-        if ($block->{link} && $block->{link} !~ /^http/) {
-            if ($block->{link} eq '/') {
-                $block->{link} = $metadata->{base};
-            } else {
-                $block->{link} = $metadata->{base} . $block->{link};
-            }
-        }
-        unless ($block->{guid}) {
-            my $guid;
-            if ($block->{journal} || $block->{review}) {
-                $guid = $block->{link};
-            } else {
-                $guid = $block->{date};
-            }
-            die "$0: duplicate GUID for entry $guid\n" if $guids{$guid};
-            $block->{guid} = $guid;
-        }
-        if ($block->{tags}) {
-            $block->{tags} = [ split (' ', $block->{tags}) ];
-        } else {
-            $block->{tags} = [];
-        }
-        push (@{ $block->{tags} }, 'review') if $block->{review};
+
+    # If the file ends in a blank line, we'll have a stray empty block.
+    # Remove it.
+    if (!$key) {
+        pop(@blocks);
     }
-    @$changes = @blocks;
+
+    # Return the parsed blocks.
+    return \@blocks;
+}
+
+# Parse a change file.  Save the metadata into the provided hash reference and
+# the changes into the provided array reference.  Each element of the array
+# will be a hash with keys title, date, link, and description.
+#
+# $file - File to read
+#
+# Returns: List of reference to metadata hash and reference to a list of
+#          hashes of changes
+sub _parse_changes {
+    my ($self, $file) = @_;
+    my $blocks_ref = $self->_read_rfc2822_file($file);
+
+    # The first block is our metadata.  recent defaults to 15.
+    my $metadata_ref = shift($blocks_ref->@*);
+    if (!defined($metadata_ref->{recent})) {
+        $metadata_ref->{recent} = 15;
+    }
+
+    # Canonicalize the data for the rest of the blocks, and check for
+    # duplicate GUIDs.
+    my %guids;
+    my $base = $metadata_ref->{base};
+    for my $block_ref ($blocks_ref->@*) {
+        $block_ref->{date} = str2time($block_ref->{date})
+          or die qq{cannot parse date "$block_ref->{date}"\n};
+
+        # Relative links are relative to the base URL in the metadata.
+        if ($block_ref->{link} && $base) {
+            if ($block_ref->{link} eq q{/}) {
+                $block_ref->{link} = $base;
+            } else {
+                $block_ref->{link} = $base . $block_ref->{link};
+            }
+        }
+
+        # If no GUID was given, take it from the link for journal and review
+        # entries, and otherwise from the date.  Then ensure it's unique.
+        my $guid = $block_ref->{guid};
+        if (!$guid) {
+            if ($block_ref->{journal} || $block_ref->{review}) {
+                $guid = $block_ref->{link};
+            } else {
+                $guid = $block_ref->{date};
+            }
+        }
+        if ($guids{$guid}) {
+            die "duplicate GUID for entry $guid\n";
+        }
+        $block_ref->{guid} = $guid;
+
+        # Determine the tags.
+        my @tags = $block_ref->{tags} ? split(q{ }, $block_ref->{tags}) : ();
+        if ($block_ref->{review}) {
+            push(@tags, 'review');
+        }
+        $block_ref->{tags} = \@tags;
+    }
+
+    # Return the results.
+    return ($metadata_ref, $blocks_ref);
 }
 
 ##############################################################################
@@ -281,7 +370,7 @@ EOC
             $description = rss_review ($entry->{review}, $metadata);
         }
         $description =~ s{(<(?:a href|img src)=\")(?!http:)([./\w][^\"]+)\"}
-                         {$1 . absolute_url ($2, $entry->{link}) . '"'}ge;
+                         {$1 . _absolute_url ($2, $entry->{link}) . '"'}ge;
         my $perma = ($entry->{guid} =~ /^http/) ? '' : ' isPermaLink="false"';
         print $file "    <item>\n";
         print $file "      <title>$title</title>\n";
@@ -422,9 +511,9 @@ sub index_output {
             $text = index_review ($entry->{review}, $entry->{link});
         }
         $text =~ s{(\\(?:link|image)\s*)\[([^\]]+)\]}
-                  {"${1}[" . absolute_url ($2, $entry->{link}) . ']'}ge;
+                  {"${1}[" . _absolute_url ($2, $entry->{link}) . ']'}ge;
         $text =~ s{(\\image\s*)\[([^\]]+)\]}
-            {"${1}[" . relative_url ($2, $metadata->{'index-base'}) . ']'}ge;
+            {"${1}[" . _relative_url ($2, $metadata->{'index-base'}) . ']'}ge;
         print $file $text;
         print $file "\\class(footer)[$date \\entity[mdash]\n";
         print $file "    \\link[$entry->{link}]\n";
@@ -473,13 +562,12 @@ sub generate {
     $base //= $self->{base};
 
     # Read in the changes.
-    my (%metadata, @changes);
-    parse_changes ($source, \%metadata, \@changes);
+    my ($metadata_ref, $changes_ref) = $self->_parse_changes($source);
 
     # Now, the output key tells us what files to write out.
     my @output;
-    if ($metadata{output}) {
-        @output = split (' ', $metadata{output});
+    if ($metadata_ref->{output}) {
+        @output = split (' ', $metadata_ref->{output});
     } else {
         @output = ('*:rss:index.rss');
     }
@@ -496,31 +584,31 @@ sub generate {
         next if (-f $path && -M $path <= -M $source);
         my @tags = split (',', $tags);
         my @interest;
-        for my $change (@changes) {
-            if ($tags eq '*' || intersect ($change->{tags}, \@tags)) {
+        for my $change ($changes_ref->@*) {
+            if ($tags eq '*' || _intersect($change->{tags}, \@tags)) {
                 push (@interest, $change);
             }
         }
         if ($format eq 'thread') {
             print "Generating thread file $prettyfile\n";
             open (THREAD, '>', $path) or die "$0: cannot create $path: $!\n";
-            thread_output (\*THREAD, \%metadata, \@interest);
+            thread_output (\*THREAD, $metadata_ref, \@interest);
             close THREAD;
         } elsif ($format eq 'rss') {
-            if (@interest > $metadata{recent}) {
-                splice (@interest, $metadata{recent});
+            if (@interest > $metadata_ref->{recent}) {
+                splice (@interest, $metadata_ref->{recent});
             }
             print "Generating RSS file $prettyfile\n";
             open (RSS, '>', $path) or die "$0: cannot create $path: $!\n";
-            rss_output (\*RSS, $file, \%metadata, \@interest);
+            rss_output (\*RSS, $file, $metadata_ref, \@interest);
             close RSS;
         } elsif ($format eq 'index') {
-            if (@interest > $metadata{recent}) {
-                splice (@interest, $metadata{recent});
+            if (@interest > $metadata_ref->{recent}) {
+                splice (@interest, $metadata_ref->{recent});
             }
             print "Generating index file $prettyfile\n";
             open (INDEX, '>', $path) or die "$0: cannot create $path: $!\n";
-            index_output (\*INDEX, \%metadata, \@interest);
+            index_output (\*INDEX, $metadata_ref, \@interest);
             close INDEX;
         }
     }
