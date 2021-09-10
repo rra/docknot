@@ -26,6 +26,43 @@ use POSIX qw(strftime);
 # Utility functions
 ##############################################################################
 
+# print with error checking.  autodie unfortunately can't help us because
+# print can't be prototyped and hence can't be overridden.
+sub _print_checked {
+    my (@args) = @_;
+    print @args or croak('print failed');
+    return;
+}
+
+# print with error checking and an explicit file handle.  autodie
+# unfortunately can't help us because print can't be prototyped and hence
+# can't be overridden.
+#
+# $fh   - Output file handle
+# $file - File name for error reporting
+# @args - Remaining arguments to print
+#
+# Returns: undef
+#  Throws: Text exception on output failure
+sub _print_fh {
+    my ($fh, $file, @args) = @_;
+    print {$fh} @args or croak("cannot write to $file: $!");
+    return;
+}
+
+# Escapes &, <, and > characters for HTML or XML output.
+#
+# $string - Input string
+#
+# Returns: Escaped string
+sub _escape {
+    my ($string) = @_;
+    $string =~ s{ & }{&amp;}xmsg;
+    $string =~ s{ < }{&lt;}xmsg;
+    $string =~ s{ > }{&gt;}xmsg;
+    return $string;
+}
+
 # List intersection.
 #
 # $one - First list
@@ -105,6 +142,23 @@ sub _relative_url {
         }
     }
     return ('../' x scalar(@base)) . $url;
+}
+
+# Spin a file into HTML, changing directories to the directory of that file so
+# that relative file references resolve correctly.
+#
+# $file - Path to the file
+#
+# Returns: Rendered HTML as a list with one element per line
+sub _spin_file {
+    my ($self, $file) = @_;
+    my $source = slurp($file);
+    my $cwd    = getcwd();
+    my (undef, $dir) = fileparse($file);
+    chdir($dir);
+    my $page = $self->{spin}->spin_thread($source);
+    chdir($cwd);
+    return map { "$_\n" } split(m{ \n }xms, $page);
 }
 
 ##############################################################################
@@ -237,187 +291,256 @@ sub _parse_changes {
 # RSS output
 ##############################################################################
 
-# Escape a string for XML.
-sub xml_escape {
-    my ($string) = @_;
-    $string =~ s/&/&amp;/g;
-    $string =~ s/</&lt;/g;
-    $string =~ s/>/&gt;/g;
-    return $string;
+# Format a journal post into HTML for inclusion in an RSS feed.  This depends
+# heavily on my personal layout for journal posts.
+#
+# $file - Path to the journal post
+#
+# Returns: HTML suitable for including in an RSS feed
+sub _rss_journal {
+    my ($self, $file) = @_;
+    my @page = $self->_spin_file($file);
+
+    # Remove the parts that don't go into the RSS feed.
+    while (@page and $page[0] !~ m{ <h1> }xms) {
+        shift(@page);
+    }
+    shift(@page);
+    while (@page and $page[0] =~ m{ \A \s* \z }xms) {
+        shift(@page);
+    }
+    while (@page and $page[-1] !~ m{ <div [ ] class="date"><p> }xms) {
+        pop(@page);
+    }
+    pop(@page);
+    while (@page and $page[-1] =~ m{ \A \s* \z }xms) {
+        pop(@page);
+    }
+
+    # Return the rest.
+    return join(q{}, @page) . "\n";
 }
 
-# Format a journal post into HTML for inclusion in an RSS feed.
-sub rss_journal {
-    my ($file) = @_;
-    my $spin = App::DocKnot::Spin::Thread->new();
-    my $source = slurp($file);
-    my $cwd = getcwd();
-    my (undef, $dir) = fileparse($file);
-    chdir($dir);
-    my $page = $spin->spin_thread($source);
-    chdir($cwd);
-    my @page = map { "$_\n" } split(m{ \n }xms, $page);
-    shift @page while (@page and $page[0] !~ /<h1>/);
-    shift @page;
-    shift @page while (@page and $page[0] =~ /^\s*$/);
-    pop @page while (@page and $page[$#page] !~ /<div class=\"date\"><p>/);
-    pop @page;
-    pop @page while (@page and $page[$#page] =~ /^\s*$/);
-    return join ('', @page) . "\n";
-}
+# Format a review into HTML for inclusion in an RSS feed.  This depends even
+# more heavily on my personal layout for review posts.
+#
+# $file - Path to the review
+#
+# Returns: HTML suitable for inclusion in an RSS feed
+sub _rss_review {
+    my ($self, $file, $metadata) = @_;
+    my @page = $self->_spin_file($file);
 
-# Format a review into HTML for inclusion in an RSS feed.  Takes the path to
-# the review thread file and the metadata for this feed.
-sub rss_review {
-    my ($file, $metadata) = @_;
-    my $dir = $file;
-    $dir =~ s%/+[^/]*$%%;
-    my $class = ($dir =~ /magazines/) ? 'magazines' : 'books';
-    my $base = $metadata->{base} . ($metadata->{base} =~ m%/$% ? '' : '/')
-        . 'reviews';
-    my $spin = App::DocKnot::Spin::Thread->new();
-    my $source = slurp($file);
-    my $cwd = getcwd();
-    my (undef, $threaddir) = fileparse($file);
-    chdir($threaddir);
-    my $page = $spin->spin_thread($source);
-    chdir($cwd);
-    my @page = map { "$_\n" } split(m{ \n }xms, $page);
+    # Find the title and author because we'll add them back in laater, and
+    # remove the preamble of the page not included in the RSS feed.
     my ($title, $author);
-    while (@page and $page[0] !~ /<table class=\"info\">/) {
-        if ($page[0] =~ m{<h1><cite>(.*)</cite></h1>}) {
+    while (@page && $page[0] !~ m{ <table [ ] class="info"> }xms) {
+        if ($page[0] =~ m{ <h1> <cite> (.*) </cite> </h1> }xms) {
             $title = $1;
-        } elsif ($page[0] =~ m{<p class="(?:author|date)">(.*)</p>}) {
+        } elsif ($page[0] =~ m{ <p [ ] class="(?:author|date)">(.*)</p>}xms) {
             $author = $1;
         }
-        shift @page;
+        shift(@page);
     }
-    die "$0: cannot find title and author in $file"
-        unless ($title && $author);
-    pop @page while (@page and $page[$#page] !~ /<p class=\"rating\">/);
+    if (!$title || !$author) {
+        die "cannot find title and author in $file\n";
+    }
+
+    # Remove more stuff not included in the RSS feed.  This is absurdly
+    # specific to exactly how I format reviews.
+    while (@page && $page[-1] !~ m{ <p [ ] class="rating"> }xms) {
+        pop(@page);
+    }
     my ($buy, $ebook);
     for my $i (0 .. $#page) {
-        if ($page[$i] =~ /<p class=\"ebook\">/) {
+        if ($page[$i] =~ m{ <p [ ] class="ebook"> }xms) {
             $ebook = $i;
         }
-        if ($page[$i] =~ /<p class=\"buy\">/) {
+        if ($page[$i] =~ m{ <p [ ] class="buy"> }xms) {
             $buy = $i;
             last;
         }
     }
-    splice (@page, $buy, 2) if $buy;
-    splice (@page, $ebook, 4) if $ebook;
-    $page = join ('', @page);
-    $page =~ s/^\s*<table[^>]+>/<table>/mg;
-    $page =~ s/^\s*<tr/  <tr/mg;
-    $page =~ s/^\s*<td[^>]+>/    <td>/mg;
-    $page =~ s{</tr></table></div>}{</tr></table>};
-    $page =~ s/<div class=\"review\">//;
-    $page =~ s/<p class=\"rating\">/<p>/;
-    $page =~ s{<span class="story"><span id="\S+">(.*?)</span></span>}
-              {<strong>$1</strong>}sg;
+    if ($buy) {
+        splice(@page, $buy, 2);
+    }
+    if ($ebook) {
+        splice(@page, $ebook, 4);
+    }
+
+    # Done with line-by-lne processing.  Glue everything together into one
+    # page and do a bunch more random HTML cleanup.
+    my $page = join(q{}, @page);
+    $page =~ s{ ^ \s* <table[^>]+> }{<table>}xmsg;
+    $page =~ s{ ^ \s* <tr }{  <tr}xmsg;
+    $page =~ s{ ^ \s* <td[^>]+> }{    <td>}xmsg;
+    $page =~ s{ </tr> </table> </div> }{</tr></table>}xms;
+    $page =~ s{ <div [ ] class="review">}{}xms;
+    $page =~ s{ <p [ ] class="rating">}{<p>}xms;
+    $page =~ s{
+        <span [ ] class="story"><span [ ] id="\S+">(.*?)</span></span>
+    }{<strong>$1</strong>}xmsg;
+
+    # Add the author and title to the top of the HTML because we stripped out
+    # the top-level heading where this would normally have been.
     $page = "<p>Review: <cite>$title</cite>, $author</p>\n\n" . $page;
+
+    # Return the cleaned-up page.
     return $page . "\n";
 }
 
-# Print out the RSS version of the changes information given a file to which
-# to print it, the file name, the metadata resulting RSS file, and a reference
-# to the array of entries.  Various things are still hard-coded here.  Use the
-# date of the last change as <pubDate> and the current time as
-# <lastBuildDate>; it's not completely clear to me that this is correct.
-sub rss_output {
-    my ($file, $name, $metadata, $entries) = @_;
-    $name =~ s,.*/,,;
-    my $format = '%a, %d %b %Y %H:%M:%S %z';
-    my $date = strftime ($format, localtime);
-    my $last;
-    if (@$entries) {
-        $last = strftime ($format, localtime $entries->[0]{date});
-    } else {
-        $last = $date;
-    }
+# Print out the RSS version of the changes information given.  Lots of this is
+# hard-coded.  Use the date of the last change as <pubDate> and the current
+# time as <lastBuildDate>; it's not completely clear to me that this is
+# correct.
+#
+# $fh           - Output file handle
+# $file         - Name of the output file
+# $metadata_ref - Hash of metadata for the RSS feed
+# $entries_ref  - Array of entries in the RSS feed
+sub _rss_output {
+    my ($self, $fh, $file, $metadata_ref, $entries_ref) = @_;
     my $version = '1.25';
-    print $file <<"EOC";
+
+    # Determine the current date and latest publication date of all of the
+    # entries, published in the obnoxious format used by RSS.
+    my $format = '%a, %d %b %Y %H:%M:%S %z';
+    my $now    = strftime($format, localtime());
+    my $latest = $now;
+    if ($entries_ref->@*) {
+        $latest = strftime($format, localtime($entries_ref->[0]{date}));
+    }
+
+    # Output the RSS header.
+    _print_fh($fh, $file, <<"EOC");
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>$metadata->{title}</title>
-    <link>$metadata->{base}</link>
-    <description>$metadata->{description}</description>
-    <language>$metadata->{language}</language>
-    <pubDate>$last</pubDate>
-    <lastBuildDate>$date</lastBuildDate>
+    <title>$metadata_ref->{title}</title>
+    <link>$metadata_ref->{base}</link>
+    <description>$metadata_ref->{description}</description>
+    <language>$metadata_ref->{language}</language>
+    <pubDate>$latest</pubDate>
+    <lastBuildDate>$now</lastBuildDate>
     <generator>spin-rss $version</generator>
 EOC
-    if ($metadata->{'rss-base'}) {
-        print $file qq(    <atom:link href="$metadata->{'rss-base'}$name");
-        print $file qq( rel="self"\n);
-        print $file qq(               type="application/rss+xml" />\n);
+    if ($metadata_ref->{'rss-base'}) {
+        my ($name) = fileparse($file);
+        my $url = $metadata_ref->{'rss-base'} . $name;
+        _print_fh(
+            $fh,
+            $file,
+            qq{    <atom:link href="$url" rel="self"\n},
+            qq{               type="application/rss+xml" />\n},
+        );
     }
-    print $file "\n";
-    for my $entry (@$entries) {
-        my $date = strftime ($format, localtime $entry->{date});
-        my $title = xml_escape ($entry->{title});
+    _print_fh($fh, $file, "\n");
+
+    # Output each entry, formatting the contents of the entry as we go.
+    for my $entry_ref ($entries_ref->@*) {
+        my $date  = strftime($format, localtime($entry_ref->{date}));
+        my $title = _escape($entry_ref->{title});
         my $description;
-        if ($entry->{description}) {
-            $description = xml_escape ($entry->{description});
-            $description =~ s/^/        /mg;
-            $description =~ s,^(\s*),$1<p>,;
-            $description =~ s,\n*\z,</p>\n,;
-        } elsif ($entry->{journal}) {
-            $description = rss_journal ($entry->{journal});
-        } elsif ($entry->{review}) {
-            $description = rss_review ($entry->{review}, $metadata);
+        if ($entry_ref->{description}) {
+            $description = _escape($entry_ref->{description});
+            $description =~ s{ ^ }{        }xmsg;
+            $description =~ s{ \A (\s*) }{$1<p>}xms;
+            $description =~ s{ \n* \z }{</p>\n}xms;
+        } elsif ($entry_ref->{journal}) {
+            $description = $self->_rss_journal($entry_ref->{journal});
+        } elsif ($entry_ref->{review}) {
+            $description = $self->_rss_review($entry_ref->{review});
         }
-        $description =~ s{(<(?:a href|img src)=\")(?!http:)([./\w][^\"]+)\"}
-                         {$1 . _absolute_url ($2, $entry->{link}) . '"'}ge;
-        my $perma = ($entry->{guid} =~ /^http/) ? '' : ' isPermaLink="false"';
-        print $file "    <item>\n";
-        print $file "      <title>$title</title>\n";
-        print $file "      <link>$entry->{link}</link>\n";
-        print $file "      <description><![CDATA[\n";
-        print $file "$description";
-        print $file "      ]]></description>\n";
-        print $file "      <pubDate>$date</pubDate>\n";
-        print $file "      <guid$perma>$entry->{guid}</guid>\n";
-        print $file "    </item>\n";
+
+        # Make all relative URLs absolute.
+        $description =~ s{
+            ( < (?:a [ ] href | img [ ] src) = \" )
+            (?!http:)
+            ( [./\w] [^\"]+ ) \"
+        }{ $1 . _absolute_url($2, $entry_ref->{link}) . qq{\"} }xmsge;
+
+        # Optionally add an attribute indicating this is not a permanent link.
+        # Assume any URL is a permanent link.
+        my $perma = q{};
+        if ($entry_ref->{guid} !~ m{ \A http }xms) {
+            $perma = ' isPermaLink="false"';
+        }
+
+        # Output the entry.
+        _print_fh(
+            $fh,
+            $file,
+            "    <item>\n",
+            "      <title>$title</title>\n",
+            "      <link>$entry_ref->{link}</link>\n",
+            "      <description><![CDATA[\n",
+            $description,
+            "      ]]></description>\n",
+            "      <pubDate>$date</pubDate>\n",
+            "      <guid$perma>$entry_ref->{guid}</guid>\n",
+            "    </item>\n",
+        );
     }
-    print $file "  </channel>\n";
-    print $file "</rss>\n";
+
+    # Close the RSS structure.
+    _print_fh($fh, $file, "  </channel>\n</rss>\n");
+    return;
 }
 
 ##############################################################################
 # Thread output
 ##############################################################################
 
-# Print out the thread version of the recent changes list, given a file to
-# which to print it, the metadata, and a reference to the array of entries.
-sub thread_output {
-    my ($file, $metadata, $entries) = @_;
-    if ($metadata->{'thread-prefix'}) {
-        print $file $metadata->{'thread-prefix'}, "\n";
+# Print out the thread version of the recent changes list.
+#
+# $fh           - File handle to which to output
+# $file         - Name of the file for error reporting
+# $metadata_ref - RSS feed metadata
+# $entries_ref  - Entries
+sub _thread_output {
+    my ($self, $fh, $file, $metadata_ref, $entries_ref) = @_;
+
+    # Page prefix.
+    if ($metadata_ref->{'thread-prefix'}) {
+        _print_fh($fh, $file, $metadata_ref->{'thread-prefix'}, "\n");
     } else {
-        print $file "\\heading[Recent Changes][indent]\n\n";
-        print $file "\\h1[Recent Changes]\n\n";
+        _print_fh(
+            $fh,
+            $file,
+            "\\heading[Recent Changes][indent]\n\n",
+            "\\h1[Recent Changes]\n\n",
+        );
     }
-    my $last;
-    for my $entry (@$entries) {
-        my $month = strftime ('%B %Y', localtime $entry->{date});
-        if (not $last or $month ne $last) {
-            print $file "\\h2[$month]\n\n";
-            $last = $month;
+
+    # Print out each entry.
+    my $last_month;
+    for my $entry_ref ($entries_ref->@*) {
+        my $month = strftime('%B %Y', localtime($entry_ref->{date}));
+
+        # Put headings before each month.
+        if (!$last_month || $month ne $last_month) {
+            _print_fh($fh, $file, "\\h2[$month]\n\n");
+            $last_month = $month;
         }
-        my $date = strftime ('%Y-%m-%d', localtime $entry->{date});
-        print $file "\\desc[$date \\entity[mdash]\n";
-        print $file "      \\link[$entry->{link}]\n";
-        print $file "           [$entry->{title}]][\n";
-        my $description = $entry->{description};
-        $description =~ s/^/    /mg;
-        $description =~ s/\\/\\\\/g;
-        print $file $description;
-        print $file "]\n\n";
+
+        # Format each entry.
+        my $date = strftime('%Y-%m-%d', localtime($entry_ref->{date}));
+        _print_fh(
+            $fh,
+            $file,
+            "\\desc[$date \\entity[mdash]\n",
+            "      \\link[$entry_ref->{link}]\n",
+            "           [$entry_ref->{title}]][\n",
+        );
+        my $description = $entry_ref->{description};
+        $description =~ s{ ^ }{    }xmsg;
+        $description =~ s{ \\ }{\\\\}xmsg;
+        _print_fh($fh, $file, $description, "]\n\n");
     }
-    print $file "\\signature\n";
+
+    # Print out the end of the page.
+    _print_fh($fh, $file, "\\signature\n");
+    return;
 }
 
 ##############################################################################
@@ -425,104 +548,153 @@ sub thread_output {
 ##############################################################################
 
 # Translate the thread of a journal entry for inclusion in an index page.
-# Also takes the full URL for the permanent link to the entry page.  Returns
-# the thread.
-sub index_journal {
-    my ($file, $url) = @_;
-    open (IN, '<', $file) or die "$0: cannot open $file: $!\n";
-    local $_;
-    while (<IN>) {
-        last if /\\h1/;
+#
+# $file - Path to the journal entry
+#
+# Returns: Thread to include in the index page
+sub _index_journal {
+    my ($self, $file, $url) = @_;
+    open(my $fh, '<', $file);
+
+    # Skip to the first \h1 and exclude it.
+    while (defined(my $line = <$fh>)) {
+        last if $line =~ m{ \\h1 }xms;
     }
-    my $text = <IN>;
-    $text = '' if $text =~ /^\s*$/;
-    while (<IN>) {
-        last if /^\\date/;
-        $text .= $_;
+
+    # Skip an initial blank line.
+    my $text = <$fh>;
+    $text =~ s{ \A \s* \z}{}xms;
+
+    # Grab the rest of the entry until the \date command that ends it.
+    while (defined(my $line = <$fh>)) {
+        last if $line =~ m{ \A \\date }xms;
+        $text .= $line;
     }
-    close IN;
+
+    # All done.
+    close($fh);
     return $text;
 }
 
 # Translate the thread of a book review for inclusion into an index page.
-# Also takes the full URL for the permanent link to the entry page.  Returns
-# the thread.
-sub index_review {
-    my ($file, $url) = @_;
-    open (IN, '<', $file) or die "$0: cannot open $file: $!\n";
-    local $_;
-    my ($title, $author);
-    while (<IN>) {
-        my $char = '(?:[^\]\\\\]|\\\\entity\[\S+\])';
-        if (/\\(header|edited)\s*\[($char+)\]\s*$/) {
-            $_ .= <IN>;
+#
+# $file - Path to the book review
+#
+# Returns: Thread to include in the index page
+sub _index_review {
+    my ($self, $file) = @_;
+    my $title;
+    my $author;
+
+    # Regex to match a single "character" in a macro argument.
+    my $char = qr{ (?: [^\]\\] | \\entity \[ [^\]]+ \] ) }xms;
+
+    # Scan for the author information and save it.  Handle the case where the
+    # \header or \edited line is continued on the next line.
+    open(my $fh, '<', $file);
+    while (defined(my $line = <$fh>)) {
+        if ($line =~ m{ \\ (?:header|edited) \s* \[ $char+ \] \s* \z }xms) {
+            $line .= <$fh>;
         }
-        if (/\\(header|edited)\s*\[($char+)\]\s*\[($char+)\]/) {
+        if ($line =~ m{ \\(header|edited)\s*\[($char+)\]\s*\[($char+)\] }xms) {
             ($title, $author) = ($2, $3);
-            $author .= ' (ed.)' if ($1 eq 'edited');
+            if ($1 eq 'edited') {
+                $author .= ' (ed.)';
+            }
             last;
         }
     }
-    unless (defined $author) {
-        die "$0: cannot parse review file $file\n";
+    if (!defined($author)) {
+        die "cannot find author in review $file\n";
     }
+
+    # Add the prefix saying what's being reviewed.
     my $text;
-    if ($file =~ m,/magazines/,) {
+    if ($file =~ m{ /magazines/ }xms) {
         $text = "Review: \\cite[$title], $author\n\n";
     } else {
         $text = "Review: \\cite[$title], by $author\n\n";
     }
+
+    # Add the metadata table.
     $text .= "\\table[][\n";
-    while (<IN>) {
-        last if /^\\div\(review\)\[/;
-        my $char = '(?:[^\]\\\\]|\\\\entity\[\S+\])';
-        if (/^\s*\\data\[($char+)\]\s*\[($char+)\]/) {
+    while (defined(my $line = <$fh>)) {
+        last if $line =~ m{ \A \\div [(]review[)] \[ }xms;
+        if ($line =~ m{ \A \s* \\data \[($char+)\] \s* \[($char+)\] }xms) {
             $text .= "    \\tablerow[$1][$2]\n";
         }
     }
     $text .= "]\n\n";
-    while (<IN>) {
-        last if /^\\done/;
-        s/\\story\[\d+\]/\\strong/g;
-        s/^\\rating\s*\[([^\]]+)\]/Rating: $1 out of 10/;
-        $text .= $_;
+
+    # Add the rest of the review.
+    while (defined(my $line = <$fh>)) {
+        last if $line =~ m{ \A \\done }xms;
+        $line =~ s{ \\story \[ \d+ \] }{\\strong}xmsg;
+        $line =~ s{ \\rating \s* \[($char+)\] }{Rating: $1 out of 10}xms;
+        $text .= $line;
     }
-    close IN;
+    close($fh);
     return $text;
 }
 
-# Print out the index version of the recent changes list, given a file to
-# which to print it, the metadata, and a reference to the array of entries.
-sub index_output {
-    my ($file, $metadata, $entries) = @_;
-    if ($metadata->{'index-prefix'}) {
-        print $file $metadata->{'index-prefix'}, "\n";
+# Print out the index version of the recent changes list.
+#
+# $fh           - File handle to which to output
+# $file         - Name of the file for error reporting
+# $metadata_ref - RSS feed metadata
+# $entries_ref  - Entries
+sub _index_output {
+    my ($self, $fh, $file, $metadata_ref, $entries_ref) = @_;
+
+    # Output the prefix.
+    if ($metadata_ref->{'index-prefix'}) {
+        _print_fh($fh, $file, $metadata_ref->{'index-prefix'}, "\n");
     }
-    my $last;
-    for my $entry (@$entries) {
-        my $date = strftime ('%Y-%m-%d %H:%M', localtime $entry->{date});
-        my $day = $date;
-        $day =~ s/ .*//;
-        print $file "\\h2[$day: $entry->{title}]\n\n";
+
+    # Output each entry.
+    for my $entry_ref ($entries_ref->@*) {
+        my @time = localtime($entry_ref->{date});
+        my $date = strftime('%Y-%m-%d %H:%M', @time);
+        my $day  = strftime('%Y-%m-%d',       @time);
+
+        # Get the text of the entry.
         my $text;
-        if ($entry->{journal}) {
-            $text = index_journal ($entry->{journal}, $entry->{link});
-        } elsif ($entry->{review}) {
-            $text = index_review ($entry->{review}, $entry->{link});
+        if ($entry_ref->{journal}) {
+            $text = $self->_index_journal($entry_ref->{journal});
+        } elsif ($entry_ref->{review}) {
+            $text = $self->_index_review($entry_ref->{review});
+        } else {
+            die "unknown entry type\n";
         }
-        $text =~ s{(\\(?:link|image)\s*)\[([^\]]+)\]}
-                  {"${1}[" . _absolute_url ($2, $entry->{link}) . ']'}ge;
-        $text =~ s{(\\image\s*)\[([^\]]+)\]}
-            {"${1}[" . _relative_url ($2, $metadata->{'index-base'}) . ']'}ge;
-        print $file $text;
-        print $file "\\class(footer)[$date \\entity[mdash]\n";
-        print $file "    \\link[$entry->{link}]\n";
-        print $file "         [Permanent link]]\n\n";
+
+        # Make all the URLs absolute and then convert images back to relative
+        # based on the URL of the file we're creating.  This handles
+        # correcting links from thread from elsewhere in the tree.
+        $text =~ s{
+            ( \\ (?: link | image ) \s* \[ ) ( [^\]]+ ) \]
+        }{ $1 . _absolute_url($2, $entry_ref->{link}) . ']' }xmsge;
+        $text =~ s{
+            ( \\ image \s* \[ ) ( [^\]]+ ) \]
+        }{$1 . _relative_url($2, $metadata_ref->{'index-base'}) . ']' }xmsge;
+
+        # Print out the entry.
+        _print_fh(
+            $fh,
+            $file,
+            "\\h2[$day: $entry_ref->{title}]\n\n",
+            $text,
+            "\\class(footer)[$date \\entity[mdash]\n",
+            "    \\link[$entry_ref->{link}]\n",
+            "         [Permanent link]]\n\n",
+        );
     }
-    if ($metadata->{'index-suffix'}) {
-        print $file $metadata->{'index-suffix'}, "\n";
+
+    # Print out the end of the page.
+    if ($metadata_ref->{'index-suffix'}) {
+        _print_fh($fh, $file, $metadata_ref->{'index-suffix'}, "\n");
     }
-    print $file "\\signature\n";
+    _print_fh($fh, $file, "\\signature\n");
+    return;
 }
 
 ##############################################################################
@@ -538,14 +710,11 @@ sub index_output {
 sub new {
     my ($class, $args_ref) = @_;
 
-    # Canonicalize the base path to have a single trailing slash.
-    my $base = $args_ref->{base};
-    if ($base) {
-        $base =~ s{ /* \z}{/}xms;
-    }
-
     # Create and return the object.
-    my $self = { base => $base };
+    my $self = {
+        base => $args_ref->{base},
+        spin => App::DocKnot::Spin::Thread->new(),
+    };
     bless($self, $class);
     return $self;
 }
@@ -556,62 +725,67 @@ sub new {
 # $base   - Optional base path for output
 sub generate {
     my ($self, $source, $base) = @_;
+    $base //= $self->{base};
     if ($base) {
         $base =~ s{ /* \z}{/}xms;
     }
-    $base //= $self->{base};
 
     # Read in the changes.
     my ($metadata_ref, $changes_ref) = $self->_parse_changes($source);
 
-    # Now, the output key tells us what files to write out.
-    my @output;
+    # The output key tells us what files to write out.
+    my @output = ('*:rss:index.rss');
     if ($metadata_ref->{output}) {
-        @output = split (' ', $metadata_ref->{output});
-    } else {
-        @output = ('*:rss:index.rss');
+        @output = split(q{ }, $metadata_ref->{output});
     }
+
+    # Iterate through each specified output file.
     for my $output (@output) {
-        my ($tags, $format, $file) = split (':', $output);
-        my $path;
-        if ($base && $file !~ m,^/,) {
-            $path = "$base$file";
-        } else {
-            $path = $file;
-        }
+        my ($tags, $format, $file) = split(m{ : }xms, $output);
+        my $path = ($base && $file !~ m{ \A / }xms) ? "$base$file" : $file;
         my $prettyfile = $path;
-        $prettyfile = ".../$prettyfile" unless $prettyfile =~ m,^/,;
-        next if (-f $path && -M $path <= -M $source);
-        my @tags = split (',', $tags);
-        my @interest;
-        for my $change ($changes_ref->@*) {
-            if ($tags eq '*' || _intersect($change->{tags}, \@tags)) {
-                push (@interest, $change);
-            }
+        if ($prettyfile !~ m{ \A / }xms) {
+            $prettyfile = ".../$prettyfile";
         }
+
+        # If the output file is newer than the input file, do nothing.
+        next if (-e $path && -M $path <= -M $source);
+
+        # Find all the changes of interest to this output file.
+        my @entries;
+        if ($tags eq q{*}) {
+            @entries = $changes_ref->@*;
+        } else {
+            my @tags = split(m{ , }xms, $tags);
+            @entries
+              = grep { _intersect($_->{tags}, \@tags) } $changes_ref->@*;
+        }
+
+        # Write the output.
         if ($format eq 'thread') {
-            print "Generating thread file $prettyfile\n";
-            open (THREAD, '>', $path) or die "$0: cannot create $path: $!\n";
-            thread_output (\*THREAD, $metadata_ref, \@interest);
-            close THREAD;
+            _print_checked("Generating thread file $prettyfile\n");
+            open(my $fh, '>', $path);
+            $self->_thread_output($fh, $path, $metadata_ref, \@entries);
+            close($fh);
         } elsif ($format eq 'rss') {
-            if (@interest > $metadata_ref->{recent}) {
-                splice (@interest, $metadata_ref->{recent});
+            if (scalar(@entries) > $metadata_ref->{recent}) {
+                splice(@entries, $metadata_ref->{recent});
             }
-            print "Generating RSS file $prettyfile\n";
-            open (RSS, '>', $path) or die "$0: cannot create $path: $!\n";
-            rss_output (\*RSS, $file, $metadata_ref, \@interest);
-            close RSS;
+            _print_checked("Generating RSS file $prettyfile\n");
+            open(my $fh, '>', $path);
+            $self->_rss_output($fh, $path, $metadata_ref, \@entries);
+            close($fh);
         } elsif ($format eq 'index') {
-            if (@interest > $metadata_ref->{recent}) {
-                splice (@interest, $metadata_ref->{recent});
+            if (scalar(@entries) > $metadata_ref->{recent}) {
+                splice(@entries, $metadata_ref->{recent});
             }
-            print "Generating index file $prettyfile\n";
-            open (INDEX, '>', $path) or die "$0: cannot create $path: $!\n";
-            index_output (\*INDEX, $metadata_ref, \@interest);
-            close INDEX;
+            _print_checked("Generating index file $prettyfile\n");
+            open(my $fh, '>', $path);
+            $self->_index_output($fh, $path, $metadata_ref, \@entries);
+            close($fh);
         }
     }
+    return;
 }
 
 ##############################################################################
