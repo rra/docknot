@@ -84,7 +84,7 @@ our %COMMANDS = (
         maximum => 2,
     },
     'spin-thread' => {
-        method  => 'spin_file',
+        method  => 'spin_thread_file',
         module  => 'App::DocKnot::Spin::Thread',
         options => ['style-url|s=s'],
         maximum => 2,

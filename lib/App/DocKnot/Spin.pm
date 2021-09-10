@@ -297,13 +297,8 @@ sub _pod2html {
     $podthread->output_string(\$data);
     $podthread->parse_file($source);
 
-    # Run that through spin to convert to HTML.
-    my $page;
-    open(my $in_fh,  '<', \$data);
-    open(my $out_fh, '>', \$page);
-    $self->{thread}->spin_fh($in_fh, q{-}, $out_fh, q{-});
-    close($in_fh);
-    close($out_fh);
+    # Spin that thread into HTML.
+    my $page = $self->{thread}->spin_thread($data);
 
     # Push the result through _write_converter_output.
     my $file = $source;
@@ -426,11 +421,7 @@ sub _process_file {
             return if (-M $file >= -M $output && (stat($output))[9] >= $time);
         }
         _print_checked("Spinning $shortout\n");
-        open(my $in_fh,  '<', $input);
-        open(my $out_fh, '>', $output);
-        $self->{thread}->spin_fh($in_fh, $input, $out_fh, $output);
-        close($in_fh);
-        close($out_fh);
+        $self->{thread}->spin_thread_file($input, $output);
     } else {
         my ($extension) = ($file =~ m{ [.] ([^.]+) \z }xms);
         if (defined($extension) && $rules{$extension}) {

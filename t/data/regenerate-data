@@ -57,12 +57,7 @@ my $spin      = App::DocKnot::Spin::Thread->new();
 my $thread;
 $podthread->output_string(\$thread);
 $podthread->parse_file($source);
-my $html;
-open(my $in_fh,  '<', \$thread);
-open(my $out_fh, '>', \$html);
-$spin->spin_fh($in_fh, q{-}, $out_fh, q{-});
-close($in_fh);
-close($out_fh);
+my $html = $spin->spin_thread($thread);
 
 # Add the additional metadata that should be added by spin.
 my $links = <<'EOD';

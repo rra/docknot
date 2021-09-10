@@ -38,7 +38,7 @@ require_ok('App::DocKnot::Spin::Thread');
 my $input = File::Spec->catfile('t', 'data', 'spin', 'errors', 'errors.th');
 my $spin  = App::DocKnot::Spin::Thread->new();
 my ($stdout, $stderr) = capture {
-    $spin->spin_file($input);
+    $spin->spin_thread_file($input);
 };
 
 # Strip off the prefix and simplify the file name, and then check against the

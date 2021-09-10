@@ -85,16 +85,11 @@ my %COMMANDS = (
 # Input and output
 ##############################################################################
 
-# Read a file and return its data in a form suitable for the processing stack.
+# Read a file and check it for bad line endings.
 #
-# $fh   - Input file handle
-# $path - Input path
+# $path - File path
 #
-# Returns: List suitable for the processing stack with the following elements:
-#            $paragraphs_ref - The input text split into paragraphs and
-#                              reversed so that it can be used as a stack
-#            $in_path        - Path to the input file
-#            $lineno         - Current processing line number
+# Returns: Contents of the file
 sub _read_file {
     my ($self, $fh, $path) = @_;
     my $text = slurp($fh);
@@ -105,9 +100,8 @@ sub _read_file {
         $self->_warning($m);
     }
 
-    # Parse the text into paragraphs and return the data for the files stack.
-    my @paragraphs = reverse($self->_split_paragraphs($text));
-    return [\@paragraphs, $path, 1];
+    # Return the contents.
+    return $text;
 }
 
 # print with error checking and an explicit file handle.  autodie
@@ -637,6 +631,56 @@ sub _parse {
     return $output;
 }
 
+# The top-level function for parsing a thread document.  Be aware that the
+# working directory from which this function is run matters a great deal,
+# since thread may contain relative paths to files that the spinning process
+# needs to access.
+#
+# $thread   - Thread to spin
+# $in_path  - Input file path if any, used for error reporting
+# $out_fh   - Output file handle to which to write the HTML
+# $out_path - Optional output file path for error reporting and page links
+sub _parse_document {
+    my ($self, $thread, $in_path, $out_fh, $out_path) = @_;
+
+    # Parse the thread into paragraphs and reverse them to form a stack.
+    my @input = reverse($self->_split_paragraphs($thread));
+
+    # Initialize object state for a new document.
+    $self->{input}    = [[\@input, $in_path, 1]];
+    $self->{id}       = undef;
+    $self->{macro}    = {};
+    $self->{out_fh}   = $out_fh;
+    $self->{out_path} = $out_path // q{-};
+    $self->{rss}      = [];
+    $self->{space}    = q{};
+    $self->{state}    = ['BLOCK'];
+    $self->{variable} = {};
+
+    # Parse the thread file a paragraph at a time.  _split_paragraphs takes
+    # care of ensuring that each paragraph contains the complete value of a
+    # command argument.
+    #
+    # The stack of parsed input is maintained in $self->{input} and the file
+    # being parsed at any given point is $self->{input}[-1].  _cmd_include
+    # will push new file information into this stack, and we pop off the top
+    # element of the stack when we exhaust its paragraphs.
+    while ($self->{input}->@*) {
+        while (defined(my $para = pop($self->{input}[-1][0]->@*))) {
+            my $result = $self->_parse(_escape($para), 1);
+            $result =~ s{ \A (?:\s*\n)+ }{}xms;
+            if ($result !~ m{ \A \s* \z }xms) {
+                $self->_output($result);
+            }
+        }
+        pop($self->{input}->@*);
+    }
+
+    # Close open tags and print any deferred whitespace.
+    _print_fh($out_fh, $out_path, $self->_block_end(), $self->{space});
+    return;
+}
+
 ##############################################################################
 # Supporting functions
 ##############################################################################
@@ -1121,9 +1165,15 @@ sub _cmd_image {
 sub _cmd_include {
     my ($self, $file) = @_;
     $file = realpath($self->_parse($file));
-    open(my $fh, '<', $file);
-    push($self->{input}->@*, $self->_read_file($fh, $file));
-    close($fh);
+
+    # Read the thread, split it on paragraphs, and reverse it to make a stack.
+    my $thread     = $self->_read_file($file);
+    my @paragraphs = reverse($self->_split_paragraphs($thread));
+
+    # Add it to the file stack.
+    push($self->{input}->@*, [\@paragraphs, $file, 1]);
+
+    # Expand into empty output.
     return (1, q{});
 }
 
@@ -1398,55 +1448,19 @@ sub new {
     return $self;
 }
 
-# Convert thread to HTML from a file descriptor.  Be aware that the working
-# directory from which this function is run matters a great deal, since thread
-# may contain relative paths to files that the spinning process needs to
-# access.
+# Convert thread to HTML and return the output as a string.  The working
+# directory still matters for file references in the thread.
 #
-# $in_fh    - Input file handle of thread
-# $in_path  - Input file path, used for error reporting
-# $out_fh   - Output file handle to which to write the HTML
-# $out_path - Output file path, used for error reporting and page links
-sub spin_fh {
-    my ($self, $in_fh, $in_path, $out_fh, $out_path) = @_;
-
-    # Initialize object state for a new document.
-    $self->{input}    = [$self->_read_file($in_fh, $in_path)];
-    $self->{id}       = undef;
-    $self->{macro}    = {};
-    $self->{out_fh}   = $out_fh;
-    $self->{out_path} = $out_path;
-    $self->{rss}      = [];
-    $self->{space}    = q{};
-    $self->{state}    = ['BLOCK'];
-    $self->{variable} = {};
-
-    # Read the entirety of the input file, split into paragraphs, and add it
-    # to the processing stack.
-    push($self->{input}->@*, $self->_read_file($in_fh, $in_path));
-
-    # Parse the thread file a paragraph at a time.  _split_paragraphs takes
-    # care of ensuring that each paragraph contains the complete value of a
-    # command argument.
-    #
-    # The stack of parsed input is maintained in $self->{input} and the file
-    # being parsed at any given point is $self->{input}[-1].  _cmd_include
-    # will push new file information into this stack, and we pop off the top
-    # element of the stack when we exhaust its paragraphs.
-    while ($self->{input}->@*) {
-        while (defined(my $para = pop($self->{input}[-1][0]->@*))) {
-            my $result = $self->_parse(_escape($para), 1);
-            $result =~ s{ \A (?:\s*\n)+ }{}xms;
-            if ($result !~ m{ \A \s* \z }xms) {
-                $self->_output($result);
-            }
-        }
-        pop($self->{input}->@*);
-    }
-
-    # Close open tags and print any deferred whitespace.
-    _print_fh($out_fh, $out_path, $self->_block_end(), $self->{space});
-    return;
+# $thread  - Thread to spin
+#
+# Returns: Resulting HTML
+sub spin_thread {
+    my ($self, $thread) = @_;
+    my $result;
+    open(my $out_fh, '>', \$result);
+    $self->_parse_document($thread, q{-}, $out_fh, q{-});
+    close($out_fh);
+    return $result;
 }
 
 # Spin a single file of thread to HTML.
@@ -1455,31 +1469,30 @@ sub spin_fh {
 # $output - Output file (if not given, assumes standard output)
 #
 # Raises: Text exception on processing error
-sub spin_file {
+sub spin_thread_file {
     my ($self, $input, $output) = @_;
     my $cwd = getcwd() or die "cannot get current directory: $!\n";
-    my ($in_fh, $out_fh);
+    my $out_fh;
+    my $thread;
 
-    # When spinning a single file, the input file must not be a directory.  We
-    # do the work from the directory of the file to ensure that relative file
-    # references resolve properly.
+    # Read the input file.  We do the work from the directory of the file to
+    # ensure that relative file references resolve properly.
     if (defined($input)) {
-        $input = realpath($input) or die "cannot canonicalize $input: $!\n";
-        if (-d $input) {
-            die "input file $input must be a regular file\n";
-        }
-        open($in_fh, '<', $input);
+        my $path = realpath($input) or die "cannot canonicalize $input: $!\n";
+        $input  = $path;
+        $thread = slurp($input);
         my (undef, $input_dir) = fileparse($input);
         chdir($input_dir);
     } else {
-        $input = q{-};
-        open($in_fh, '<&', 'STDIN');
+        $input  = q{-};
+        $thread = slurp(\*STDIN);
     }
 
     # Open the output file.
     if (defined($output)) {
-        $output = realpath($output) or die "cannot canonicalize $output: $!\n";
-        $output =~ s{ /+ \z }{}xms;
+        my $path = realpath($output)
+          or die "cannot canonicalize $output: $!\n";
+        $output = $path;
         open($out_fh, '>', $output);
     } else {
         $output = q{-};
@@ -1487,10 +1500,9 @@ sub spin_file {
     }
 
     # Do the work.
-    $self->spin_fh($in_fh, $input, $out_fh, $output);
+    $self->_parse_document($thread, $input, $out_fh, $output);
 
     # Clean up and restore the working directory.
-    close($in_fh);
     close($out_fh);
     chdir($cwd);
     return;
@@ -1598,14 +1610,22 @@ data for the C<\release> and C<\version> commands.
 
 =over 4
 
-=item spin_file([INPUT[, OUTPUT]])
+=item spin_thread(THREAD)
+
+Convert the given thread to HTML, returning the result.  When run via this
+API, App::DocKnot::Spin::Thread will not be able to obtain sitemap information
+even if a sitemap was provided and therefore will not add inter-page links.
+
+=item spin_thread_file([INPUT[, OUTPUT]])
 
 Convert a single thread file to HTML.  INPUT is the path of the thread file
 and OUTPUT is the path of the output file.  OUTPUT or both INPUT and OUTPUT
 may be omitted, in which case standard input or standard output, respectively,
-will be used.  If OUTPUT is omitted, App::DocKnot::Spin::Thread will not be
-able to obtain sitemap information even if a sitemap was provided and
-therefore will not add inter-page links.
+will be used.
+
+If OUTPUT is omitted, App::DocKnot::Spin::Thread will not be able to obtain
+sitemap information even if a sitemap was provided and therefore will not add
+inter-page links.
 
 =back
 
