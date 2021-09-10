@@ -15,6 +15,7 @@ use 5.024;
 use autodie;
 use warnings;
 
+use App::DocKnot;
 use App::DocKnot::Spin::Thread;
 use Cwd qw(getcwd);
 use Date::Parse qw(str2time);
@@ -422,7 +423,7 @@ sub _rss_output {
     <language>$metadata_ref->{language}</language>
     <pubDate>$latest</pubDate>
     <lastBuildDate>$now</lastBuildDate>
-    <generator>spin-rss $version</generator>
+    <generator>DocKnot $App::DocKnot::VERSION</generator>
 EOC
     if ($metadata_ref->{'rss-base'}) {
         my ($name) = fileparse($file);

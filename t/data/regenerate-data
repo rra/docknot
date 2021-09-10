@@ -67,7 +67,7 @@ my $links = <<'EOD';
   <link rel="up" href="../" title="DocKnot" />
   <link rel="top" href="../../../" />
 EOD
-my $comment = '<!-- Spun by spin %VERSION% on %DATE% -->';
+my $comment = '<!-- Spun by DocKnot %VERSION% on %DATE% -->';
 my $navbar  = <<'EOD';
 <table class="navbar"><tr>
   <td class="navleft"></td>

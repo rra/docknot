@@ -49,9 +49,12 @@ sub is_spin_output {
     $results =~ s{
         Last [ ] modified [ ] and \s+ (<a[^>]+>spun</a>) [ ] [%]DATE[%]
     }{Last $1\n    %DATE% from thread modified %DATE%}gxms;
+    $results =~ s{
+        %DATE% [ ] from [ ] POD [ ] modified [ ] %DATE%
+    }{%DATE% from thread modified %DATE%}gxms;
 
-    # Map the spin version number to %VERSION%.
-    $results =~ s{ spin [ ] \d+ [.] \d+ }{spin %VERSION%}xms;
+    # Map the DocKnot version number to %VERSION%.
+    $results =~ s{ DocKnot [ ] \d+ [.] \d+ }{DocKnot %VERSION%}xms;
 
     # Check the results against the expected file.
     is_file_contents($results, $expected, $message);

@@ -15,6 +15,7 @@ use 5.024;
 use autodie;
 use warnings;
 
+use App::DocKnot;
 use Cwd qw(getcwd realpath);
 use File::Basename qw(fileparse);
 use File::Spec      ();
@@ -1116,7 +1117,8 @@ sub _cmd_heading {
       = $self->{input}[-1][1] eq q{-}
       ? q{}
       : ' from ' . fileparse($self->{input}[-1][1]);
-    $output .= "<!-- Spun$from by spin 1.80 on $date -->\n";
+    my $version = $App::DocKnot::VERSION;
+    $output .= "<!-- Spun$from by DocKnot $version on $date -->\n";
     if ($self->{id}) {
         $output .= "<!-- $self->{id} -->\n";
     }
