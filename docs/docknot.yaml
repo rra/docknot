@@ -47,6 +47,11 @@ vcs:
   type: Git
   url: https://git.eyrie.org/git/devel/docknot.git
 
+quote:
+  author: Murphy's Fourth Corollary
+  text: |
+    Whenever you set out to do something, something else must be done first.
+
 docs:
   api:
     - name: api/app-docknot
