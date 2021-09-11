@@ -1070,9 +1070,9 @@ sub _cmd_entity {
     } elsif ($char eq '93') {
         return (0, ']');
     } elsif ($char =~ m{ \A \d+ \z }xms) {
-        return (0, q{&\#} . $char . q{;});
+        return (0, "&#$char;");
     } else {
-        return (0, q{&} . $char . q{;});
+        return (0, "&$char;");
     }
 }
 
