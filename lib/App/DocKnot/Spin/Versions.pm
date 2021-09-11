@@ -25,9 +25,8 @@ use POSIX qw(mktime strftime);
 ##############################################################################
 
 # Parse a date/time in YYYY-mm-dd HH:MM:SS format in local time into seconds
-# since epoch.  This duplicates many modules (such as Date::Parse), but we
-# only have a single time format that's easy to parse, so roll it ourselves to
-# avoid the dependency.
+# since epoch.  This duplicates Date::Parse, which is already a dependency,
+# but this gives us more control over the format and better error reporting.
 #
 # $date - The date component
 # $time - The time component
