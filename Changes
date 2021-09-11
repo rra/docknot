@@ -1,6 +1,13 @@
                        Revision history for DocKnot
 
-4.02 - Not Released
+5.00 - Not Released
+
+ - Merge spin and spin-rss into this package, making it a full, if highly
+   idiosyncratic, static site generator built around a macro language
+   called thread.  This adds new commands docknot spin, docknot spin-rss,
+   and docknot spin-thread, as well as modules App::DocKnot::Spin and
+   several submodules.  DocKnot now depends on Date::Parse (from
+   TimeDate), Git::Repository, Image::Size, and Pod::Thread.
 
  - Support setting distribution.packaging.debian.package along with
    distribution.packaging.debian.personal to specify the package name.  Do

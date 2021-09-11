@@ -83,7 +83,7 @@ EOD
 my $address = <<'EOD';
 <address>
     Last <a href="https://www.eyrie.org/~eagle/software/web/">spun</a>
-    %DATE% from POD modified %DATE%
+    %DATE% from thread modified %DATE%
 </address>
 EOD
 $html =~ s{ (</head>) }{$links$1}xms;

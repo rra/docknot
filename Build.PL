@@ -77,7 +77,6 @@ my $build = Module::Build->new(
         'Pod::Thread'            => '2.00',
         'Pod::Usage'             => 0,
         'Template'               => 0,
-        'Text::Balanced'         => 0,
         'YAML::XS'               => '0.81',
         perl                     => '5.024',
     },
