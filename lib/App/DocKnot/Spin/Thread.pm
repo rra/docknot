@@ -610,12 +610,12 @@ sub _parse_context {
             # elements or there is remaining text.  This suppresses some
             # useless black lines.
             if ($paragraph ne q{}) {
-                $paragraph .= "\n$1";
+                $paragraph .= "\n$spaces";
             } else {
                 if ($text ne q{} || $nonblock) {
                     $output .= "\n";
                 }
-                $output .= $1;
+                $output .= $spaces;
             }
         }
     }

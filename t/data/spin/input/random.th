@@ -5,4 +5,19 @@ though \class(foo)[it starts and ends the paragraph.]
 
 Sh\entity[333]gun
 
+\table[][
+    \tablehead[One][Two]
+    \tablerow[foo][bar]
+]
+
+
+Some text.  \strike[strike]\sub[2]
+
+\rule
+
+\h3[Foo]
+\h4[Bar]
+\h5[Baz]
+\h6[tiny]
+
 \signature
