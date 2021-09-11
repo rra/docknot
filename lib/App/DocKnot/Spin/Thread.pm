@@ -1374,7 +1374,8 @@ sub _cmd_sitemap {
         $self->_warning('no sitemap file found');
         return (1, q{});
     }
-    return (1, $self->_border_end() . $self->{sitemap}->sitemap());
+    my $sitemap = join(q{}, $self->{sitemap}->sitemap());
+    return (1, $self->_border_end() . $sitemap);
 }
 
 # Start a table.  Takes any additional HTML attributes to set for the table
