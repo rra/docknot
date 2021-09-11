@@ -65,7 +65,8 @@ require_ok('App::DocKnot::Spin');
 
 # Copy the input tree to a new temporary directory since .rss files generate
 # additional thread files.  Replace the rpod pointer since it points to a
-# relative path in the source tree.
+# relative path in the source tree, but change its modification timestamp to
+# something in the past.
 my $tmpdir  = File::Temp->newdir();
 my $datadir = File::Spec->catfile('t', 'data', 'spin');
 my $input   = File::Spec->catfile($datadir, 'input');
@@ -79,6 +80,7 @@ my $rpod_path   = File::Spec->catfile(
 open(my $fh, '>', $rpod_path);
 print {$fh} "$rpod_source\n" or die "Cannot write to $rpod_path: $!\n";
 close($fh);
+my $old_timestamp = time() - 10;
 
 # Spin a tree of files.
 my $output   = File::Temp->newdir();
@@ -122,12 +124,43 @@ is(
 );
 ok(!-e $bogus, 'Stray file and directory was deleted');
 
+# Override the title of the POD document and request a contents section.  Set
+# the modification timestamp in the future to force a repsin.
+open($fh, '>>', $rpod_path);
+print {$fh} "-c -t 'New Title'\n" or die "Cannot write to $rpod_path: $!\n";
+close($fh);
+utime(time() + 5, time() + 5, $rpod_path)
+  or die "Cannot reset timestamps of $rpod_path: $!\n";
+$stdout = capture_stdout {
+    $spin->spin($tmpdir->dirname, $output->dirname);
+};
+is(
+    $stdout,
+    "Running pod2thread for .../software/docknot/api/app-docknot.html\n",
+    'Spinning again regenerates the App::DocKnot page',
+);
+my $output_path = File::Spec->catfile(
+    $output->dirname, 'software', 'docknot', 'api', 'app-docknot.html',
+);
+my $page = slurp($output_path);
+like(
+    $page,
+    qr{ <title> New [ ] Title </title> }xms,
+    'POD title override worked',
+);
+like($page, qr{ <h1> New [ ] Title </h1> }xms,  'POD h1 override worked');
+like($page, qr{ Table [ ] of [ ] Contents }xms, 'POD table of contents');
+
+# Set the time back so that it won't be generated again.
+utime(time() - 5, time() - 5, $rpod_path)
+  or die "Cannot reset timestamps of $rpod_path: $!\n";
+
 # Now, update the .versions file at the top of the input tree to change the
-# timestamp to a second into the future.  This should force regeneration of
+# timestamp to ten seconds into the future.  This should force regeneration of
 # only the software/docknot/index.html file.
 my $versions_path = File::Spec->catfile($tmpdir->dirname, '.versions');
 my $versions      = slurp($versions_path);
-my $new_date      = strftime('%Y-%m-%d %T', localtime(time() + 1));
+my $new_date      = strftime('%Y-%m-%d %T', localtime(time() + 10));
 $versions =~ s{ \d{4}-\d\d-\d\d [ ] [\d:]+ }{$new_date}xms;
 open(my $versions_fh, '>', $versions_path);
 print {$versions_fh} $versions or die "Cannot write to $versions_path: $!\n";
@@ -142,4 +175,4 @@ is(
 );
 
 # Report the end of testing.
-done_testing($count + 7);
+done_testing($count + 11);

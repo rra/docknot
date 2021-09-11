@@ -28,6 +28,7 @@ use File::Copy qw(copy);
 use File::Find qw(find finddepth);
 use File::Spec      ();
 use Git::Repository ();
+use List::SomeUtils qw(all);
 use IPC::System::Simple qw(capture systemx);
 use Pod::Thread ();
 use POSIX qw(strftime);
@@ -43,6 +44,24 @@ my @EXCLUDES = (
 # The URL to the software page for all of my web page generation software,
 # used to embed a link to the software that generated the page.
 my $URL = 'https://www.eyrie.org/~eagle/software/web/';
+
+##############################################################################
+# Utility functions
+##############################################################################
+
+# Check if a file, which may not exist, is newer than another list of files.
+#
+# $file   - File whose timestamp to compare
+# @others - Other files to compare against
+#
+# Returns: True if $file exists and is newer than @others, false otherwise
+sub _is_newer {
+    my ($file, @others) = @_;
+    return if !-e $file;
+    my $file_mtime    = (stat($file))[9];
+    my @others_mtimes = map { (stat)[9] } @others;
+    return all { $file_mtime >= $_ } @others_mtimes;
+}
 
 ##############################################################################
 # Output
@@ -285,8 +304,8 @@ sub _pod2html {
         if ($options =~ m{ -c ( \s | \z ) }xms) {
             $options{contents} = 1;
         }
-        if ($options =~ m{ -t \s '(.*)' }xms) {
-            $options{title} = $1;
+        if ($options =~ m{ -t \s+ (?: '(.*)' | ( [^\'] \S+ ) ) }xms) {
+            $options{title} = $1 || $2;
         }
     } else {
         $options{navbar} = 1;
@@ -412,15 +431,19 @@ sub _process_file {
         $output   =~ s{ [.] th \z }{.html}xms;
         $shortout =~ s{ [.] th \z }{.html}xms;
         $self->{generated}{$output} = 1;
-        my $relative = $input;
-        $relative =~ s{ ^ \Q$self->{source}\E / }{}xms;
-        my $time = 0;
-        if ($self->{versions}) {
-            $time = $self->{versions}->latest_release($relative);
+
+        # See if we're forced to regenerate the file because it is affected by
+        # a software release.
+        if (-e $output && $self->{versions}) {
+            my $relative = $input;
+            $relative =~ s{ ^ \Q$self->{source}\E / }{}xms;
+            my $time = $self->{versions}->latest_release($relative);
+            return if _is_newer($output, $file) && (stat($output))[9] >= $time;
+        } else {
+            return if _is_newer($output, $file);
         }
-        if (-e $output) {
-            return if (-M $file >= -M $output && (stat($output))[9] >= $time);
-        }
+
+        # The output file is not newer.  Respin it.
         _print_checked("Spinning $shortout\n");
         $self->{thread}->spin_thread_file($input, $output);
     } else {
@@ -431,20 +454,15 @@ sub _process_file {
             $shortout =~ s{ [.] \Q$extension\E \z }{.html}xms;
             $self->{generated}{$output} = 1;
             my ($source, $options, $style) = $self->_read_pointer($input);
-            if (-e $output && -e $source) {
-                if (-M $input >= -M $output && -M $source >= -M $output) {
-                    return;
-                }
-            }
+            return if _is_newer($output, $input, $source);
             _print_checked("Running $name for $shortout\n");
             $self->$sub($source, $output, $options, $style);
         } else {
             $self->{generated}{$output} = 1;
-            if (!-e $output || -M $file < -M $output) {
-                _print_checked("Updating $shortout\n");
-                copy($file, $output)
-                  or die "copy of $input to $output failed: $!\n";
-            }
+            return if _is_newer($output, $file);
+            _print_checked("Updating $shortout\n");
+            copy($file, $output)
+              or die "copy of $input to $output failed: $!\n";
         }
     }
     return;
