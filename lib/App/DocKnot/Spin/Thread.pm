@@ -54,7 +54,6 @@ my %COMMANDS = (
     h5        => [1,  '_cmd_h5',          1],
     h6        => [1,  '_cmd_h6',          1],
     heading   => [2,  '_cmd_heading',     0],
-    id        => [1,  '_cmd_id',          0],
     image     => [2,  '_cmd_image',       1],
     include   => [1,  '_cmd_include',     0],
     italic    => [1,  '_cmd_italic',      1],
@@ -661,7 +660,6 @@ sub _parse_document {
 
     # Initialize object state for a new document.
     $self->{input}    = [[\@input, $in_path, 1]];
-    $self->{id}       = undef;
     $self->{macro}    = {};
     $self->{out_fh}   = $out_fh;
     $self->{out_path} = $out_path // q{-};
@@ -876,7 +874,6 @@ sub _enclose {
 #
 # $source    - Full path to the source file
 # $out_path  - Full path to the output file
-# $id        - CVS Id of the source file or undef if not known
 # @templates - Two templates to use.  The first will be used if the
 #              modification and current dates are the same, and the second
 #              if they are different.  %MOD% and %NOW% will be replaced with
@@ -885,7 +882,7 @@ sub _enclose {
 #
 # Returns: HTML output
 sub _footer {
-    my ($self, $source, $out_path, $id, @templates) = @_;
+    my ($self, $source, $out_path, @templates) = @_;
     my $output  = q{};
     my $in_tree = 0;
     if ($self->{source} && $source =~ m{ \A \Q$self->{source}\E }xms) {
@@ -899,25 +896,16 @@ sub _footer {
         $output .= join(q{}, $self->{sitemap}->navbar($page));
     }
 
-    # Figure out the modification dates.  Use the RCS/CVS Id if available,
-    # otherwise use the Git repository if available.
-    my $modified;
-    if (defined($id)) {
-        my (undef, undef, $date) = split(q{ }, $id);
-        if ($date && $date =~ m{ \A (\d+) [-/] (\d+) [-/] (\d+) }xms) {
-            $modified = sprintf('%d-%02d-%02d', $1, $2, $3);
-        }
-    } elsif ($self->{repository} && $in_tree) {
+    # Figure out the modification dates.  Use the Git repository if available.
+    my $now      = strftime('%Y-%m-%d', gmtime());
+    my $modified = strftime('%Y-%m-%d', gmtime((stat $source)[9]));
+    if ($self->{repository} && $in_tree) {
         $modified
           = $self->{repository}->run('log', '-1', '--format=%ct', $source);
         if ($modified) {
             $modified = strftime('%Y-%m-%d', gmtime($modified));
         }
     }
-    if (!$modified) {
-        $modified = strftime('%Y-%m-%d', gmtime((stat $source)[9]));
-    }
-    my $now = strftime('%Y-%m-%d', gmtime());
 
     # Determine which template to use and substitute in the appropriate times.
     $output .= "<address>\n" . q{ } x 4;
@@ -1140,9 +1128,6 @@ sub _cmd_heading {
       : ' from ' . fileparse($self->{input}[-1][1]);
     my $version = $App::DocKnot::VERSION;
     $output .= "<!-- Spun$from by DocKnot $version on $date -->\n";
-    if ($self->{id}) {
-        $output .= "<!-- $self->{id} -->\n";
-    }
 
     # Add the <body> tag and the navbar (if we have a sitemap).
     $output .= "\n<body>\n";
@@ -1154,14 +1139,6 @@ sub _cmd_heading {
     }
 
     return (1, $output);
-}
-
-# Used to save the RCS Id for the document.  Doesn't actually output anything
-# (the identifier is later used in _cmd_heading).
-sub _cmd_id {
-    my ($self, $id) = @_;
-    $self->{id} = $id;
-    return (1, q{});
 }
 
 # Include an image.  The size is added to the HTML tag automatically.
@@ -1333,7 +1310,7 @@ sub _cmd_signature {
     # Otherwise, _footer does most of the work and we just add the tags.
     my $link = '<a href="%URL%">spun</a>';
     $output .= $self->_footer(
-        $self->{input}[-1][1], $self->{out_path}, $self->{id},
+        $self->{input}[-1][1], $self->{out_path},
         "Last modified and\n    $link %MOD%",
         "Last $link\n    %NOW% from thread modified %MOD%",
     );

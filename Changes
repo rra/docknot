@@ -6,8 +6,10 @@
    idiosyncratic, static site generator built around a macro language
    called thread.  This adds new commands docknot spin, docknot spin-rss,
    and docknot spin-thread, as well as modules App::DocKnot::Spin and
-   several submodules.  DocKnot now depends on Date::Parse (from
-   TimeDate), Git::Repository, Image::Size, and Pod::Thread.
+   several submodules.  docknot spin should be equivalent to the old spin
+   command except that \id support has been dropped.  DocKnot now depends
+   on Date::Parse (from TimeDate), Git::Repository, Image::Size, and
+   Pod::Thread 3.00 or later.
 
  - Support setting distribution.packaging.debian.package along with
    distribution.packaging.debian.personal to specify the package name.  Do

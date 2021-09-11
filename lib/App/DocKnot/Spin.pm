@@ -324,10 +324,10 @@ sub _pod2html {
     my $file = $source;
     $file =~ s{ [.] [^.]+ \z }{.html}xms;
     my $footer = sub {
-        my ($blurb, $id) = @_;
+        my ($blurb) = @_;
         my $link = '<a href="%URL%">spun</a>';
         $self->_footer(
-            $source, $output, $id,
+            $source, $output, undef,
             "Last modified and\n    $link %MOD%",
             "Last $link\n    %NOW% from POD modified %MOD%",
         );
