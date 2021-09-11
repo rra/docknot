@@ -181,7 +181,7 @@ sub _fatal {
 sub _warning {
     my ($self, $problem) = @_;
     my (undef, $file, $lineno) = $self->{input}[-1]->@*;
-    warn "$0 spin:$file:$lineno: $problem\n";
+    warn "$file:$lineno: $problem\n";
     return;
 }
 

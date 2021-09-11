@@ -41,8 +41,7 @@ my ($stdout, $stderr) = capture {
     $spin->spin_thread_file($input);
 };
 
-# Strip off the prefix and simplify the file name, and then check against the
-# expected output.
-$stderr =~ s{ ^ \S+ [ ] spin:/[^:]+/errors[.]th }{errors.th}xmsg;
+# Simplify the file name, and then check against the expected output.
+$stderr =~ s{ ^ [^:]+/errors[.]th: }{errors.th:}xmsg;
 $stderr =~ s{ (cannot [ ] stat [^:]+): .* }{$1\n}xms;
 is($stderr, $EXPECTED_ERRORS, 'errors are correct');

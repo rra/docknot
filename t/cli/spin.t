@@ -12,8 +12,8 @@ use warnings;
 
 use lib 't/lib';
 
-use Capture::Tiny qw(capture_stdout);
-use Cwd qw(getcwd);
+use Capture::Tiny qw(capture capture_stdout);
+use Cwd qw(getcwd realpath);
 use File::Copy::Recursive qw(dircopy);
 use File::Spec ();
 use File::Temp ();
@@ -75,5 +75,17 @@ capture_stdout {
 };
 my $count = is_spin_output_tree($tempdir->dirname, $expected, 'spin');
 
+# Spin a file with warnings.  The specific warnings are checked in
+# t/spin/errors.t; here, we just check the rewrite of the warning.
+my $errors = realpath(File::Spec->catfile($datadir, 'errors', 'errors.th'));
+my $stderr;
+($stdout, $stderr) = capture {
+    $docknot->run('spin-thread', $errors);
+};
+like(
+    $stderr, qr{ \A \Q$0\E [ ] spin-thread : \Q$errors\E : 1 : }xms,
+    'warnings are properly rewritten',
+);
+
 # Report the end of testing.
-done_testing($count + 4);
+done_testing($count + 5);

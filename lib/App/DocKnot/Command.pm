@@ -166,6 +166,29 @@ sub _parse_command {
 }
 
 ##############################################################################
+# Error handling
+##############################################################################
+
+# Reformat an error message (from warn or die) to prepend the command run and
+# to strip the file and line information from Perl.
+#
+# $command - Invoked command
+# $error   - Error to reformat
+#
+# Return: Reformatted error suitable for passing to warn or die, with no
+#         trailing newline (the caller should add it)
+sub _reformat_error {
+    my ($self, $command, $error) = @_;
+    chomp($error);
+    $error =~ s{ \s+ at \s+ \S+ \s+ line \s+ \d+ [.]? \z }{}xms;
+    if ($error =~ m{ \S+ : \d+ : \s+ \S }xms) {
+        return "$0 $command:$error";
+    } else {
+        return "$0 $command: $error";
+    }
+}
+
+##############################################################################
 # Public interface
 ##############################################################################
 
@@ -229,21 +252,21 @@ sub run {
         }
     }
 
-    # Dispatch the command and turn exceptions into error messages.
+    # Dispatch the command and turn exceptions into error messages.  Also
+    # capture warnings and perform the same transformation on those.
+    local $SIG{__WARN__} = sub {
+        my ($error) = @_;
+        $error = $self->_reformat_error($command, $error);
+        warn "$error\n";
+    };
     eval {
         my $object = $COMMANDS{$command}{module}->new($opts_ref);
         my $method = $COMMANDS{$command}{method};
         $object->$method($args_ref->@*);
     };
     if ($@) {
-        my $error = $@;
-        chomp($error);
-        $error =~ s{ \s+ at \s+ \S+ \s+ line \s+ \d+ [.]? \z }{}xms;
-        if ($error =~ m{ \S+ : \d+ : \s+ \S }xms) {
-            die "$0 $command:$error\n";
-        } else {
-            die "$0 $command: $error\n";
-        }
+        my $error = $self->_reformat_error($command, $@);
+        die "$error\n";
     }
     return;
 }
