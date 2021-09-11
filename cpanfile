@@ -11,11 +11,11 @@ requires 'IPC::Run';
 requires 'IPC::System::Simple';
 requires 'JSON::MaybeXS';
 requires 'Kwalify';
-requires 'List::SomeUtils';
+requires 'List::SomeUtils', '0.07';
 requires 'Perl6::Slurp';
-requires 'Pod::Thread';
+requires 'Pod::Thread', '3.00';
 requires 'Template';
-requires 'YAML::XS';
+requires 'YAML::XS', '0.81';
 
 on 'test' => sub {
     requires 'Capture::Tiny';

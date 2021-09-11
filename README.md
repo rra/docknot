@@ -69,7 +69,7 @@ The following additional Perl modules are required to use it:
 * Kwalify
 * List::SomeUtils 0.07 or later
 * Perl6::Slurp
-* Pod::Thread 2.00 or later
+* Pod::Thread 3.00 or later
 * Template (part of Template Toolkit)
 * YAML::XS 0.81 or later
 
