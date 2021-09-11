@@ -869,56 +869,6 @@ sub _enclose {
     }
 }
 
-# Build te page footer, which consists of the navigation links, the regular
-# signature, and the last modified date.
-#
-# $source    - Full path to the source file
-# $out_path  - Full path to the output file
-# @templates - Two templates to use.  The first will be used if the
-#              modification and current dates are the same, and the second
-#              if they are different.  %MOD% and %NOW% will be replaced with
-#              the appropriate dates and %URL% with the URL to the site
-#              generation software.
-#
-# Returns: HTML output
-sub _footer {
-    my ($self, $source, $out_path, @templates) = @_;
-    my $output  = q{};
-    my $in_tree = 0;
-    if ($self->{source} && $source =~ m{ \A \Q$self->{source}\E }xms) {
-        $in_tree = 1;
-    }
-
-    # Add the end-of-page navbar if we have sitemap information.
-    if ($self->{sitemap} && $self->{output}) {
-        my $page = $out_path;
-        $page =~ s{ \A \Q$self->{output}\E }{}xms;
-        $output .= join(q{}, $self->{sitemap}->navbar($page));
-    }
-
-    # Figure out the modification dates.  Use the Git repository if available.
-    my $now      = strftime('%Y-%m-%d', gmtime());
-    my $modified = strftime('%Y-%m-%d', gmtime((stat $source)[9]));
-    if ($self->{repository} && $in_tree) {
-        $modified
-          = $self->{repository}->run('log', '-1', '--format=%ct', $source);
-        if ($modified) {
-            $modified = strftime('%Y-%m-%d', gmtime($modified));
-        }
-    }
-
-    # Determine which template to use and substitute in the appropriate times.
-    $output .= "<address>\n" . q{ } x 4;
-    my $template = ($modified eq $now) ? $templates[0] : $templates[1];
-    $template =~ s{ %MOD% }{$modified}xmsg;
-    $template =~ s{ %NOW% }{$now}xmsg;
-    $template =~ s{ %URL% }{$URL}xmsg;
-    $output .= "$template\n";
-    $output .= "</address>\n";
-
-    return $output;
-}
-
 ##############################################################################
 # Special commands
 ##############################################################################
@@ -1298,6 +1248,7 @@ sub _cmd_rss {
 # address block.
 sub _cmd_signature {
     my ($self) = @_;
+    my $source = $self->{input}[-1][1];
     my $output = $self->_border_end();
 
     # If we're spinning from standard input, don't add any of the standard
@@ -1307,14 +1258,35 @@ sub _cmd_signature {
         return (1, $output);
     }
 
-    # Otherwise, _footer does most of the work and we just add the tags.
-    my $link = '<a href="%URL%">spun</a>';
-    $output .= $self->_footer(
-        $self->{input}[-1][1], $self->{out_path},
-        "Last modified and\n    $link %MOD%",
-        "Last $link\n    %NOW% from thread modified %MOD%",
-    );
-    $output .= "</body>\n</html>\n";
+    # Add the end-of-page navbar if we have sitemap information.
+    if ($self->{sitemap} && $self->{output}) {
+        my $page = $self->{out_path};
+        $page =~ s{ \A \Q$self->{output}\E }{}xms;
+        $output .= join(q{}, $self->{sitemap}->navbar($page));
+    }
+
+    # Figure out the modification dates.  Use the Git repository if available.
+    my $now      = strftime('%Y-%m-%d', gmtime());
+    my $modified = strftime('%Y-%m-%d', gmtime((stat($source))[9]));
+    if ($self->{repository} && $self->{source}) {
+        my $repository = $self->{repository};
+        $modified = $repository->run('log', '-1', '--format=%ct', $source);
+        if ($modified) {
+            $modified = strftime('%Y-%m-%d', gmtime($modified));
+        }
+    }
+
+    # Determine which template to use and substitute in the appropriate times.
+    $output .= "<address>\n" . q{ } x 4;
+    my $link = qq{<a href="$URL">spun</a>};
+    if ($modified eq $now) {
+        $output .= "Last modified and\n    $link $modified\n";
+    } else {
+        $output .= "Last $link\n    $now from thread modified $modified\n";
+    }
+
+    # Close out the document.
+    $output .= "</address>\n</body>\n</html>\n";
     return (1, $output);
 }
 
