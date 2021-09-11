@@ -1,0 +1,6 @@
+\heading[Test some random stuff][]
+
+\class(foo)[This should not] be lifted to surround the paragraph even
+though \class(foo)[it starts and ends the paragraph.]
+
+\signature

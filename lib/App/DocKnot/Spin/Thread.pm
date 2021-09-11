@@ -218,8 +218,20 @@ sub _paragraph {
     $text =~ s{ ( \S [ \t]* ) \z }{$1\n}xms;
 
     # If the whole paragraph is wrapped in <span>, lift its attributes into
-    # the <p> tag.  Otherwise, just add the <p> tags.
-    if ($text =~ m{ \A (\s*) <span ([^>]*) > (.*) </span> (\s*) \z }xms) {
+    # the <p> tag.  Otherwise, just add the <p> tags.  This unfortunately
+    # means we also won't lift <span> for any paragraph with nexted \class
+    # commands; doing that would require more HTML parsing than I want to do.
+    my $re = qr{
+        \A                      # start of paragraph
+        (\s*)                   # any whitespace (1)
+        <span([^>]*)>           # span tag before any text with class (2)
+        (?! .* <span)           # no second span tag
+        (.*)                    # text of the paragraph (3)
+        </span>                 # close span tag
+        (\s*)                   # any whitespace (4)
+        \z                      # end of paragraph without other text
+    }xms;
+    if ($text =~ $re) {
         my ($lead, $attrs, $body, $trail) = ($1, $2, $3, $4);
         return "$lead<p$attrs>$body</p>$trail";
     } else {
@@ -839,11 +851,20 @@ sub _enclose {
     $close_tag =~ s{ [ ] .*}{}xms;
 
     # Handle <div> and <span> wrapping.
-    if ($text =~ m{ \A (\s*) <span([^>]*)> (.*) </span> (\s*) \z}xms) {
-        my ($lead, $class, $body, $trail) = ($1, $2, $3, $4);
-        return "$lead<$tag$class>$body</$close_tag>$trail";
-    } elsif ($text =~ m{ \A (\s*) <div([^>]*)> (.*) </div> (\s*) \z}xms) {
-        my ($lead, $class, $body, $trail) = ($1, $2, $3, $4);
+    my $re = qr{
+        \A                      # start of paragraph
+        (\s*)                   # any whitespace (1)
+        < (span | div)          # span or div tag before any text (2)
+          ([^>]*)               #   any class attribute for that tag (3)
+        >                       # close tag
+        (?! .* <\2)             # no second tag
+        (.*)                    # text of the paragraph (4)
+        </\2>                   # close tag
+        (\s*)                   # any whitespace (5)
+        \z                      # end of paragraph without other text
+    }xms;
+    if ($text =~ $re) {
+        my ($lead, $class, $body, $trail) = ($1, $3, $4, $5);
         return "$lead<$tag$class>$body</$close_tag>$trail";
     } else {
         return "<$tag>$text</$close_tag>";

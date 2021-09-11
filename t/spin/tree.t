@@ -31,6 +31,7 @@ Updating .../changes.rss
 Spinning .../changes.html
 Spinning .../index.html
 Updating .../names.png
+Spinning .../random.html
 Creating .../journal
 Generating index file .../journal/index.th
 Generating RSS file .../journal/index.rss
