@@ -15,6 +15,10 @@
 
  - Ignore configure~ when checking distribution tarballs.
 
+ - Stop generating a developer link to a to-do list by default in thread
+   output.  Not all of my packages use a TODO file, so the ones that do
+   should explicitly add this to the developer docs list.
+
 4.01 - 2021-02-27
 
  - DocKnot now supports a global configuration file.  The default location

@@ -74,6 +74,9 @@ docs:
       title: App::DocKnot::Spin::Versions
     - name: api/app-docknot-update
       title: App::DocKnot::Update
+  developer:
+    - name: todo
+      title: To-do list
   user:
     - name: docknot
       title: docknot manual page

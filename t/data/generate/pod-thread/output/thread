@@ -38,7 +38,6 @@
 
     \h2[Development]
 
-    \link[todo.html][To-do list] \break
     \link[https://github.com/rra/pod-thread]
          [GitHub] \break
     \link[https://github.com/rra/pod-thread/issues]
@@ -46,7 +45,7 @@
     \link[https://git.eyrie.org/?p=web/pod-thread.git]
          [Git repository] \break
     \link[https://metacpan.org/release/Pod-Thread]
-         [MetaCPAN]
+         [MetaCPAN] \break
 ]
 
 \h2[Blurb]
@@ -120,7 +119,6 @@ development source].
 
     Developer documentation:
 
-    \doc[todo.html][To-do list]
     \doc[https://github.com/rra/pod-thread]
         [GitHub]
     \doc[https://github.com/rra/pod-thread/issues]

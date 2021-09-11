@@ -50,23 +50,22 @@
         [[% advisory.date %]]: [% name %] [% advisory.versions %]\break
 [% END %][% END %]
     \h2[Development]
-
-    \link[todo.html][To-do list][% FOREACH doc IN docs.developer %] \break
-    \link[[% doc.name %].html][[% doc.title %]][% END %][% IF vcs.github %] \break
+[% FOREACH doc IN docs.developer %]
+    \link[[% doc.name %].html][[% doc.title %]] \break[% END %][% IF vcs.github %]
     \link[https://github.com/[% vcs.github %]]
-         [GitHub][% END %][% IF support.github %] \break
+         [GitHub] \break[% END %][% IF support.github %]
     \link[https://github.com/[% support.github %]/issues]
-         [Bug tracker][% END %][% IF vcs.type == 'Git' %] \break
+         [Bug tracker] \break[% END %][% IF vcs.type == 'Git' %]
     \link[[% vcs.browse %]]
-         [Git repository][% END %][% IF vcs.status.travis %] \break
+         [Git repository] \break[% END %][% IF vcs.status.travis %]
     \link[https://travis-ci.org/[% vcs.status.travis %]]
-         [Travis-CI][% END %][% IF distribution.cpan %] \break
+         [Travis-CI] \break[% END %][% IF distribution.cpan %]
     \link[https://metacpan.org/release/[% distribution.cpan %]]
-         [MetaCPAN][% END %][% IF vcs.openhub %] \break
+         [MetaCPAN] \break[% END %][% IF vcs.openhub %]
     \link[[% vcs.openhub %]]
-         [Open HUB code analysis][% END %][% IF distribution.packaging.debian.package && !distribution.packaging.debian.personal %] \break
+         [Open HUB code analysis] \break[% END %][% IF distribution.packaging.debian.package && !distribution.packaging.debian.personal %]
     \link[https://tracker.debian.org/pkg/[% distribution.packaging.debian.package %]]
-         [Debian package tracker][% END %]
+         [Debian package tracker] \break[% END %]
 ]
 [% IF orphaned %]
 \h2[Warning]
@@ -151,8 +150,7 @@ also \link[[% vcs.browse %]][browse the current development source].
         [[% advisory.date %]: [% advisory.versions %]][% END %]
 [% END %]
     Developer documentation:
-
-    \doc[todo.html][To-do list][% FOREACH doc IN docs.developer %]
+[% FOREACH doc IN docs.developer %]
     \doc[[% doc.name %].html][[% doc.title %]][% END %][% IF vcs.github %]
     \doc[https://github.com/[% vcs.github %]]
         [GitHub][% END %][% IF support.github %]
@@ -194,8 +192,7 @@ Security advisories:
     [[% advisory.date %]: [% advisory.versions %]]
 [% END %][% END %]
 Developer documentation:
-
-\doc[todo.html][To-do list][% FOREACH doc IN docs.developer %]
+[% FOREACH doc IN docs.developer %]
     \doc[[% doc.name %].html][[% doc.title %]][% END %][% IF vcs.github %]
 \doc[https://github.com/[% vcs.github %]]
     [GitHub][% END %][% IF support.github %]
