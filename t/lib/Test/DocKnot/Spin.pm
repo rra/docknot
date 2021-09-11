@@ -44,7 +44,7 @@ sub is_spin_output {
         [ ] \d{4}-\d\d-\d\d (?: [ ] \d\d:\d\d:\d\d [ ] -0000 )?
     }{ %DATE%}gxms;
     $results =~ s{
-        \w{3}, [ ] \d\d [ ] \w{3} [ ] \d{4} [ ] \d\d:\d\d:\d\d [ ] -\d{4}
+        \w{3}, [ ] \d\d [ ] \w{3} [ ] \d{4} [ ] \d\d:\d\d:\d\d [ ] [-+]\d{4}
     }{%DATE%}gxms;
     $results =~ s{
         Last [ ] modified [ ] and \s+ (<a[^>]+>spun</a>) [ ] [%]DATE[%]
@@ -52,6 +52,9 @@ sub is_spin_output {
     $results =~ s{
         %DATE% [ ] from [ ] POD [ ] modified [ ] %DATE%
     }{%DATE% from thread modified %DATE%}gxms;
+    $results =~ s{
+        (<guid [ ] isPermaLink="false">) \d+ (</guid>)
+    }{$1%DATE%$2}gxms;
 
     # Map the DocKnot version number to %VERSION%.
     $results =~ s{ DocKnot [ ] \d+ [.] \d+ }{DocKnot %VERSION%}xms;

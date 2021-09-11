@@ -23,7 +23,7 @@
         updates.</p>
       ]]></description>
       <pubDate>%DATE%</pubDate>
-      <guid isPermaLink="false">1630383900</guid>
+      <guid isPermaLink="false">%DATE%</guid>
     </item>
     <item>
       <title>Review: The Past is Red</title>
@@ -32,7 +32,7 @@
         <p>Review of The Past is Red by Catherynne M. Valente.</p>
       ]]></description>
       <pubDate>%DATE%</pubDate>
-      <guid isPermaLink="false">1629347400</guid>
+      <guid isPermaLink="false">%DATE%</guid>
     </item>
     <item>
       <title>Review: Black Sun</title>
@@ -41,7 +41,7 @@
         <p>Review of Black Sun by Rebecca Roanhorse.</p>
       ]]></description>
       <pubDate>%DATE%</pubDate>
-      <guid isPermaLink="false">1629172680</guid>
+      <guid isPermaLink="false">%DATE%</guid>
     </item>
     <item>
       <title>Review: The Galaxy, and the Ground Within</title>
@@ -50,7 +50,7 @@
         <p>Review of The Galaxy, and the Ground Within by Becky Chambers.</p>
       ]]></description>
       <pubDate>%DATE%</pubDate>
-      <guid isPermaLink="false">1629080460</guid>
+      <guid isPermaLink="false">%DATE%</guid>
     </item>
     <item>
       <title>Review: The Last Battle</title>
@@ -59,7 +59,7 @@
         <p>Review of The Last Battle by C.S. Lewis.</p>
       ]]></description>
       <pubDate>%DATE%</pubDate>
-      <guid isPermaLink="false">1628476740</guid>
+      <guid isPermaLink="false">%DATE%</guid>
     </item>
     <item>
       <title>Broken link cleanup</title>
@@ -68,7 +68,7 @@
         <p>Another periodic cleanup of broken links.</p>
       ]]></description>
       <pubDate>%DATE%</pubDate>
-      <guid isPermaLink="false">1628382240</guid>
+      <guid isPermaLink="false">%DATE%</guid>
     </item>
     <item>
       <title>Review: Piranesi</title>
@@ -77,7 +77,7 @@
         <p>Review of Piranesi by Susanna Clarke.</p>
       ]]></description>
       <pubDate>%DATE%</pubDate>
-      <guid isPermaLink="false">1627877520</guid>
+      <guid isPermaLink="false">%DATE%</guid>
     </item>
     <item>
       <title>Review: Fugitive Telemetry</title>
@@ -86,7 +86,7 @@
         <p>Review of Fugitive Telemetry by Martha Wells.</p>
       ]]></description>
       <pubDate>%DATE%</pubDate>
-      <guid isPermaLink="false">1627791960</guid>
+      <guid isPermaLink="false">%DATE%</guid>
     </item>
     <item>
       <title>Add finalists for the World Fantasy Award</title>
@@ -95,7 +95,7 @@
         <p>Add the finalists for the 2021 World Fantasy Award for best novel.</p>
       ]]></description>
       <pubDate>%DATE%</pubDate>
-      <guid isPermaLink="false">1627140180</guid>
+      <guid isPermaLink="false">%DATE%</guid>
     </item>
     <item>
       <title>Broken link cleanup</title>
@@ -104,7 +104,7 @@
         <p>Another periodic cleanup of broken links.</p>
       ]]></description>
       <pubDate>%DATE%</pubDate>
-      <guid isPermaLink="false">1627140120</guid>
+      <guid isPermaLink="false">%DATE%</guid>
     </item>
     <item>
       <title>Add Clarke Award nominees and Locus Award Winners</title>
@@ -116,7 +116,7 @@
         Darcie Little Badger for best first novel).</p>
       ]]></description>
       <pubDate>%DATE%</pubDate>
-      <guid isPermaLink="false">1625358060</guid>
+      <guid isPermaLink="false">%DATE%</guid>
     </item>
     <item>
       <title>control-archive 1.9.1</title>
@@ -126,7 +126,7 @@
         removes some obsolete information about net.*.</p>
       ]]></description>
       <pubDate>%DATE%</pubDate>
-      <guid isPermaLink="false">1624848900</guid>
+      <guid isPermaLink="false">%DATE%</guid>
     </item>
     <item>
       <title>Added web page for Big Eight control information</title>
@@ -137,7 +137,7 @@
         Moose key.</p>
       ]]></description>
       <pubDate>%DATE%</pubDate>
-      <guid isPermaLink="false">1624832580</guid>
+      <guid isPermaLink="false">%DATE%</guid>
     </item>
     <item>
       <title>Review: Demon Lord of Karanda</title>
@@ -146,7 +146,7 @@
         <p>Review of Demon Lord of Karanda by David Eddings.</p>
       ]]></description>
       <pubDate>%DATE%</pubDate>
-      <guid isPermaLink="false">1624247820</guid>
+      <guid isPermaLink="false">%DATE%</guid>
     </item>
     <item>
       <title>Review: The Magician's Nephew</title>
@@ -155,7 +155,7 @@
         <p>Review of The Magician's Nephew by C.S. Lewis.</p>
       ]]></description>
       <pubDate>%DATE%</pubDate>
-      <guid isPermaLink="false">1624161780</guid>
+      <guid isPermaLink="false">%DATE%</guid>
     </item>
   </channel>
 </rss>
