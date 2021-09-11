@@ -1,7 +1,10 @@
 # -*- perl -*-
 
+requires 'Date::Parse';
 requires 'File::BaseDir';
 requires 'File::ShareDir';
+requires 'Git::Repository';
+requires 'Image::Size';
 requires 'IO::Compress::Xz';
 requires 'IO::Uncompress::Gunzip';
 requires 'IPC::Run';
@@ -10,6 +13,7 @@ requires 'JSON::MaybeXS';
 requires 'Kwalify';
 requires 'List::SomeUtils';
 requires 'Perl6::Slurp';
+requires 'Pod::Thread';
 requires 'Template';
 requires 'YAML::XS';
 
