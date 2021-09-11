@@ -106,17 +106,20 @@ sub _read_data {
 # Utility methods
 ##############################################################################
 
-# Escape a page description so that it can be put in an HTML attribute.
+# Escape a page description so that it can be put in HTML output.
 #
-# $desc - The string to escape
+# $desc    - The string to escape
+# $is_attr - If true, escape for putting in an HTML attribute
 #
 # Returns: $desc escaped so that it's safe to interpolate into an attribute
 sub _escape {
-    my ($desc) = @_;
+    my ($desc, $is_attr) = @_;
     $desc =~ s{ &  }{&amp;}xmsg;
     $desc =~ s{ <  }{&lt;}xmsg;
     $desc =~ s{ >  }{&gt;}xmsg;
-    $desc =~ s{ \" }{&quot;}xmsg;
+    if ($is_attr) {
+        $desc =~ s{ \" }{&quot;}xmsg;
+    }
     return $desc;
 }
 
@@ -165,11 +168,9 @@ sub _page_links {
     return () if ($path eq q{/} || !$self->{links}{$path});
 
     # Convert all the links to relative and add the page descriptions.
-    return map {
-        defined
-          ? [_relative($path, $_), _escape($self->{pagedesc}{$_})]
-          : undef
-    } $self->{links}{$path}->@*;
+    return
+      map { defined ? [_relative($path, $_), $self->{pagedesc}{$_}] : undef }
+      $self->{links}{$path}->@*;
 }
 
 ##############################################################################
@@ -235,6 +236,7 @@ sub links {
     for my $link (@links) {
         next unless defined($link);
         my ($type, $url, $desc) = $link->@*;
+        $desc = _escape($desc, 1);
 
         # Break the line if it would be longer than 79 characters.
         my $line = qq{  <link rel="$type" href="$url"};
@@ -269,12 +271,14 @@ sub navbar {
     my $prev_link = q{  <td class="navleft">};
     if (defined($prev)) {
         my ($url, $desc) = $prev->@*;
+        $desc = _escape($desc);
         $prev_link .= qq{&lt;&nbsp;<a href="$url">$desc</a>};
     }
     $prev_link .= "</td>\n";
     my $next_link = q{  <td class="navright">};
     if (defined($next)) {
         my ($url, $desc) = $next->@*;
+        $desc = _escape($desc);
         $next_link .= qq{<a href="$url">$desc</a>&nbsp;&gt;};
     }
     $next_link .= "</td>\n";
