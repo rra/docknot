@@ -11,6 +11,7 @@ docknot (5.00-1) UNRELEASED; urgency=medium
     since that test is skipped, and add libtest-pod-coverage-perl, which
     is run under automated testing.
   * Fix Bug-* URLs in debian/upstream/metadata.
+  * Update standards version to 4.6.0 (no changes required).
 
  -- Russ Allbery <rra@debian.org>  Sun, 28 Mar 2021 17:21:29 -0700
 
