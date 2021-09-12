@@ -30,7 +30,7 @@ use File::Spec      ();
 use Git::Repository ();
 use List::SomeUtils qw(all);
 use IPC::System::Simple qw(capture systemx);
-use Pod::Thread ();
+use Pod::Thread 3.00 ();
 use POSIX qw(strftime);
 
 # The default list of files and/or directories to exclude from spinning.  This
