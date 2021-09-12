@@ -77,6 +77,7 @@ my $rpod_path   = File::Spec->catfile(
     $tmpdir->dirname, 'software', 'docknot', 'api',
     'app-docknot.rpod',
 );
+chmod(0644, $rpod_path);
 open(my $fh, '>', $rpod_path);
 print {$fh} "$rpod_source\n" or die "Cannot write to $rpod_path: $!\n";
 close($fh);
@@ -162,6 +163,7 @@ my $versions_path = File::Spec->catfile($tmpdir->dirname, '.versions');
 my $versions      = slurp($versions_path);
 my $new_date      = strftime('%Y-%m-%d %T', localtime(time() + 10));
 $versions =~ s{ \d{4}-\d\d-\d\d [ ] [\d:]+ }{$new_date}xms;
+chmod(0644, $versions_path);
 open(my $versions_fh, '>', $versions_path);
 print {$versions_fh} $versions or die "Cannot write to $versions_path: $!\n";
 close($versions_fh);

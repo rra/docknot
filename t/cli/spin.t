@@ -61,6 +61,7 @@ my $rpod_path   = File::Spec->catfile(
     $indir->dirname, 'software', 'docknot', 'api',
     'app-docknot.rpod',
 );
+chmod(0644, $rpod_path);
 open(my $fh, '>', $rpod_path);
 print {$fh} "$rpod_source\n" or die "Cannot write to $rpod_path: $!\n";
 close($fh);
