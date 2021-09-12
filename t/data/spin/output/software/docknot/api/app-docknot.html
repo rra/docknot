@@ -45,22 +45,21 @@
 <h2 id="S1"><a name="S1">REQUIREMENTS</a></h2>
 
 <p>
-Perl 5.24 or later and the modules File::BaseDir and File::ShareDir, both
-of which are available from CPAN.
+Perl 5.24 or later and the modules File::BaseDir and File::ShareDir, both of
+which are available from CPAN.
 </p>
 
 <h2 id="S2"><a name="S2">DESCRIPTION</a></h2>
 
 <p>
-DocKnot is a system for documentation and software release management. 
-Its functionality is provided by various submodules, often invoked via the
-<b>docknot</b> command-line program.  For more information, see
-docknot(1).
+DocKnot is a system for documentation and software release management.  Its
+functionality is provided by various submodules, often invoked via the
+<b>docknot</b> command-line program.  For more information, see docknot(1).
 </p>
 
 <p>
-This module only provides helper functions to load configuration and
-metadata that are used by its various submodules.
+This module only provides helper functions to load configuration and metadata
+that are used by its various submodules.
 </p>
 
 <h2 id="S3"><a name="S3">INSTANCE METHODS</a></h2>
@@ -68,16 +67,15 @@ metadata that are used by its various submodules.
 <dl>
 <dt>appdata_path(PATH[, ...])</dt>
 <dd><p>
-Return the path of a file from the application data.  The file is
-specified as one or more path components.
+Return the path of a file from the application data.  The file is specified as
+one or more path components.
 </p>
 
 <p>
 These data files are installed with App::DocKnot, but each file can be
-overridden by the user via files in <i class="file">$HOME/.config/docknot</i>
-or <i class="file">/etc/xdg/docknot</i> (or whatever $XDG_CONFIG_HOME and
-$XDG_CONFIG_DIRS are set to).  Raises a text exception if the desired file
-could not be located.
+overridden by the user via files in <i class="file">$HOME/.config/docknot</i> or
+<i class="file">/etc/xdg/docknot</i> (or whatever $XDG_CONFIG_HOME and $XDG_CONFIG_DIRS are set
+to).  Raises a text exception if the desired file could not be located.
 </p></dd>
 </dl>
 
@@ -94,27 +92,27 @@ Copyright 2013-2021 Russ Allbery &lt;rra@cpan.org&gt;
 </p>
 
 <p>
-Permission is hereby granted, free of charge, to any person obtaining a
-copy of this software and associated documentation files (the "Software"),
-to deal in the Software without restriction, including without limitation
-the rights to use, copy, modify, merge, publish, distribute, sublicense,
-and/or sell copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 </p>
 
 <p>
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 </p>
 
 <p>
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
-THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 </p>
 
 <h2 id="S6"><a name="S6">SEE ALSO</a></h2>
@@ -124,8 +122,8 @@ docknot(1)
 </p>
 
 <p>
-This module is part of the App-DocKnot distribution.  The current version
-of DocKnot is available from CPAN, or directly from its web site at
+This module is part of the App-DocKnot distribution.  The current version of
+DocKnot is available from CPAN, or directly from its web site at
 &lt;<a href="https://www.eyrie.org/~eagle/software/docknot/">https://www.eyrie.org/~eagle/software/docknot/</a>&gt;.
 </p>
 
