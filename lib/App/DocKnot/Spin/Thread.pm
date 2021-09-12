@@ -1411,11 +1411,12 @@ sub new {
 
     # Create and return the object.
     my $self = {
-        output    => $args_ref->{output},
-        sitemap   => $args_ref->{sitemap},
-        source    => $args_ref->{source},
-        style_url => $style_url,
-        versions  => $args_ref->{versions},
+        output     => $args_ref->{output},
+        repository => $repository,
+        sitemap    => $args_ref->{sitemap},
+        source     => $args_ref->{source},
+        style_url  => $style_url,
+        versions   => $args_ref->{versions},
     };
     bless($self, $class);
     return $self;
