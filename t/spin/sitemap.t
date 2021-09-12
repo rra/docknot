@@ -15,7 +15,7 @@ use lib 't/lib';
 use File::Spec;
 use Test::RRA qw(is_file_contents);
 
-use Test::More tests => 9;
+use Test::More tests => 10;
 
 require_ok('App::DocKnot::Spin::Sitemap');
 
@@ -79,3 +79,13 @@ eval {
     App::DocKnot::Spin::Sitemap->new($path);
 };
 is($@, "invalid line 3 in $path\n", 'invalid sitemap file');
+# Check error handling.
+eval {
+    $path = File::Spec->catfile($datadir, 'duplicate');
+    App::DocKnot::Spin::Sitemap->new($path);
+};
+is(
+    $@,
+    "duplicate entry for /faqs/comments.html in $path (line 4)\n",
+    'sitemap file with duplicates',
+);
