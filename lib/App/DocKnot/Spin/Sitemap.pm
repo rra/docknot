@@ -38,6 +38,7 @@ use List::SomeUtils qw(pairwise);
 #         Text exception on file parsing errors
 sub _read_data {
     my ($self, $path) = @_;
+    my %seen;
 
     # @indents holds a stack of indentation levels to detect indentation
     # changes that translate into page structure.  Each element in the stack
@@ -70,6 +71,12 @@ sub _read_data {
         if (!defined($desc)) {
             die "invalid line $. in $path\n";
         }
+
+        # Error on duplicate lines.
+        if ($seen{$url}) {
+            die "duplicate entry for $url in $path (line $.)\n";
+        }
+        $seen{$url} = 1;
 
         # Open or close indentation levels.
         my $indent = length($spaces);
