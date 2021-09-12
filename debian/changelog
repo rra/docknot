@@ -1,5 +1,11 @@
-docknot (4.01-2) UNRELEASED; urgency=medium
+docknot (5.00-1) UNRELEASED; urgency=medium
 
+  * New upstream release.
+    - Add static site generator, available as docknot spin.
+    - Support distribution.packaging.debian.package metadata alongside
+      distribution.packaging.debian.personal.
+    - Ignore configure~ when checking distribution tarballs.
+    - Stop generating a developer link to a to-do list in thread output.
   * Add perl to build dependencies, since it is formally needed although
     other packages are likely to pull it in.  Remove libdevel-cover-perl,
     since that test is skipped, and add libtest-pod-coverage-perl, which
