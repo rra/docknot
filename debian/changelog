@@ -1,5 +1,6 @@
-docknot (5.00-1) UNRELEASED; urgency=medium
+docknot (5.00-1) unstable; urgency=medium
 
+  * Upload to unstable.
   * New upstream release.
     - Add static site generator, available as docknot spin.
     - Support distribution.packaging.debian.package metadata alongside
@@ -13,7 +14,7 @@ docknot (5.00-1) UNRELEASED; urgency=medium
   * Fix Bug-* URLs in debian/upstream/metadata.
   * Update standards version to 4.6.0 (no changes required).
 
- -- Russ Allbery <rra@debian.org>  Sun, 28 Mar 2021 17:21:29 -0700
+ -- Russ Allbery <rra@debian.org>  Sun, 12 Sep 2021 11:55:16 -0700
 
 docknot (4.01-1) experimental; urgency=medium
 
