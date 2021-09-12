@@ -133,7 +133,7 @@ The distribution:
 An \link[https://archives.eyrie.org/software/ARCHIVE/App-DocKnot/]
 [archive of older releases] is also available.
 
-DocKnot is packaged for Debian as docknot.  See the
+DocKnot is packaged in Debian 11 (bullseye) and later as docknot.  See the
 \link[https://tracker.debian.org/pkg/docknot][Debian package tracker] for
 more information.
 
@@ -179,6 +179,7 @@ development source].
     \doc[api/app-docknot-dist.html][App::DocKnot::Dist]
     \doc[api/app-docknot-generate.html][App::DocKnot::Generate]
     \doc[api/app-docknot-spin.html][App::DocKnot::Spin]
+    \doc[api/app-docknot-spin-rss.html][App::DocKnot::Spin::RSS]
     \doc[api/app-docknot-spin-sitemap.html][App::DocKnot::Spin::Sitemap]
     \doc[api/app-docknot-spin-thread.html][App::DocKnot::Spin::Thread]
     \doc[api/app-docknot-spin-versions.html][App::DocKnot::Spin::Versions]

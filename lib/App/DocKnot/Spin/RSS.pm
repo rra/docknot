@@ -9,7 +9,7 @@
 # Modules and declarations
 ##############################################################################
 
-package App::DocKnot::Spin::RSS 4.01;
+package App::DocKnot::Spin::RSS 5.00;
 
 use 5.024;
 use autodie;

@@ -1,6 +1,6 @@
                        Revision history for DocKnot
 
-5.00 - Not Released
+5.00 - 2021-09-12
 
  - Merge spin and spin-rss into this package, making it a full, if highly
    idiosyncratic, static site generator built around a macro language

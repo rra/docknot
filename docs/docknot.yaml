@@ -15,7 +15,7 @@ format: v1
 
 name: DocKnot
 maintainer: Russ Allbery <rra@cpan.org>
-version: '4.01'
+version: '5.00'
 synopsis: Static web site and documentation generator
 
 license:
@@ -31,7 +31,8 @@ distribution:
   packaging:
     debian:
       package: docknot
-      summary: DocKnot is packaged for Debian as docknot.
+      summary: |
+        DocKnot is packaged in Debian 11 (bullseye) and later as docknot.
   section: devel
   tarname: App-DocKnot
   version: docknot
@@ -66,6 +67,8 @@ docs:
       title: App::DocKnot::Generate
     - name: api/app-docknot-spin
       title: App::DocKnot::Spin
+    - name: api/app-docknot-spin-rss
+      title: App::DocKnot::Spin::RSS
     - name: api/app-docknot-spin-sitemap
       title: App::DocKnot::Spin::Sitemap
     - name: api/app-docknot-spin-thread
