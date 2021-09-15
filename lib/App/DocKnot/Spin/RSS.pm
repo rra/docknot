@@ -18,6 +18,7 @@ use warnings;
 use App::DocKnot;
 use App::DocKnot::Spin::Thread;
 use Cwd qw(getcwd);
+use Date::Language ();
 use Date::Parse qw(str2time);
 use File::Basename qw(fileparse);
 use Perl6::Slurp qw(slurp);
@@ -405,8 +406,9 @@ sub _rss_output {
 
     # Determine the current date and latest publication date of all of the
     # entries, published in the obnoxious format used by RSS.
+    my $lang   = Date::Language->new('English');
     my $format = '%a, %d %b %Y %H:%M:%S %z';
-    my $now    = strftime($format, localtime());
+    my $now    = $lang->strftime($format, [localtime()]);
     my $latest = $now;
     if ($entries_ref->@*) {
         $latest = strftime($format, localtime($entries_ref->[0]{date}));
@@ -439,7 +441,7 @@ EOC
 
     # Output each entry, formatting the contents of the entry as we go.
     for my $entry_ref ($entries_ref->@*) {
-        my $date  = strftime($format, localtime($entry_ref->{date}));
+        my $date  = $lang->strftime($format, [localtime($entry_ref->{date})]);
         my $title = _escape($entry_ref->{title});
         my $description;
         if ($entry_ref->{description}) {
@@ -813,8 +815,9 @@ App::DocKnot::Spin::RSS - Generate RSS and thread from a feed description file
 
 =head1 REQUIREMENTS
 
-Perl 5.006 or later and the modules Date::Parse (part of the TimeDate
-distribution) and Perl6::Slurp, both of which are available from CPAN.
+Perl 5.006 or later and the modules Date::Language, Date::Parse (both part of
+the TimeDate distribution), and Perl6::Slurp, both of which are available from
+CPAN.
 
 =head1 DESCRIPTION
 

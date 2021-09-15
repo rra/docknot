@@ -1,5 +1,11 @@
                        Revision history for DocKnot
 
+5.01 - Not Released
+
+ - Fix unintended localization of dates in RSS output, which are supposed
+   to be RFC 2822 dates and therefore always use English month and day of
+   week names.  Thanks to Slaven Rezić for testing.
+
 5.00 - 2021-09-12
 
  - Merge spin and spin-rss into this package, making it a full, if highly

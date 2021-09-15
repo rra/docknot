@@ -293,12 +293,12 @@ App::DocKnot::Command - Run DocKnot commands
 
 =head1 REQUIREMENTS
 
-Perl 5.24 or later and the modules Date::Parse (part of TimeDate),
-File::BaseDir, File::ShareDir, Git::Repository, Image::Size, IO::Compress::Xz
-(part of IO-Compress-Lzma), IO::Uncompress::Gunzip (part of IO-Compress),
-IPC::Run, IPC::System::Simple, JSON::MaybeXS, Kwalify, List::SomeUtils,
-Perl6::Slurp, Template (part of Template Toolkit), and YAML::XS, all of which
-are available from CPAN.
+Perl 5.24 or later and the modules Date::Language, Date::Parse (both part of
+TimeDate), File::BaseDir, File::ShareDir, Git::Repository, Image::Size,
+IO::Compress::Xz (part of IO-Compress-Lzma), IO::Uncompress::Gunzip (part of
+IO-Compress), IPC::Run, IPC::System::Simple, JSON::MaybeXS, Kwalify,
+List::SomeUtils, Perl6::Slurp, Template (part of Template Toolkit), and
+YAML::XS, all of which are available from CPAN.
 
 =head1 DESCRIPTION
 
