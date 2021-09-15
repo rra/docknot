@@ -18,10 +18,15 @@ use File::Copy::Recursive qw(dircopy);
 use File::Spec ();
 use File::Temp ();
 use Perl6::Slurp qw(slurp);
-use POSIX qw(strftime);
+use POSIX qw(LC_ALL setlocale strftime);
 use Test::DocKnot::Spin qw(is_spin_output_tree);
 
 use Test::More;
+
+# Force the C locale because some of the output intentionally uses localized
+# month names and we have to force those to English for comparison of test
+# results.
+setlocale(LC_ALL, 'C');
 
 # Expected output when spinning our tree of input files.
 my $EXPECTED_OUTPUT = <<'OUTPUT';

@@ -17,6 +17,7 @@ use Cwd qw(getcwd realpath);
 use File::Copy::Recursive qw(dircopy);
 use File::Spec ();
 use File::Temp ();
+use POSIX qw(LC_ALL setlocale);
 use Test::RRA qw(is_file_contents);
 use Test::DocKnot::Spin qw(is_spin_output is_spin_output_tree);
 
@@ -24,6 +25,11 @@ use Test::More;
 
 # Load the module.
 BEGIN { use_ok('App::DocKnot::Command') }
+
+# Force the C locale because some of the output intentionally uses localized
+# month names and we have to force those to English for comparison of test
+# results.
+setlocale(LC_ALL, 'C');
 
 # Create the command-line parser.
 my $docknot = App::DocKnot::Command->new();
