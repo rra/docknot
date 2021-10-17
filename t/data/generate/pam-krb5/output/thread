@@ -49,10 +49,9 @@
     \h2[Security Advisories]
 
     \link[security/2020-03-30.html]
-        [2020-03-30]: pam-krb5 4.8 and earlier\break
-
+        [2020-03-30]: pam-krb5 4.8 and earlier \break
     \link[security/2009-02-11.html]
-        [2009-02-11]: pam-krb5 3.12 and earlier\break
+        [2009-02-11]: pam-krb5 3.12 and earlier \break
 
     \h2[Development]
 
@@ -196,7 +195,6 @@ Security advisories:
 
 \doc[security/2020-03-30.html]
     [2020-03-30: 4.8 and earlier]
-
 \doc[security/2009-02-11.html]
     [2009-02-11: 3.12 and earlier]
 
