@@ -193,7 +193,7 @@ Security advisories:
 [% END %][% END %]
 Developer documentation:
 [% FOREACH doc IN docs.developer %]
-    \doc[[% doc.name %].html][[% doc.title %]][% END %][% IF vcs.github %]
+\doc[[% doc.name %].html][[% doc.title %]][% END %][% IF vcs.github %]
 \doc[https://github.com/[% vcs.github %]]
     [GitHub][% END %][% IF support.github %]
 \doc[https://github.com/[% support.github %]/issues]
