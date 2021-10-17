@@ -1,3 +1,11 @@
+docknot (5.00-2) unstable; urgency=medium
+
+  * Add lib/App/DocKnot.pm to the files made available to autopkgtest
+    tests, since the test suite uses it as a sample POD document to test
+    POD conversions.  (Closes: #996037)
+
+ -- Russ Allbery <rra@debian.org>  Sun, 17 Oct 2021 11:36:12 -0700
+
 docknot (5.00-1) unstable; urgency=medium
 
   * Upload to unstable.

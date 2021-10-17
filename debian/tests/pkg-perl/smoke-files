@@ -4,4 +4,5 @@
 README
 README.md
 docs/docknot.yaml
+lib/App/DocKnot.pm
 t
