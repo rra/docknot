@@ -17,6 +17,7 @@ use Cwd qw(getcwd);
 use File::Copy::Recursive qw(dircopy);
 use File::Spec;
 use File::Temp;
+use Git::Repository;
 use IPC::Run qw(run);
 use IPC::System::Simple qw(capturex systemx);
 
@@ -36,44 +37,36 @@ my $dir       = File::Temp->newdir();
 my $sourcedir = File::Spec->catfile($dir, 'source');
 my $distdir   = File::Spec->catfile($dir, 'dist');
 
-# Check whether git is available and can be used to initialize a repository.
-eval {
-    systemx(
-        'git', 'init', '-b', 'master', '-q',
-        File::Spec->catfile($dir, 'source'),
-    );
-};
-if ($@) {
-    plan skip_all => 'git init failed (possibly no git binary)';
-}
-
-# Copy all files from the data directory, and commit them.  We have to rename
-# the test while we copy it to avoid having it picked up by the main package
-# test suite.
+# Create a new repository, copy all files from the data directory, and commit
+# them.  We have to rename the test while we copy it to avoid having it picked
+# up by the main package test suite.
 dircopy($dataroot, $sourcedir)
   or die "$0: cannot copy $dataroot to $sourcedir: $!\n";
 my $testpath = File::Spec->catfile($sourcedir, 't', 'api', 'empty.t');
 rename($testpath . '.in', $testpath);
-chdir($sourcedir);
-systemx(qw(git config --add user.name Test));
-systemx(qw(git config --add user.email test@example.com));
-systemx(qw(git add -A .));
-systemx(qw(git commit -q -m Initial));
+Git::Repository->run(init => '-b', 'main', { cwd => $sourcedir, quiet => 1 });
+my $repo = Git::Repository->new(work_tree => $sourcedir);
+$repo->run(config => '--add', 'user.name',  'Test');
+$repo->run(config => '--add', 'user.email', 'test@example.com');
+$repo->run(add    => '-A',    q{.});
+$repo->run(commit => '-q',    '-m', 'Initial commit');
 
 # Check whether we have all the necessary tools to run the test.
-my $out;
-my $result
-  = eval { run(['git', 'archive', 'HEAD'], q{|}, ['tar', 'tf', q{-}], \$out) };
+my $result;
+eval {
+    my $archive = $repo->command(archive => 'HEAD');
+    my $out;
+    $result = run([qw(tar tf -)], '<', $archive->stdout, '>', \$out);
+    $archive->close();
+    $result &&= $archive->exit == 0;
+};
 if ($@ || !$result) {
-    chdir($cwd);
     plan skip_all => 'git and tar not available';
 } else {
     plan tests => 20;
 }
 
-# Load the module.  Change back to the starting directory for this so that
-# coverage analysis works.
-chdir($cwd);
+# Load the module now that we're sure we can run tests.
 require_ok('App::DocKnot::Dist');
 
 # Put some existing files in the directory that are marked read-only.  These

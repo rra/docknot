@@ -2,6 +2,10 @@
 
 5.01 - Not Released
 
+ - Support creating distributions from branches named main rather than
+   master.  The first of main or master that's found in the repository
+   will be used.
+
  - Fix unintended localization of dates in RSS output, which are supposed
    to be RFC 2822 dates and therefore always use English month and day of
    week names.  Thanks to Slaven Rezić for testing.
