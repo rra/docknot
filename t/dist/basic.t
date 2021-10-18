@@ -44,7 +44,7 @@ dircopy($dataroot, $sourcedir)
   or die "$0: cannot copy $dataroot to $sourcedir: $!\n";
 my $testpath = File::Spec->catfile($sourcedir, 't', 'api', 'empty.t');
 rename($testpath . '.in', $testpath);
-Git::Repository->run(init => '-b', 'main', { cwd => $sourcedir, quiet => 1 });
+Git::Repository->run('init', { cwd => $sourcedir, quiet => 1 });
 my $repo = Git::Repository->new(work_tree => $sourcedir);
 $repo->run(config => '--add', 'user.name',  'Test');
 $repo->run(config => '--add', 'user.email', 'test@example.com');
