@@ -45,8 +45,8 @@
 <h2 id="S1"><a name="S1">REQUIREMENTS</a></h2>
 
 <p>
-Perl 5.24 or later and the modules File::BaseDir and File::ShareDir, both of
-which are available from CPAN.
+Perl 5.24 or later and the modules File::BaseDir, File::ShareDir, Kwalify, and
+YAML::XS, all of which are available from CPAN.
 </p>
 
 <h2 id="S2"><a name="S2">DESCRIPTION</a></h2>
@@ -76,6 +76,14 @@ These data files are installed with App::DocKnot, but each file can be
 overridden by the user via files in <i class="file">$HOME/.config/docknot</i> or
 <i class="file">/etc/xdg/docknot</i> (or whatever $XDG_CONFIG_HOME and $XDG_CONFIG_DIRS are set
 to).  Raises a text exception if the desired file could not be located.
+</p></dd>
+
+<dt>load_yaml_file(PATH, SCHEMA)</dt>
+<dd><p>
+Load a YAML file with schema checking.  PATH is the path to the file.
+SCHEMA is the name of the schema, which will be loaded from the <i class="file">schema</i>
+directory using appdata_path().  See the description of that method for the
+paths that are searched.
 </p></dd>
 </dl>
 

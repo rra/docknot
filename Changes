@@ -10,6 +10,9 @@
    to be RFC 2822 dates and therefore always use English month and day of
    week names.  Thanks to Slaven Rezić for testing.
 
+ - Add load_yaml_file method to App::DocKnot, which loads a YAML file with
+   schema checking.
+
  - Fix small whitespace problems in thread output.
 
 5.00 - 2021-09-12

@@ -18,42 +18,7 @@ use warnings;
 
 use Carp qw(croak);
 use File::BaseDir qw(config_files);
-use Kwalify qw(validate);
 use YAML::XS ();
-
-##############################################################################
-# Helper methods
-##############################################################################
-
-# Load a YAML file with schema checking.
-#
-# $path   - Path to the YAML file to load
-# $schema - Name of the schema file against which to check it
-#
-# Returns: Contents of the file as a hash
-#  Throws: YAML::XS exception on invalid file
-#          Text exception on schema mismatch
-sub _load_yaml_file {
-    my ($self, $path, $schema) = @_;
-
-    # Tell YAML::XS to use real booleans.  Otherwise, Kwalify is unhappy with
-    # data elements set to false.
-    local $YAML::XS::Boolean = 'JSON::PP';
-
-    # Load the metadata and check it against the schema.
-    my $data_ref    = YAML::XS::LoadFile($path);
-    my $schema_path = $self->appdata_path('schema', $schema);
-    my $schema_ref  = YAML::XS::LoadFile($schema_path);
-    eval { validate($schema_ref, $data_ref) };
-    if ($@) {
-        my $errors = $@;
-        chomp($errors);
-        die "schema validation for $path failed:\n$errors\n";
-    }
-
-    # Return the verified contents.
-    return $data_ref;
-}
 
 ##############################################################################
 # Public Interface
@@ -92,7 +57,7 @@ sub config {
     my ($self) = @_;
 
     # Load the package metadata.
-    my $data_ref = $self->_load_yaml_file($self->{metadata}, 'docknot.yaml');
+    my $data_ref = $self->load_yaml_file($self->{metadata}, 'docknot');
 
     # build.install defaults to true.
     if (!exists($data_ref->{build}{install})) {
@@ -136,7 +101,7 @@ sub global_config {
     if (!defined($config_path)) {
         return {};
     }
-    my $data_ref = $self->_load_yaml_file($config_path, 'config.yaml');
+    my $data_ref = $self->load_yaml_file($config_path, 'config');
 
     # Return the resulting configuration.
     return $data_ref;
