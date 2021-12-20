@@ -1502,7 +1502,7 @@ App::DocKnot::Spin::Thread - Generate HTML from the macro language thread
     use App::DocKnot::Spin::Thread;
 
     my $thread = App::DocKnot::Spin::Thread->new();
-    $thread->spin_file('/path/to/file.th', '/path/to/file.html');
+    my $output = $thread->spin_thread($input);
 
     use App::DocKnot::Spin::Sitemap;
     use App::DocKnot::Spin::Versions;
@@ -1515,7 +1515,7 @@ App::DocKnot::Spin::Thread - Generate HTML from the macro language thread
         sitemap  => $sitemap,
         versions => $versions,
     });
-    $thread->spin_file('/input/file.th', '/output/file.th');
+    $thread->spin_thread_file('/input/file.th', '/output/file.html');
 
 =head1 REQUIREMENTS
 
