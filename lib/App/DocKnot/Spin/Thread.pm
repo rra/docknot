@@ -1501,6 +1501,7 @@ App::DocKnot::Spin::Thread - Generate HTML from the macro language thread
 
     use App::DocKnot::Spin::Thread;
 
+    my $input  = 'some thread';
     my $thread = App::DocKnot::Spin::Thread->new();
     my $output = $thread->spin_thread($input);
 
