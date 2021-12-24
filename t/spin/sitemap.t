@@ -57,7 +57,6 @@ is_deeply(\@links, \@expected, 'links output');
     q{  <td class="navright"><a href="soundness-cnews.html">}
       . qq{Soundness for C News</a>&nbsp;&gt;</td>\n},
     qq{</tr></table>\n},
-    qq{\n},
 );
 is_deeply(\@navbar, \@expected, 'navbar output');
 

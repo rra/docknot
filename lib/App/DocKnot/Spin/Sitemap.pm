@@ -312,7 +312,6 @@ sub navbar {
         @breadcrumbs,
         $next_link,
         "</tr></table>\n",
-        "\n",
     );
 }
 

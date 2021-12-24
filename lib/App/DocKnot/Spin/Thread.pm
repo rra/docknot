@@ -1262,7 +1262,7 @@ sub _cmd_signature {
     if ($self->{sitemap} && $self->{output}) {
         my $page = $self->{out_path};
         $page =~ s{ \A \Q$self->{output}\E }{}xms;
-        $output .= join(q{}, $self->{sitemap}->navbar($page));
+        $output .= join(q{}, $self->{sitemap}->navbar($page)) . "\n";
     }
 
     # Figure out the modification dates.  Use the Git repository if available.
@@ -1277,12 +1277,12 @@ sub _cmd_signature {
     }
 
     # Determine which template to use and substitute in the appropriate times.
-    $output .= "<address>\n" . q{ } x 4;
+    $output .= "<address>\n";
     my $link = qq{<a href="$URL">spun</a>};
     if ($modified eq $now) {
-        $output .= "Last modified and\n    $link $modified\n";
+        $output .= "    Last modified and\n    $link $modified\n";
     } else {
-        $output .= "Last $link\n    $now from thread modified $modified\n";
+        $output .= "    Last $link\n    $now from thread modified $modified\n";
     }
 
     # Close out the document.

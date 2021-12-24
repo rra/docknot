@@ -6,7 +6,7 @@
 # which can be found at <https://www.eyrie.org/~eagle/software/rra-c-util/>.
 #
 # Written by Russ Allbery <eagle@eyrie.org>
-# Copyright 2019-2020 Russ Allbery <eagle@eyrie.org>
+# Copyright 2019-2021 Russ Allbery <eagle@eyrie.org>
 # Copyright 2013-2014
 #     The Board of Trustees of the Leland Stanford Junior University
 #
@@ -52,7 +52,8 @@ use_prereq('Devel::Cover');
 use_prereq('Test::Strict');
 
 # Build a list of test directories to use for coverage.
-my %ignore = map { $_ => 1 } qw(data docs style), @COVERAGE_SKIP_TESTS;
+my %ignore = map { $_ => 1 } qw(config data docs lib style),
+  @COVERAGE_SKIP_TESTS;
 opendir(my $testdir, 't')      or BAIL_OUT("cannot open t: $!");
 my @t_dirs = readdir($testdir) or BAIL_OUT("cannot read t: $!");
 closedir($testdir)             or BAIL_OUT("cannot close t: $!");

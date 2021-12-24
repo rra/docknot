@@ -17,6 +17,7 @@ use 5.024;
 use autodie;
 use warnings;
 
+use App::DocKnot::Spin::Pointer;
 use App::DocKnot::Spin::RSS;
 use App::DocKnot::Spin::Sitemap;
 use App::DocKnot::Spin::Thread;
@@ -116,7 +117,7 @@ sub _footer {
     if ($self->{sitemap} && $self->{output}) {
         my $page = $out_path;
         $page =~ s{ \A \Q$self->{output}\E }{}xms;
-        $output .= join(q{}, $self->{sitemap}->navbar($page));
+        $output .= join(q{}, $self->{sitemap}->navbar($page)) . "\n";
     }
 
     # Figure out the modification dates.  Use the RCS/CVS Id if available,
@@ -427,6 +428,14 @@ sub _process_file {
         if (-e $rss_path) {
             $self->{rss}->generate($rss_path, $file);
         }
+    } elsif ($file =~ m{ [.] spin \z }xms) {
+        $output   =~ s{ [.] spin \z }{.html}xms;
+        $shortout =~ s{ [.] spin \z }{.html}xms;
+        $self->{generated}{$output} = 1;
+        if ($self->{pointer}->is_out_of_date($input, $output)) {
+            _print_checked("Converting $shortout\n");
+            $self->{pointer}->spin_pointer($input, $output);
+        }
     } elsif ($file =~ m{ [.] th \z }xms) {
         $output   =~ s{ [.] th \z }{.html}xms;
         $shortout =~ s{ [.] th \z }{.html}xms;
@@ -591,6 +600,15 @@ sub spin {
             source      => $input,
             'style-url' => $self->{style_url},
             versions    => $self->{versions},
+        },
+    );
+
+    # Create the processor for pointers.
+    $self->{pointer} = App::DocKnot::Spin::Pointer->new(
+        {
+            output      => $output,
+            sitemap     => $self->{sitemap},
+            'style-url' => $self->{style_url},
         },
     );
 

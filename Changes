@@ -1,6 +1,12 @@
                        Revision history for DocKnot
 
-5.01 - Not Released
+6.00 - Not Released
+
+ - Add a new *.spin input file for docknot spin that points to an external
+   file with instructions for how to convert it to HTML.  Via this
+   mechanism, support formatting Markdown files as HTML via docknot spin.
+   This support requires the pandoc program be installed.  The path to
+   pandoc may be specified in the DocKnot global configuration file.
 
  - Support creating distributions from branches named main rather than
    master.  The first of main or master that's found in the repository
