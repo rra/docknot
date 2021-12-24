@@ -22,6 +22,7 @@ use App::DocKnot::Spin::RSS;
 use App::DocKnot::Spin::Sitemap;
 use App::DocKnot::Spin::Thread;
 use App::DocKnot::Spin::Versions;
+use App::DocKnot::Util qw(is_newer print_checked print_fh);
 use Carp qw(croak);
 use Cwd qw(getcwd realpath);
 use File::Basename qw(fileparse);
@@ -29,8 +30,7 @@ use File::Copy qw(copy);
 use File::Find qw(find finddepth);
 use File::Spec      ();
 use Git::Repository ();
-use List::SomeUtils qw(all);
-use IPC::System::Simple qw(capture systemx);
+use IPC::System::Simple qw(capture);
 use Pod::Thread 3.00 ();
 use POSIX qw(strftime);
 
@@ -47,50 +47,8 @@ my @EXCLUDES = (
 my $URL = 'https://www.eyrie.org/~eagle/software/web/';
 
 ##############################################################################
-# Utility functions
-##############################################################################
-
-# Check if a file, which may not exist, is newer than another list of files.
-#
-# $file   - File whose timestamp to compare
-# @others - Other files to compare against
-#
-# Returns: True if $file exists and is newer than @others, false otherwise
-sub _is_newer {
-    my ($file, @others) = @_;
-    return if !-e $file;
-    my $file_mtime    = (stat($file))[9];
-    my @others_mtimes = map { (stat)[9] } @others;
-    return all { $file_mtime >= $_ } @others_mtimes;
-}
-
-##############################################################################
 # Output
 ##############################################################################
-
-# print with error checking.  autodie unfortunately can't help us because
-# print can't be prototyped and hence can't be overridden.
-sub _print_checked {
-    my (@args) = @_;
-    print @args or croak('print failed');
-    return;
-}
-
-# print with error checking and an explicit file handle.  autodie
-# unfortunately can't help us because print can't be prototyped and
-# hence can't be overridden.
-#
-# $fh   - Output file handle
-# $file - File name for error reporting
-# @args - Remaining arguments to print
-#
-# Returns: undef
-#  Throws: Text exception on output failure
-sub _print_fh {
-    my ($fh, $file, @args) = @_;
-    print {$fh} @args or croak("cannot write to $file: $!");
-    return;
-}
 
 # Build te page footer, which consists of the navigation links, the regular
 # signature, and the last modified date.
@@ -188,15 +146,15 @@ sub _write_converter_output {
         if ($self->{sitemap} && $line =~ m{ \A </head> }xmsi) {
             my @links = $self->{sitemap}->links($page);
             if (@links) {
-                _print_fh($out_fh, $output, @links);
+                print_fh($out_fh, $output, @links);
             }
         }
-        _print_fh($out_fh, $output, $line);
+        print_fh($out_fh, $output, $line);
         if ($line =~ m{ <body }xmsi) {
             if ($self->{sitemap}) {
                 my @navbar = $self->{sitemap}->navbar($page);
                 if (@navbar) {
-                    _print_fh($out_fh, $output, @navbar);
+                    print_fh($out_fh, $output, @navbar);
                 }
             }
             last;
@@ -210,13 +168,13 @@ sub _write_converter_output {
     my $line;
     while (defined($line = shift($page_ref->@*))) {
         last if $line =~ m{ </body> }xmsi;
-        _print_fh($out_fh, $output, $line);
+        print_fh($out_fh, $output, $line);
     }
 
     # Add the footer and finish with the output.
-    _print_fh($out_fh, $output, $footer->($blurb, $docid));
+    print_fh($out_fh, $output, $footer->($blurb, $docid));
     if (defined($line)) {
-        _print_fh($out_fh, $output, $line, $page_ref->@*);
+        print_fh($out_fh, $output, $line, $page_ref->@*);
     }
     close($out_fh);
     return;
@@ -421,7 +379,7 @@ sub _process_file {
         if (-e $output && !-d $output) {
             die "cannot replace $output with a directory\n";
         } elsif (!-d $output) {
-            _print_checked("Creating $shortout\n");
+            print_checked("Creating $shortout\n");
             mkdir($output, 0755);
         }
         my $rss_path = File::Spec->catfile($file, '.rss');
@@ -433,7 +391,7 @@ sub _process_file {
         $shortout =~ s{ [.] spin \z }{.html}xms;
         $self->{generated}{$output} = 1;
         if ($self->{pointer}->is_out_of_date($input, $output)) {
-            _print_checked("Converting $shortout\n");
+            print_checked("Converting $shortout\n");
             $self->{pointer}->spin_pointer($input, $output);
         }
     } elsif ($file =~ m{ [.] th \z }xms) {
@@ -447,13 +405,13 @@ sub _process_file {
             my $relative = $input;
             $relative =~ s{ ^ \Q$self->{source}\E / }{}xms;
             my $time = $self->{versions}->latest_release($relative);
-            return if _is_newer($output, $file) && (stat($output))[9] >= $time;
+            return if is_newer($output, $file) && (stat($output))[9] >= $time;
         } else {
-            return if _is_newer($output, $file);
+            return if is_newer($output, $file);
         }
 
         # The output file is not newer.  Respin it.
-        _print_checked("Spinning $shortout\n");
+        print_checked("Spinning $shortout\n");
         $self->{thread}->spin_thread_file($input, $output);
     } else {
         my ($extension) = ($file =~ m{ [.] ([^.]+) \z }xms);
@@ -463,13 +421,13 @@ sub _process_file {
             $shortout =~ s{ [.] \Q$extension\E \z }{.html}xms;
             $self->{generated}{$output} = 1;
             my ($source, $options, $style) = $self->_read_pointer($input);
-            return if _is_newer($output, $input, $source);
-            _print_checked("Running $name for $shortout\n");
+            return if is_newer($output, $input, $source);
+            print_checked("Running $name for $shortout\n");
             $self->$sub($source, $output, $options, $style);
         } else {
             $self->{generated}{$output} = 1;
-            return if _is_newer($output, $file);
-            _print_checked("Updating $shortout\n");
+            return if is_newer($output, $file);
+            print_checked("Updating $shortout\n");
             copy($file, $output)
               or die "copy of $input to $output failed: $!\n";
         }
@@ -492,7 +450,7 @@ sub _delete_files {
     return if $self->{generated}{$file};
     my $shortfile = $file;
     $shortfile =~ s{ ^ \Q$self->{output}\E }{...}xms;
-    _print_checked("Deleting $shortfile\n");
+    print_checked("Deleting $shortfile\n");
     if (-d $file) {
         rmdir($file);
     } else {
@@ -564,7 +522,7 @@ sub spin {
 
     # Canonicalize and check output.
     if (!-d $output) {
-        _print_checked("Creating $output\n");
+        print_checked("Creating $output\n");
         mkdir($output, 0755);
     }
     $output = realpath($output) or die "cannot canonicalize $output: $!\n";
@@ -650,10 +608,10 @@ App::DocKnot::Spin - Static site builder supporting thread macro language
 
 =head1 REQUIREMENTS
 
-Perl 5.24 or later and the modules Git::Repository, Image::Size, and
-Pod::Thread, all of which are available from CPAN.  Also expects to find
-B<faq2html>, B<cvs2xhtml>, and B<cl2xhtml> on the user's PATH to convert
-certain types of files.
+Perl 5.24 or later and the modules Git::Repository, Image::Size,
+List::SomeUtils, and Pod::Thread, all of which are available from CPAN.  Also
+expects to find B<faq2html>, B<cvs2xhtml>, and B<cl2xhtml> on the user's PATH
+to convert certain types of files.
 
 =head1 DESCRIPTION
 

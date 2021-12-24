@@ -12,6 +12,9 @@
    master.  The first of main or master that's found in the repository
    will be used.
 
+ - Move some utility functions into a new App::DocKnot::Util module.  This
+   is primarily intended for internal use by other App::DocKnot modules.
+
  - Fix unintended localization of dates in RSS output, which are supposed
    to be RFC 2822 dates and therefore always use English month and day of
    week names.  Thanks to Slaven Rezić for testing.

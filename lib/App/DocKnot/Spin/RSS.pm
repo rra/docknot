@@ -17,6 +17,7 @@ use warnings;
 
 use App::DocKnot;
 use App::DocKnot::Spin::Thread;
+use App::DocKnot::Util qw(print_checked print_fh);
 use Cwd qw(getcwd);
 use Date::Language ();
 use Date::Parse qw(str2time);
@@ -27,30 +28,6 @@ use POSIX qw(strftime);
 ##############################################################################
 # Utility functions
 ##############################################################################
-
-# print with error checking.  autodie unfortunately can't help us because
-# print can't be prototyped and hence can't be overridden.
-sub _print_checked {
-    my (@args) = @_;
-    print @args or croak('print failed');
-    return;
-}
-
-# print with error checking and an explicit file handle.  autodie
-# unfortunately can't help us because print can't be prototyped and hence
-# can't be overridden.
-#
-# $fh   - Output file handle
-# $file - File name for error reporting
-# @args - Remaining arguments to print
-#
-# Returns: undef
-#  Throws: Text exception on output failure
-sub _print_fh {
-    my ($fh, $file, @args) = @_;
-    print {$fh} @args or croak("cannot write to $file: $!");
-    return;
-}
 
 # Escapes &, <, and > characters for HTML or XML output.
 #
@@ -415,7 +392,7 @@ sub _rss_output {
     }
 
     # Output the RSS header.
-    _print_fh($fh, $file, <<"EOC");
+    print_fh($fh, $file, <<"EOC");
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
@@ -430,14 +407,14 @@ EOC
     if ($metadata_ref->{'rss-base'}) {
         my ($name) = fileparse($file);
         my $url = $metadata_ref->{'rss-base'} . $name;
-        _print_fh(
+        print_fh(
             $fh,
             $file,
             qq{    <atom:link href="$url" rel="self"\n},
             qq{               type="application/rss+xml" />\n},
         );
     }
-    _print_fh($fh, $file, "\n");
+    print_fh($fh, $file, "\n");
 
     # Output each entry, formatting the contents of the entry as we go.
     for my $entry_ref ($entries_ref->@*) {
@@ -470,7 +447,7 @@ EOC
         }
 
         # Output the entry.
-        _print_fh(
+        print_fh(
             $fh,
             $file,
             "    <item>\n",
@@ -486,7 +463,7 @@ EOC
     }
 
     # Close the RSS structure.
-    _print_fh($fh, $file, "  </channel>\n</rss>\n");
+    print_fh($fh, $file, "  </channel>\n</rss>\n");
     return;
 }
 
@@ -505,9 +482,9 @@ sub _thread_output {
 
     # Page prefix.
     if ($metadata_ref->{'thread-prefix'}) {
-        _print_fh($fh, $file, $metadata_ref->{'thread-prefix'}, "\n");
+        print_fh($fh, $file, $metadata_ref->{'thread-prefix'}, "\n");
     } else {
-        _print_fh(
+        print_fh(
             $fh,
             $file,
             "\\heading[Recent Changes][indent]\n\n",
@@ -522,13 +499,13 @@ sub _thread_output {
 
         # Put headings before each month.
         if (!$last_month || $month ne $last_month) {
-            _print_fh($fh, $file, "\\h2[$month]\n\n");
+            print_fh($fh, $file, "\\h2[$month]\n\n");
             $last_month = $month;
         }
 
         # Format each entry.
         my $date = strftime('%Y-%m-%d', localtime($entry_ref->{date}));
-        _print_fh(
+        print_fh(
             $fh,
             $file,
             "\\desc[$date \\entity[mdash]\n",
@@ -538,11 +515,11 @@ sub _thread_output {
         my $description = $entry_ref->{description};
         $description =~ s{ ^ }{    }xmsg;
         $description =~ s{ \\ }{\\\\}xmsg;
-        _print_fh($fh, $file, $description, "]\n\n");
+        print_fh($fh, $file, $description, "]\n\n");
     }
 
     # Print out the end of the page.
-    _print_fh($fh, $file, "\\signature\n");
+    print_fh($fh, $file, "\\signature\n");
     return;
 }
 
@@ -651,7 +628,7 @@ sub _index_output {
 
     # Output the prefix.
     if ($metadata_ref->{'index-prefix'}) {
-        _print_fh($fh, $file, $metadata_ref->{'index-prefix'}, "\n");
+        print_fh($fh, $file, $metadata_ref->{'index-prefix'}, "\n");
     }
 
     # Output each entry.
@@ -681,7 +658,7 @@ sub _index_output {
         }{$1 . _relative_url($2, $metadata_ref->{'index-base'}) . ']' }xmsge;
 
         # Print out the entry.
-        _print_fh(
+        print_fh(
             $fh,
             $file,
             "\\h2[$day: $entry_ref->{title}]\n\n",
@@ -694,9 +671,9 @@ sub _index_output {
 
     # Print out the end of the page.
     if ($metadata_ref->{'index-suffix'}) {
-        _print_fh($fh, $file, $metadata_ref->{'index-suffix'}, "\n");
+        print_fh($fh, $file, $metadata_ref->{'index-suffix'}, "\n");
     }
-    _print_fh($fh, $file, "\\signature\n");
+    print_fh($fh, $file, "\\signature\n");
     return;
 }
 
@@ -766,7 +743,7 @@ sub generate {
 
         # Write the output.
         if ($format eq 'thread') {
-            _print_checked("Generating thread file $prettyfile\n");
+            print_checked("Generating thread file $prettyfile\n");
             open(my $fh, '>', $path);
             $self->_thread_output($fh, $path, $metadata_ref, \@entries);
             close($fh);
@@ -774,7 +751,7 @@ sub generate {
             if (scalar(@entries) > $metadata_ref->{recent}) {
                 splice(@entries, $metadata_ref->{recent});
             }
-            _print_checked("Generating RSS file $prettyfile\n");
+            print_checked("Generating RSS file $prettyfile\n");
             open(my $fh, '>', $path);
             $self->_rss_output($fh, $path, $metadata_ref, \@entries);
             close($fh);
@@ -782,7 +759,7 @@ sub generate {
             if (scalar(@entries) > $metadata_ref->{recent}) {
                 splice(@entries, $metadata_ref->{recent});
             }
-            _print_checked("Generating index file $prettyfile\n");
+            print_checked("Generating index file $prettyfile\n");
             open(my $fh, '>', $path);
             $self->_index_output($fh, $path, $metadata_ref, \@entries);
             close($fh);
@@ -816,8 +793,8 @@ App::DocKnot::Spin::RSS - Generate RSS and thread from a feed description file
 =head1 REQUIREMENTS
 
 Perl 5.006 or later and the modules Date::Language, Date::Parse (both part of
-the TimeDate distribution), and Perl6::Slurp, both of which are available from
-CPAN.
+the TimeDate distribution), List::SomeUtils, and Perl6::Slurp, both of which
+are available from CPAN.
 
 =head1 DESCRIPTION
 

@@ -16,6 +16,7 @@ use autodie;
 use warnings;
 
 use App::DocKnot;
+use App::DocKnot::Util qw(print_fh);
 use Cwd qw(getcwd realpath);
 use File::Basename qw(fileparse);
 use File::Spec      ();
@@ -104,22 +105,6 @@ sub _read_file {
     return $text;
 }
 
-# print with error checking and an explicit file handle.  autodie
-# unfortunately can't help us because print can't be prototyped and hence
-# can't be overridden.
-#
-# $fh   - Output file handle
-# $file - File name for error reporting
-# @args - Remaining arguments to print
-#
-# Returns: undef
-#  Throws: Text exception on output failure
-sub _print_fh {
-    my ($fh, $file, @args) = @_;
-    print {$fh} @args or croak("cannot write to $file: $!");
-    return;
-}
-
 # Sends something to the output file with special handling of whitespace for
 # more readable HTML output.
 #
@@ -159,7 +144,7 @@ sub _output {
     }
 
     # Send the results to the output file.
-    _print_fh($self->{out_fh}, $self->{out_path}, $output);
+    print_fh($self->{out_fh}, $self->{out_path}, $output);
     return;
 }
 
@@ -688,7 +673,7 @@ sub _parse_document {
     }
 
     # Close open tags and print any deferred whitespace.
-    _print_fh($out_fh, $out_path, $self->_block_end(), $self->{space});
+    print_fh($out_fh, $out_path, $self->_block_end(), $self->{space});
     return;
 }
 
@@ -1520,8 +1505,8 @@ App::DocKnot::Spin::Thread - Generate HTML from the macro language thread
 
 =head1 REQUIREMENTS
 
-Perl 5.24 or later and the modules Git::Repository and Image::Size, both of
-which are available from CPAN.
+Perl 5.24 or later and the modules Git::Repository, Image::Size, and
+List::SomeUtils, all of which are available from CPAN.
 
 =head1 DESCRIPTION
 

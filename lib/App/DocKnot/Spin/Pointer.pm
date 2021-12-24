@@ -18,6 +18,7 @@ use parent qw(App::DocKnot);
 use warnings;
 
 use App::DocKnot::Config;
+use App::DocKnot::Util qw(is_newer print_fh);
 use Carp qw(croak);
 use Encode qw(decode encode);
 use File::BaseDir qw(config_files);
@@ -30,40 +31,6 @@ use YAML::XS ();
 # The URL to the software page for all of my web page generation software,
 # used to embed a link to the software that generated the page.
 my $URL = 'https://www.eyrie.org/~eagle/software/web/';
-
-##############################################################################
-# Utility functions
-##############################################################################
-
-# Check if a file, which may not exist, is newer than another list of files.
-#
-# $file   - File whose timestamp to compare
-# @others - Other files to compare against
-#
-# Returns: True if $file exists and is newer than @others, false otherwise
-sub _is_newer {
-    my ($file, @others) = @_;
-    return if !-e $file;
-    my $file_mtime    = (stat($file))[9];
-    my @others_mtimes = map { (stat)[9] } @others;
-    return all { $file_mtime >= $_ } @others_mtimes;
-}
-
-# print with error checking and an explicit file handle.  autodie
-# unfortunately can't help us because print can't be prototyped and hence
-# can't be overridden.
-#
-# $fh   - Output file handle
-# $file - File name for error reporting
-# @args - Remaining arguments to print
-#
-# Returns: undef
-#  Throws: Text exception on output failure
-sub _print_fh {
-    my ($fh, $file, @args) = @_;
-    print {$fh} @args or croak("cannot write to $file: $!");
-    return;
-}
 
 ##############################################################################
 # Format conversions
@@ -127,7 +94,7 @@ sub _spin_markdown {
 
     # Write the result to the output file.
     open(my $outfh, '>', $output);
-    _print_fh($outfh, $output, encode('utf-8', $result));
+    print_fh($outfh, $output, encode('utf-8', $result));
     close($outfh);
     return;
 }
@@ -190,7 +157,7 @@ sub is_out_of_date {
     if (!-e $data_ref->{path}) {
         die "$pointer: path $data_ref->{path} does not exist\n";
     }
-    return !_is_newer($output, $pointer, $data_ref->{path});
+    return !is_newer($output, $pointer, $data_ref->{path});
 }
 
 # Process a given pointer file.
@@ -243,8 +210,8 @@ App::DocKnot::Spin::Pointer - Generate HTML from a pointer to an external file
 
 =head1 REQUIREMENTS
 
-Perl 5.24 or later and the modules File::ShareDir, Kwalify, and YAML::XS, all
-of which are available from CPAN.
+Perl 5.24 or later and the modules File::ShareDir, Kwalify, List::SomeUtils,
+and YAML::XS, all of which are available from CPAN.
 
 =head1 DESCRIPTION
 
