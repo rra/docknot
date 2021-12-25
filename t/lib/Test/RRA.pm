@@ -10,7 +10,7 @@
 
 package Test::RRA;
 
-use 5.008;
+use 5.010;
 use base qw(Exporter);
 use strict;
 use warnings;
@@ -52,7 +52,7 @@ BEGIN {
     # This version should match the corresponding rra-c-util release, but with
     # two digits for the minor version, including a leading zero if necessary,
     # so that it will sort properly.
-    $VERSION = '9.01';
+    $VERSION = '10.01';
 }
 
 # Compare a string to the contents of a file, similar to the standard is()

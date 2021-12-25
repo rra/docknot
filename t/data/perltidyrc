@@ -19,7 +19,6 @@
 
 -bbao           # put line breaks before any operator
 -nbbc           # don't force blank lines before comments (bad for else blocks)
--nbl            # keep opening braces on the same line
 -boc            # do not re-break lists, since perltidy is awful at this
 -ce             # cuddle braces around else
 -l=79           # usually use 78, but don't want 79-long lines reformatted
