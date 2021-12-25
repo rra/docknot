@@ -34,7 +34,7 @@ our @EXPORT_OK = qw(is_newer print_checked print_fh);
 sub is_newer {
     my ($file, @others) = @_;
     return if !-e $file;
-    my $file_mtime    = (stat($file))[9];
+    my $file_mtime = (stat($file))[9];
     my @others_mtimes = map { (stat)[9] } @others;
     return all { $file_mtime >= $_ } @others_mtimes;
 }

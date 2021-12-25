@@ -132,7 +132,7 @@ sub _relative_url {
 sub _spin_file {
     my ($self, $file) = @_;
     my $source = slurp($file);
-    my $cwd    = getcwd();
+    my $cwd = getcwd();
     my (undef, $dir) = fileparse($file);
     chdir($dir);
     my $page = $self->{spin}->spin_thread($source);
@@ -152,7 +152,7 @@ sub _spin_file {
 sub _read_rfc2822_file {
     my ($self, $file) = @_;
     my $key;
-    my @blocks  = ({});
+    my @blocks = ({});
     my $current = $blocks[0];
 
     # Parse the file.  $key holds the last key seen, used to append
@@ -383,9 +383,9 @@ sub _rss_output {
 
     # Determine the current date and latest publication date of all of the
     # entries, published in the obnoxious format used by RSS.
-    my $lang   = Date::Language->new('English');
+    my $lang = Date::Language->new('English');
     my $format = '%a, %d %b %Y %H:%M:%S %z';
-    my $now    = $lang->strftime($format, [localtime()]);
+    my $now = $lang->strftime($format, [localtime()]);
     my $latest = $now;
     if ($entries_ref->@*) {
         $latest = strftime($format, localtime($entries_ref->[0]{date}));
@@ -418,7 +418,7 @@ EOC
 
     # Output each entry, formatting the contents of the entry as we go.
     for my $entry_ref ($entries_ref->@*) {
-        my $date  = $lang->strftime($format, [localtime($entry_ref->{date})]);
+        my $date = $lang->strftime($format, [localtime($entry_ref->{date})]);
         my $title = _escape($entry_ref->{title});
         my $description;
         if ($entry_ref->{description}) {
@@ -635,7 +635,7 @@ sub _index_output {
     for my $entry_ref ($entries_ref->@*) {
         my @time = localtime($entry_ref->{date});
         my $date = strftime('%Y-%m-%d %H:%M', @time);
-        my $day  = strftime('%Y-%m-%d',       @time);
+        my $day = strftime('%Y-%m-%d', @time);
 
         # Get the text of the entry.
         my $text;

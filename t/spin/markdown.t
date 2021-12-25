@@ -38,19 +38,19 @@ require_ok('App::DocKnot::Spin::Pointer');
 # Ensure Devel::Cover has loaded the HTML template before we start changing
 # the working directory with File::Find.  (This is a dumb workaround, but I
 # can't find a better one; +ignore doesn't work.)
-my $pointer  = App::DocKnot::Spin::Pointer->new();
+my $pointer = App::DocKnot::Spin::Pointer->new();
 my $template = $pointer->appdata_path('templates', 'html.tmpl');
-my $tt       = Template->new({ ABSOLUTE => 1 }) or croak(Template->error());
+my $tt = Template->new({ ABSOLUTE => 1 }) or croak(Template->error());
 $tt->process($template, {}, \my $result);
 
 # Spin the tree of files and check the result.
-my $datadir  = File::Spec->catfile('t', 'data', 'spin', 'markdown');
-my $input    = File::Spec->catfile($datadir, 'input');
-my $output   = File::Temp->newdir();
+my $datadir = File::Spec->catfile('t', 'data', 'spin', 'markdown');
+my $input = File::Spec->catfile($datadir, 'input');
+my $output = File::Temp->newdir();
 my $expected = File::Spec->catfile($datadir, 'output');
-my $spin     = App::DocKnot::Spin->new({ 'style-url' => '/~eagle/styles/' });
-my $stdout   = capture_stdout { $spin->spin($input, $output->dirname) };
-my $count    = is_spin_output_tree($output, $expected, 'spin');
+my $spin = App::DocKnot::Spin->new({ 'style-url' => '/~eagle/styles/' });
+my $stdout = capture_stdout { $spin->spin($input, $output->dirname) };
+my $count = is_spin_output_tree($output, $expected, 'spin');
 
 # Report the end of testing.
 done_testing($count + 2);

@@ -39,10 +39,10 @@ isa_ok($docknot, 'App::DocKnot::Command');
 my $tempdir = File::Temp->newdir();
 
 # Spin a single file.
-my $datadir  = File::Spec->catfile('t',      'data',   'spin');
-my $input    = File::Spec->catfile($datadir, 'input',  'index.th');
+my $datadir = File::Spec->catfile('t', 'data', 'spin');
+my $input = File::Spec->catfile($datadir, 'input', 'index.th');
 my $expected = File::Spec->catfile($datadir, 'output', 'index.html');
-my $output   = File::Spec->catfile($tempdir->dirname, 'index.html');
+my $output = File::Spec->catfile($tempdir->dirname, 'index.html');
 $docknot->run('spin-thread', '-s', '/~eagle/styles', $input, $output);
 is_spin_output($output, $expected, 'spin-thread (output specified)');
 
@@ -63,7 +63,7 @@ $input = File::Spec->catfile($datadir, 'input');
 dircopy($input, $indir->dirname)
   or die "Cannot copy $input to $indir: $!\n";
 my $rpod_source = File::Spec->catfile(getcwd(), 'lib', 'App', 'DocKnot.pm');
-my $rpod_path   = File::Spec->catfile(
+my $rpod_path = File::Spec->catfile(
     $indir->dirname, 'software', 'docknot', 'api',
     'app-docknot.rpod',
 );

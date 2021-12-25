@@ -28,7 +28,7 @@ use Cwd qw(getcwd realpath);
 use File::Basename qw(fileparse);
 use File::Copy qw(copy);
 use File::Find qw(find finddepth);
-use File::Spec      ();
+use File::Spec ();
 use Git::Repository ();
 use IPC::System::Simple qw(capture);
 use Pod::Thread 3.00 ();
@@ -65,7 +65,7 @@ my $URL = 'https://www.eyrie.org/~eagle/software/web/';
 # Returns: HTML output
 sub _footer {
     my ($self, $source, $out_path, $id, @templates) = @_;
-    my $output  = q{};
+    my $output = q{};
     my $in_tree = 0;
     if ($self->{source} && $source =~ m{ \A \Q$self->{source}\E }xms) {
         $in_tree = 1;
@@ -191,7 +191,7 @@ sub _write_converter_output {
 sub _cl2xhtml {
     my ($self, $source, $output, $options, $style) = @_;
     $style ||= $self->{style_url} . 'changelog.css';
-    my @page   = capture("cl2xhtml $options -s $style $source");
+    my @page = capture("cl2xhtml $options -s $style $source");
     my $footer = sub {
         my ($blurb, $id) = @_;
         if ($blurb) {
@@ -220,7 +220,7 @@ sub _cvs2xhtml {
     $options .= " -s $style";
 
     # Run the converter and write the output.
-    my @page   = capture("(cd $dir && cvs log $name) | cvs2xhtml $options");
+    my @page = capture("(cd $dir && cvs log $name) | cvs2xhtml $options");
     my $footer = sub {
         my ($blurb, $id, $file) = @_;
         if ($blurb) {
@@ -238,7 +238,7 @@ sub _cvs2xhtml {
 sub _faq2html {
     my ($self, $source, $output, $options, $style) = @_;
     $style ||= $self->{style_url} . 'faq.css';
-    my @page   = capture("faq2html $options -s $style $source");
+    my @page = capture("faq2html $options -s $style $source");
     my $footer = sub {
         my ($blurb, $id, $file) = @_;
         if ($blurb) {
@@ -316,9 +316,9 @@ sub _read_pointer {
 
     # Read the pointer file.
     open(my $pointer, '<', $file);
-    my $master  = <$pointer>;
+    my $master = <$pointer>;
     my $options = <$pointer>;
-    my $style   = <$pointer>;
+    my $style = <$pointer>;
     close($pointer);
 
     # Clean up the contents.
@@ -356,7 +356,7 @@ sub _process_file {
             return;
         }
     }
-    my $input  = $File::Find::name;
+    my $input = $File::Find::name;
     my $output = $input;
     $output =~ s{ \A \Q$self->{source}\E }{$self->{output}}xms
       or die "input file $file out of tree\n";
@@ -366,12 +366,14 @@ sub _process_file {
     # Conversion rules for pointers.  The key is the extension, the first
     # value is the name of the command for the purposes of output, and the
     # second is the name of the method to run.
+    #<<<
     my %rules = (
         changelog => ['cl2xhtml',   '_cl2xhtml'],
         faq       => ['faq2html',   '_faq2html'],
         log       => ['cvs2xhtml',  '_cvs2xhtml'],
         rpod      => ['pod2thread', '_pod2html'],
     );
+    #>>>
 
     # Figure out what to do with the input.
     if (-d $file) {
@@ -387,7 +389,7 @@ sub _process_file {
             $self->{rss}->generate($rss_path, $file);
         }
     } elsif ($file =~ m{ [.] spin \z }xms) {
-        $output   =~ s{ [.] spin \z }{.html}xms;
+        $output =~ s{ [.] spin \z }{.html}xms;
         $shortout =~ s{ [.] spin \z }{.html}xms;
         $self->{generated}{$output} = 1;
         if ($self->{pointer}->is_out_of_date($input, $output)) {
@@ -395,7 +397,7 @@ sub _process_file {
             $self->{pointer}->spin_pointer($input, $output);
         }
     } elsif ($file =~ m{ [.] th \z }xms) {
-        $output   =~ s{ [.] th \z }{.html}xms;
+        $output =~ s{ [.] th \z }{.html}xms;
         $shortout =~ s{ [.] th \z }{.html}xms;
         $self->{generated}{$output} = 1;
 
@@ -417,7 +419,7 @@ sub _process_file {
         my ($extension) = ($file =~ m{ [.] ([^.]+) \z }xms);
         if (defined($extension) && $rules{$extension}) {
             my ($name, $sub) = $rules{$extension}->@*;
-            $output   =~ s{ [.] \Q$extension\E \z }{.html}xms;
+            $output =~ s{ [.] \Q$extension\E \z }{.html}xms;
             $shortout =~ s{ [.] \Q$extension\E \z }{.html}xms;
             $self->{generated}{$output} = 1;
             my ($source, $options, $style) = $self->_read_pointer($input);
@@ -489,12 +491,14 @@ sub new {
     }
 
     # Create and return the object.
+    #<<<
     my $self = {
         delete    => $args_ref->{delete},
         excludes  => [@excludes],
         rss       => App::DocKnot::Spin::RSS->new(),
         style_url => $style_url,
     };
+    #>>>
     bless($self, $class);
     return $self;
 }
@@ -551,6 +555,7 @@ sub spin {
     }
 
     # Create a new thread converter object.
+    #<<<
     $self->{thread} = App::DocKnot::Spin::Thread->new(
         {
             output      => $output,
@@ -560,8 +565,10 @@ sub spin {
             versions    => $self->{versions},
         },
     );
+    #>>>
 
     # Create the processor for pointers.
+    #<<<
     $self->{pointer} = App::DocKnot::Spin::Pointer->new(
         {
             output      => $output,
@@ -569,15 +576,12 @@ sub spin {
             'style-url' => $self->{style_url},
         },
     );
+    #>>>
 
     # Process the input tree.
-    find(
-        {
-            preprocess => sub { my @files = sort(@_); return @files },
-            wanted     => sub { $self->_process_file(@_) },
-        },
-        $input,
-    );
+    my $preprocess = sub { my @files = sort(@_); return @files };
+    my $wanted = sub { $self->_process_file(@_) };
+    find({ preprocess => $preprocess, wanted => $wanted }, $input);
     if ($self->{delete}) {
         finddepth(sub { $self->_delete_files(@_) }, $output);
     }

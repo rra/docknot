@@ -19,7 +19,7 @@ use App::DocKnot;
 use App::DocKnot::Util qw(print_fh);
 use Cwd qw(getcwd realpath);
 use File::Basename qw(fileparse);
-use File::Spec      ();
+use File::Spec ();
 use Git::Repository ();
 use Image::Size qw(html_imgsize);
 use Perl6::Slurp qw(slurp);
@@ -35,6 +35,7 @@ my $URL = 'https://www.eyrie.org/~eagle/software/web/';
 # 1. Number of arguments or -1 to consume as many arguments as it can find.
 # 2. Name of the method to call with the arguments and (if wanted) format.
 # 3. Whether to look for a format in parens before the arguments.
+#<<<
 my %COMMANDS = (
     # name       args  method             want_format
     block     => [1,  '_cmd_block',       1],
@@ -81,6 +82,7 @@ my %COMMANDS = (
     q{==}     => [3,  '_define_macro',    0],
     q{\\}     => [0,  '_literal',         0],
 );
+#>>>
 
 ##############################################################################
 # Input and output
@@ -240,7 +242,7 @@ sub _paragraph {
 # Returns: Output to write to start the structure
 sub _border_start {
     my ($self, $border, $start, $end) = @_;
-    my $state  = $self->{state}[-1];
+    my $state = $self->{state}[-1];
     my $output = q{};
 
     # If we're at the top-level block structure or inside a structure other
@@ -435,7 +437,7 @@ sub _expand {
         my ($blocktag, $output) = $self->$handler($format, @args);
         return ($output, $blocktag, $rest);
     } else {
-        my ($rest,     @args)   = $self->_extract($text, $args);
+        my ($rest, @args) = $self->_extract($text, $args);
         my ($blocktag, $output) = $self->$handler(@args);
         return ($output, $blocktag, $rest);
     }
@@ -562,7 +564,7 @@ sub _parse_context {
             if ($blocktag) {
                 if ($block && $paragraph ne q{}) {
                     $output .= $border . $self->_paragraph($paragraph);
-                    $border    = q{};
+                    $border = q{};
                     $paragraph = q{};
                 } else {
                     $output .= $space;
@@ -644,6 +646,7 @@ sub _parse_document {
     my @input = reverse($self->_split_paragraphs($thread));
 
     # Initialize object state for a new document.
+    #<<<
     $self->{input}    = [[\@input, $in_path, 1]];
     $self->{macro}    = {};
     $self->{out_fh}   = $out_fh;
@@ -652,6 +655,7 @@ sub _parse_document {
     $self->{space}    = q{};
     $self->{state}    = ['BLOCK'];
     $self->{variable} = {};
+    #>>>
 
     # Parse the thread file a paragraph at a time.  _split_paragraphs takes
     # care of ensuring that each paragraph contains the complete value of a
@@ -720,13 +724,13 @@ sub _split_paragraphs {
 
     # Pull paragraphs off the text one by one.
     while ($text ne q{} && $text =~ s{ \A ( .*? (?: \n\n+ | \s*\z ) )}{}xms) {
-        my $para        = $1;
-        my $open_count  = ($para =~ tr{\[}{});
+        my $para = $1;
+        my $open_count = ($para =~ tr{\[}{});
         my $close_count = ($para =~ tr{\]}{});
         while ($text ne q{} && $open_count > $close_count) {
             if ($text =~ s{ \A ( .*? (?: \n\n+ | \s*\z ) )}{}xms) {
                 my $extra = $1;
-                $open_count  += ($extra =~ tr{\[}{});
+                $open_count += ($extra =~ tr{\[}{});
                 $close_count += ($extra =~ tr{\]}{});
                 $para .= $extra;
             } else {
@@ -769,7 +773,7 @@ sub _block {
 
     # Close the tag.  The tag may have contained attributes, which aren't
     # allowed in the closing tag.
-    $tag    =~ s{ [ ] .* }{}xms;
+    $tag =~ s{ [ ] .* }{}xms;
     $output =~ s{ \s* \z }{</$tag>}xms;
     if ($format ne 'packed') {
         $output .= "\n";
@@ -915,6 +919,7 @@ sub _literal { return (0, q{\\}) }
 ##############################################################################
 
 # Basic inline commands.
+#<<<
 sub _cmd_break  { return (0, '<br />') }
 sub _cmd_bold   { my ($self, @a) = @_; return $self->_inline('b',      @a) }
 sub _cmd_cite   { my ($self, @a) = @_; return $self->_inline('cite',   @a) }
@@ -927,6 +932,7 @@ sub _cmd_strong { my ($self, @a) = @_; return $self->_inline('strong', @a) }
 sub _cmd_sub    { my ($self, @a) = @_; return $self->_inline('sub',    @a) }
 sub _cmd_sup    { my ($self, @a) = @_; return $self->_inline('sup',    @a) }
 sub _cmd_under  { my ($self, @a) = @_; return $self->_inline('u',      @a) }
+#>>>
 
 # The headings.
 sub _cmd_h1 { my ($self, @a) = @_; return $self->_heading(1, @a); }
@@ -975,8 +981,8 @@ sub _cmd_desc {
     my ($self, $format, $heading, $text) = @_;
     $heading = $self->_parse($heading);
     my $format_attr = $self->_format_attr($format);
-    my $border      = $self->_border_start('desc', "<dl>\n", "</dl>\n\n");
-    my $initial     = $border . "<dt$format_attr>" . $heading . "</dt>\n";
+    my $border = $self->_border_start('desc', "<dl>\n", "</dl>\n\n");
+    my $initial = $border . "<dt$format_attr>" . $heading . "</dt>\n";
     return $self->_block('dd', $initial, $format, $text);
 }
 
@@ -1084,7 +1090,7 @@ sub _cmd_heading {
 sub _cmd_image {
     my ($self, $format, $image, $text) = @_;
     $image = $self->_parse($image);
-    $text  = $self->_parse($text);
+    $text = $self->_parse($text);
 
     # Determine the size attributes of the image if possible.
     my $size = -e $image ? q{ } . lc(html_imgsize($image)) : q{};
@@ -1102,7 +1108,7 @@ sub _cmd_include {
     $file = realpath($self->_parse($file));
 
     # Read the thread, split it on paragraphs, and reverse it to make a stack.
-    my $thread     = $self->_read_file($file);
+    my $thread = $self->_read_file($file);
     my @paragraphs = reverse($self->_split_paragraphs($thread));
 
     # Add it to the file stack.
@@ -1119,7 +1125,7 @@ sub _cmd_include {
 # $text   - Anchor text
 sub _cmd_link {
     my ($self, $format, $url, $text) = @_;
-    $url  = $self->_parse($url);
+    $url = $self->_parse($url);
     $text = $self->_parse($text);
     my $format_attr = $self->_format_attr($format);
     return (0, qq{<a href="$url"$format_attr>$text</a>});
@@ -1149,7 +1155,7 @@ sub _cmd_pre {
 sub _cmd_quote {
     my ($self, $format, $quote, $author, $cite) = @_;
     $author = $self->_parse($author);
-    $cite   = $self->_parse($cite);
+    $cite = $self->_parse($cite);
     my $output = $self->_border_end() . q{<blockquote class="quote">};
 
     # Parse the contents of the quote in a new block context.
@@ -1223,7 +1229,7 @@ sub _cmd_release {
 # directly; the RSS feed information is used later in _cmd_heading.
 sub _cmd_rss {
     my ($self, $url, $title) = @_;
-    $url   = $self->_parse($url);
+    $url = $self->_parse($url);
     $title = $self->_parse($title);
     push($self->{rss}->@*, [$url, $title]);
     return (1, q{});
@@ -1251,7 +1257,7 @@ sub _cmd_signature {
     }
 
     # Figure out the modification dates.  Use the Git repository if available.
-    my $now      = strftime('%Y-%m-%d', gmtime());
+    my $now = strftime('%Y-%m-%d', gmtime());
     my $modified = strftime('%Y-%m-%d', gmtime((stat($source))[9]));
     if ($self->{repository} && $self->{source}) {
         my $repository = $self->{repository};
@@ -1291,7 +1297,7 @@ sub _cmd_size {
 
     # Format the size using SI units.
     my @suffixes = qw(K M G T);
-    my $suffix   = q{};
+    my $suffix = q{};
     while ($size > 1024 && @suffixes) {
         $size /= 1024;
         $suffix = shift(@suffixes);
@@ -1395,6 +1401,7 @@ sub new {
     }
 
     # Create and return the object.
+    #<<<
     my $self = {
         output     => $args_ref->{output},
         repository => $repository,
@@ -1403,6 +1410,7 @@ sub new {
         style_url  => $style_url,
         versions   => $args_ref->{versions},
     };
+    #>>>
     bless($self, $class);
     return $self;
 }
@@ -1438,12 +1446,12 @@ sub spin_thread_file {
     # ensure that relative file references resolve properly.
     if (defined($input)) {
         my $path = realpath($input) or die "cannot canonicalize $input: $!\n";
-        $input  = $path;
+        $input = $path;
         $thread = slurp($input);
         my (undef, $input_dir) = fileparse($input);
         chdir($input_dir);
     } else {
-        $input  = q{-};
+        $input = q{-};
         $thread = slurp(\*STDIN);
     }
 

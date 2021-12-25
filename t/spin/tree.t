@@ -72,13 +72,13 @@ require_ok('App::DocKnot::Spin');
 # additional thread files.  Replace the rpod pointer since it points to a
 # relative path in the source tree, but change its modification timestamp to
 # something in the past.
-my $tmpdir  = File::Temp->newdir();
+my $tmpdir = File::Temp->newdir();
 my $datadir = File::Spec->catfile('t', 'data', 'spin');
-my $input   = File::Spec->catfile($datadir, 'input');
+my $input = File::Spec->catfile($datadir, 'input');
 dircopy($input, $tmpdir->dirname)
   or die "Cannot copy $input to $tmpdir: $!\n";
 my $rpod_source = File::Spec->catfile(getcwd(), 'lib', 'App', 'DocKnot.pm');
-my $rpod_path   = File::Spec->catfile(
+my $rpod_path = File::Spec->catfile(
     $tmpdir->dirname, 'software', 'docknot', 'api',
     'app-docknot.rpod',
 );
@@ -89,18 +89,18 @@ close($fh);
 my $old_timestamp = time() - 10;
 
 # Spin a tree of files.
-my $output   = File::Temp->newdir();
+my $output = File::Temp->newdir();
 my $expected = File::Spec->catfile($datadir, 'output');
-my $spin     = App::DocKnot::Spin->new({ 'style-url' => '/~eagle/styles/' });
-my $stdout   = capture_stdout {
+my $spin = App::DocKnot::Spin->new({ 'style-url' => '/~eagle/styles/' });
+my $stdout = capture_stdout {
     $spin->spin($tmpdir->dirname, $output->dirname);
 };
 my $count = is_spin_output_tree($output, $expected, 'spin');
 is($stdout, $EXPECTED_OUTPUT, 'Expected spin output');
 
 # Create a bogus file in the output tree.
-my $bogus      = File::Spec->catfile($output->dirname, 'bogus');
-my $bogus_file = File::Spec->catfile($bogus,           'some-file');
+my $bogus = File::Spec->catfile($output->dirname, 'bogus');
+my $bogus_file = File::Spec->catfile($bogus, 'some-file');
 mkdir($bogus);
 open($fh, '>', $bogus_file);
 print {$fh} "Some stuff\n" or die "Cannot write to $bogus_file: $!\n";
@@ -154,7 +154,7 @@ like(
     qr{ <title> New [ ] Title </title> }xms,
     'POD title override worked',
 );
-like($page, qr{ <h1> New [ ] Title </h1> }xms,  'POD h1 override worked');
+like($page, qr{ <h1> New [ ] Title </h1> }xms, 'POD h1 override worked');
 like($page, qr{ Table [ ] of [ ] Contents }xms, 'POD table of contents');
 
 # Set the time back so that it won't be generated again.
@@ -165,8 +165,8 @@ utime(time() - 5, time() - 5, $rpod_path)
 # timestamp to ten seconds into the future.  This should force regeneration of
 # only the software/docknot/index.html file.
 my $versions_path = File::Spec->catfile($tmpdir->dirname, '.versions');
-my $versions      = slurp($versions_path);
-my $new_date      = strftime('%Y-%m-%d %T', localtime(time() + 10));
+my $versions = slurp($versions_path);
+my $new_date = strftime('%Y-%m-%d %T', localtime(time() + 10));
 $versions =~ s{ \d{4}-\d\d-\d\d [ ] [\d:]+ }{$new_date}xms;
 chmod(0644, $versions_path);
 open(my $versions_fh, '>', $versions_path);

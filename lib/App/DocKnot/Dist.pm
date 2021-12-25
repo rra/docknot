@@ -23,8 +23,8 @@ use Cwd qw(getcwd);
 use File::Copy qw(move);
 use File::Find qw(find);
 use File::Path qw(remove_tree);
-use Git::Repository        ();
-use IO::Compress::Xz       ();
+use Git::Repository ();
+use IO::Compress::Xz ();
 use IO::Uncompress::Gunzip ();
 use IPC::Run qw(run);
 use IPC::System::Simple qw(systemx);
@@ -139,7 +139,7 @@ sub _expected_dist_files {
 #  Throws: Text exception if no gzip tarball was found
 sub _find_gzip_tarball {
     my ($self, $path, $prefix) = @_;
-    my @files     = $self->_find_matching_tarballs($path, $prefix);
+    my @files = $self->_find_matching_tarballs($path, $prefix);
     my $gzip_file = lastval { m{ [.]tar [.]gz \z }xms } @files;
     if (!defined($gzip_file)) {
         die "cannot find gzip tarball for $prefix in $path\n";
@@ -175,14 +175,14 @@ sub _generate_compression_formats {
     my @files = $self->_find_matching_tarballs($path, $prefix);
     if (!any { m{ [.]tar [.]xz \z }xms } @files) {
         my $gzip_file = lastval { m{ [.]tar [.]gz \z }xms } @files;
-        my $xz_file   = $gzip_file;
+        my $xz_file = $gzip_file;
         $xz_file =~ s{ [.]gz \z }{.xz}xms;
         my $gzip_path = File::Spec->catfile($path, $gzip_file);
-        my $xz_path   = File::Spec->catfile($path, $xz_file);
+        my $xz_path = File::Spec->catfile($path, $xz_file);
 
         # Open the input and output files.
         my $gzip_fh = IO::Uncompress::Gunzip->new($gzip_path);
-        my $xz_fh   = IO::Compress::Xz->new($xz_path);
+        my $xz_fh = IO::Compress::Xz->new($xz_path);
 
         # Read from the gzip file and write to the xz-compressed file.
         my $buffer;
@@ -248,7 +248,7 @@ sub _sign_tarballs {
     for my $file (@files) {
         my $tarball_path = File::Spec->catdir($path, $file);
         systemx(
-            $self->{gpg},     '--detach-sign', '--armor', '-u',
+            $self->{gpg}, '--detach-sign', '--armor', '-u',
             $self->{pgp_key}, $tarball_path,
         );
     }
@@ -293,6 +293,7 @@ sub new {
     }
 
     # Create and return the object.
+    #<<<
     my $self = {
         config  => $config_reader->config(),
         distdir => $distdir,
@@ -300,6 +301,7 @@ sub new {
         perl    => $args_ref->{perl},
         pgp_key => $args_ref->{pgp_key} // $global_config_ref->{pgp_key},
     };
+    #>>>
     bless($self, $class);
     return $self;
 }
@@ -318,7 +320,7 @@ sub check_dist {
     my ($self, $source, $tarball) = @_;
     my @expected = $self->_expected_dist_files(getcwd());
     my %expected = map { $_ => 1 } @expected;
-    my $archive  = Archive::Tar->new($tarball);
+    my $archive = Archive::Tar->new($tarball);
     for my $file ($archive->list_files()) {
         $file =~ s{ \A [^/]* / }{}xms;
         delete $expected{$file};
@@ -333,8 +335,8 @@ sub check_dist {
 # Returns: List of commands, each of which is a list of strings representing
 #          a command and its arguments
 sub commands {
-    my ($self)   = @_;
-    my $type     = $self->{config}{build}{type};
+    my ($self) = @_;
+    my $type = $self->{config}{build}{type};
     my @commands = map { [@$_] } $COMMANDS{$type}->@*;
 
     # Special-case: If a specific path to Perl was configured, use that path
@@ -391,11 +393,11 @@ sub make_distribution {
     }
 
     # Export the Git repository into a new directory.
-    my $repo     = Git::Repository->new(work_tree => $source);
+    my $repo = Git::Repository->new(work_tree => $source);
     my @branches = $repo->run(
         'for-each-ref' => '--format=%(refname:short)', 'refs/heads/',
     );
-    my $head    = first { $_ eq 'main' || $_ eq 'master' } @branches;
+    my $head = first { $_ eq 'main' || $_ eq 'master' } @branches;
     my $archive = $repo->command(archive => "--prefix=${prefix}/", $head);
     run([qw(tar xf -)], '<', $archive->stdout)
       or die "git archive | tar xf - failed with status $?\n";

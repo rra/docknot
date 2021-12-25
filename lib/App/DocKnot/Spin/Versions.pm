@@ -84,9 +84,9 @@ sub _read_data {
             if (!defined($time)) {
                 die "invalid line $. in $path\n";
             }
-            @depends   = @files;
+            @depends = @files;
             $timestamp = _datetime_to_seconds($date, $time, $path);
-            $date      = strftime('%Y-%m-%d', gmtime($timestamp));
+            $date = strftime('%Y-%m-%d', gmtime($timestamp));
             $self->{versions}{$package} = [$version, $date];
         }
 
@@ -120,7 +120,7 @@ sub new {
 
     # Create an empty object.
     my $self = {
-        depends  => {},
+        depends => {},
         versions => {},
     };
     bless($self, $class);

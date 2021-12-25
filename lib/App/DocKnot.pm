@@ -71,9 +71,9 @@ sub load_yaml_file {
     local $YAML::XS::Boolean = 'JSON::PP';
 
     # Load the metadata and check it against the schema.
-    my $data_ref    = YAML::XS::LoadFile($path);
+    my $data_ref = YAML::XS::LoadFile($path);
     my $schema_path = $self->appdata_path('schema', $schema . '.yaml');
-    my $schema_ref  = YAML::XS::LoadFile($schema_path);
+    my $schema_ref = YAML::XS::LoadFile($schema_path);
     eval { validate($schema_ref, $data_ref) };
     if ($@) {
         my $errors = $@;

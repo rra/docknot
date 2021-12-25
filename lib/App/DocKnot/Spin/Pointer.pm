@@ -76,6 +76,7 @@ sub _spin_markdown {
     if ($data_ref->{style}) {
         $style = $self->{style_url} . $data_ref->{style};
     }
+    #<<<
     my %vars = (
         docknot_url => $URL,
         html        => decode('utf-8', $html),
@@ -86,6 +87,7 @@ sub _spin_markdown {
         style       => $style,
         title       => $title,
     );
+    #>>>
 
     # Construct the output page from those template variables.
     my $result;
@@ -118,9 +120,9 @@ sub new {
     my ($class, $args_ref) = @_;
 
     # Get the configured path to pandoc, if any.
-    my $config_reader     = App::DocKnot::Config->new();
+    my $config_reader = App::DocKnot::Config->new();
     my $global_config_ref = $config_reader->global_config();
-    my $pandoc            = $global_config_ref->{pandoc} // 'pandoc';
+    my $pandoc = $global_config_ref->{pandoc} // 'pandoc';
 
     # Add a trailing slash to the partial URL for style sheets.
     my $style_url = $args_ref->{'style-url'} // q{};
@@ -129,7 +131,8 @@ sub new {
     }
 
     # Create and return the object.
-    my $tt   = Template->new({ ABSOLUTE => 1 }) or croak(Template->error());
+    my $tt = Template->new({ ABSOLUTE => 1 }) or croak(Template->error());
+    #<<<
     my $self = {
         output      => $args_ref->{output},
         pandoc_path => $pandoc,
@@ -137,6 +140,7 @@ sub new {
         style_url   => $style_url,
         template    => $tt,
     };
+    #>>>
     bless($self, $class);
     $self->{template_path} = $self->appdata_path('templates', 'html.tmpl');
     return $self;

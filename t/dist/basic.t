@@ -28,14 +28,14 @@ local $ENV{XDG_CONFIG_HOME} = '/nonexistent';
 local $ENV{XDG_CONFIG_DIRS} = '/nonexistent';
 
 # Find the full path to the test data.
-my $cwd      = getcwd() or die "$0: cannot get working directory: $!\n";
+my $cwd = getcwd() or die "$0: cannot get working directory: $!\n";
 my $dataroot = File::Spec->catfile($cwd, 't', 'data', 'dist', 'package');
 my $gpg_path = File::Spec->catfile($cwd, 't', 'data', 'dist', 'fake-gpg');
 
 # Set up a temporary directory.
-my $dir       = File::Temp->newdir();
+my $dir = File::Temp->newdir();
 my $sourcedir = File::Spec->catfile($dir, 'source');
-my $distdir   = File::Spec->catfile($dir, 'dist');
+my $distdir = File::Spec->catfile($dir, 'dist');
 
 # Create a new repository, copy all files from the data directory, and commit
 # them.  We have to rename the test while we copy it to avoid having it picked
@@ -46,10 +46,10 @@ my $testpath = File::Spec->catfile($sourcedir, 't', 'api', 'empty.t');
 rename($testpath . '.in', $testpath);
 Git::Repository->run('init', { cwd => $sourcedir, quiet => 1 });
 my $repo = Git::Repository->new(work_tree => $sourcedir);
-$repo->run(config => '--add', 'user.name',  'Test');
+$repo->run(config => '--add', 'user.name', 'Test');
 $repo->run(config => '--add', 'user.email', 'test@example.com');
-$repo->run(add    => '-A',    q{.});
-$repo->run(commit => '-q',    '-m', 'Initial commit');
+$repo->run(add => '-A', q{.});
+$repo->run(commit => '-q', '-m', 'Initial commit');
 
 # Check whether we have all the necessary tools to run the test.
 my $result;
@@ -83,9 +83,9 @@ my $dist = App::DocKnot::Dist->new({ distdir => $distdir, perl => $^X });
 capture_stdout {
     eval { $dist->make_distribution() };
 };
-ok(-e File::Spec->catfile($distdir,  'Empty-1.00.tar.gz'), 'dist exists');
-ok(-e File::Spec->catfile($distdir,  'Empty-1.00.tar.xz'), 'xz dist exists');
-ok(!-e File::Spec->catfile($distdir, 'Empty-1.00.tar'),    'tarball missing');
+ok(-e File::Spec->catfile($distdir, 'Empty-1.00.tar.gz'), 'dist exists');
+ok(-e File::Spec->catfile($distdir, 'Empty-1.00.tar.xz'), 'xz dist exists');
+ok(!-e File::Spec->catfile($distdir, 'Empty-1.00.tar'), 'tarball missing');
 ok(!-e File::Spec->catfile($distdir, 'Empty-1.00.tar.gz.asc'), 'no signature');
 ok(!-e File::Spec->catfile($distdir, 'Empty-1.00.tar.xz.asc'), 'no signature');
 is($@, q{}, 'no errors');
@@ -145,7 +145,7 @@ $stdout = capture_stdout {
     eval { $dist->make_distribution() };
 };
 is($@, "2 files missing from distribution\n", 'correct error for two files');
-like($stdout, qr{ some-file }xms,    'output mentions the first file');
+like($stdout, qr{ some-file }xms, 'output mentions the first file');
 like($stdout, qr{ another-file }xms, 'output mentions the other file');
 @missing = $dist->check_dist($sourcedir, $tarball);
 is_deeply(['another-file', 'some-file'], \@missing, 'check_dist matches');

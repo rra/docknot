@@ -74,14 +74,14 @@ sub config {
     }
 
     # Expand the package license into license text.
-    my $license       = $data_ref->{license}{name};
+    my $license = $data_ref->{license}{name};
     my $licenses_path = $self->appdata_path('licenses.yaml');
-    my $licenses_ref  = YAML::XS::LoadFile($licenses_path);
+    my $licenses_ref = YAML::XS::LoadFile($licenses_path);
     if (!exists($licenses_ref->{$license})) {
         die "unknown license $license\n";
     }
     $data_ref->{license}{summary} = $licenses_ref->{$license}{summary};
-    $data_ref->{license}{text}    = $licenses_ref->{$license}{text};
+    $data_ref->{license}{text} = $licenses_ref->{$license}{text};
 
     # Return the resulting configuration.
     return $data_ref;
