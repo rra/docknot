@@ -11,9 +11,17 @@ mapping:
     required: true
     enum:
       - markdown
+      - pod
   path:
     type: text
     required: true
+  options:
+    type: map
+    mapping:
+      contents:
+        type: bool
+      navbar:
+        type: bool
   style:
     type: text
   title:

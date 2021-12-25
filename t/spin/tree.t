@@ -56,7 +56,7 @@ Spinning .../software/index.html
 Creating .../software/docknot
 Spinning .../software/docknot/index.html
 Creating .../software/docknot/api
-Running pod2thread for .../software/docknot/api/app-docknot.html
+Converting .../software/docknot/api/app-docknot.html
 Creating .../usefor
 Spinning .../usefor/index.html
 Creating .../usefor/drafts
@@ -66,10 +66,12 @@ Updating .../usefor/drafts/draft-ietf-usefor-useage-01.txt
 Updating .../usefor/drafts/draft-lindsey-usefor-signed-01.txt
 OUTPUT
 
+BEGIN { use_ok('App::DocKnot::Util', qw(print_fh)) }
+
 require_ok('App::DocKnot::Spin');
 
 # Copy the input tree to a new temporary directory since .rss files generate
-# additional thread files.  Replace the rpod pointer since it points to a
+# additional thread files.  Replace the POD pointer since it points to a
 # relative path in the source tree, but change its modification timestamp to
 # something in the past.
 my $tmpdir = File::Temp->newdir();
@@ -77,14 +79,15 @@ my $datadir = File::Spec->catfile('t', 'data', 'spin');
 my $input = File::Spec->catfile($datadir, 'input');
 dircopy($input, $tmpdir->dirname)
   or die "Cannot copy $input to $tmpdir: $!\n";
-my $rpod_source = File::Spec->catfile(getcwd(), 'lib', 'App', 'DocKnot.pm');
-my $rpod_path = File::Spec->catfile(
+my $pod_source = File::Spec->catfile(getcwd(), 'lib', 'App', 'DocKnot.pm');
+my $pointer_path = File::Spec->catfile(
     $tmpdir->dirname, 'software', 'docknot', 'api',
-    'app-docknot.rpod',
+    'app-docknot.spin',
 );
-chmod(0644, $rpod_path);
-open(my $fh, '>', $rpod_path);
-print {$fh} "$rpod_source\n" or die "Cannot write to $rpod_path: $!\n";
+chmod(0644, $pointer_path);
+open(my $fh, '>', $pointer_path);
+print_fh($fh, $pointer_path, "format: pod\n");
+print_fh($fh, $pointer_path, "path: $pod_source\n");
 close($fh);
 my $old_timestamp = time() - 10;
 
@@ -132,17 +135,20 @@ ok(!-e $bogus, 'Stray file and directory was deleted');
 
 # Override the title of the POD document and request a contents section.  Set
 # the modification timestamp in the future to force a repsin.
-open($fh, '>>', $rpod_path);
-print {$fh} "-c -t 'New Title'\n" or die "Cannot write to $rpod_path: $!\n";
+open($fh, '>>', $pointer_path);
+print_fh($fh, $pointer_path, "format: pod\n");
+print_fh($fh, $pointer_path, "path: $pod_source\n");
+print_fh($fh, $pointer_path, "options:\n  contents: true\n  navbar: false\n");
+print_fh($fh, $pointer_path, "title: 'New Title'\n");
 close($fh);
-utime(time() + 5, time() + 5, $rpod_path)
-  or die "Cannot reset timestamps of $rpod_path: $!\n";
+utime(time() + 5, time() + 5, $pointer_path)
+  or die "Cannot reset timestamps of $pointer_path: $!\n";
 $stdout = capture_stdout {
     $spin->spin($tmpdir->dirname, $output->dirname);
 };
 is(
     $stdout,
-    "Running pod2thread for .../software/docknot/api/app-docknot.html\n",
+    "Converting .../software/docknot/api/app-docknot.html\n",
     'Spinning again regenerates the App::DocKnot page',
 );
 my $output_path = File::Spec->catfile(
@@ -158,8 +164,8 @@ like($page, qr{ <h1> New [ ] Title </h1> }xms, 'POD h1 override worked');
 like($page, qr{ Table [ ] of [ ] Contents }xms, 'POD table of contents');
 
 # Set the time back so that it won't be generated again.
-utime(time() - 5, time() - 5, $rpod_path)
-  or die "Cannot reset timestamps of $rpod_path: $!\n";
+utime(time() - 5, time() - 5, $pointer_path)
+  or die "Cannot reset timestamps of $pointer_path: $!\n";
 
 # Now, update the .versions file at the top of the input tree to change the
 # timestamp to ten seconds into the future.  This should force regeneration of
@@ -182,4 +188,4 @@ is(
 );
 
 # Report the end of testing.
-done_testing($count + 11);
+done_testing($count + 12);

@@ -117,6 +117,7 @@ The following additional Perl modules are required to use it:
 \bullet(packed)[JSON::MaybeXS]
 \bullet(packed)[Kwalify]
 \bullet(packed)[List::SomeUtils 0.07 or later]
+\bullet(packed)[Path::Tiny]
 \bullet(packed)[Perl6::Slurp]
 \bullet(packed)[Pod::Thread 3.00 or later]
 \bullet(packed)[Template (part of Template Toolkit)]

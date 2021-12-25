@@ -22,6 +22,7 @@ use File::Basename qw(fileparse);
 use File::Spec ();
 use Git::Repository ();
 use Image::Size qw(html_imgsize);
+use Path::Tiny qw(path);
 use Perl6::Slurp qw(slurp);
 use POSIX qw(strftime);
 use Text::Balanced qw(extract_bracketed);
@@ -635,26 +636,28 @@ sub _parse {
 # since thread may contain relative paths to files that the spinning process
 # needs to access.
 #
-# $thread   - Thread to spin
-# $in_path  - Input file path if any, used for error reporting
-# $out_fh   - Output file handle to which to write the HTML
-# $out_path - Optional output file path for error reporting and page links
+# $thread     - Thread to spin
+# $in_path    - Input file path if any, used for error reporting
+# $out_fh     - Output file handle to which to write the HTML
+# $out_path   - Optional output file path for error reporting and page links
+# $input_type - Optional one-word description of input type
 sub _parse_document {
-    my ($self, $thread, $in_path, $out_fh, $out_path) = @_;
+    my ($self, $thread, $in_path, $out_fh, $out_path, $input_type) = @_;
 
     # Parse the thread into paragraphs and reverse them to form a stack.
     my @input = reverse($self->_split_paragraphs($thread));
 
     # Initialize object state for a new document.
     #<<<
-    $self->{input}    = [[\@input, $in_path, 1]];
-    $self->{macro}    = {};
-    $self->{out_fh}   = $out_fh;
-    $self->{out_path} = $out_path // q{-};
-    $self->{rss}      = [];
-    $self->{space}    = q{};
-    $self->{state}    = ['BLOCK'];
-    $self->{variable} = {};
+    $self->{input}      = [[\@input, $in_path, 1]];
+    $self->{input_type} = $input_type // 'thread';
+    $self->{macro}      = {};
+    $self->{out_fh}     = $out_fh;
+    $self->{out_path}   = $out_path // q{-};
+    $self->{rss}        = [];
+    $self->{space}      = q{};
+    $self->{state}      = ['BLOCK'];
+    $self->{variable}   = {};
     #>>>
 
     # Parse the thread file a paragraph at a time.  _split_paragraphs takes
@@ -1242,9 +1245,9 @@ sub _cmd_signature {
     my $source = $self->{input}[-1][1];
     my $output = $self->_border_end();
 
-    # If we're spinning from standard input, don't add any of the standard
-    # footer, just close the HTML tags.
-    if ($self->{input}[-1][1] eq q{-}) {
+    # If we're spinning from standard input to standard output, don't add any
+    # of the standard footer, just close the HTML tags.
+    if ($source eq q{-} && $self->{out_path} eq q{-}) {
         $output .= "</body>\n</html>\n";
         return (1, $output);
     }
@@ -1258,12 +1261,17 @@ sub _cmd_signature {
 
     # Figure out the modification dates.  Use the Git repository if available.
     my $now = strftime('%Y-%m-%d', gmtime());
-    my $modified = strftime('%Y-%m-%d', gmtime((stat($source))[9]));
+    my $modified = $now;
+    if ($source ne q{-}) {
+        $modified = strftime('%Y-%m-%d', gmtime((stat($source))[9]));
+    }
     if ($self->{repository} && $self->{source}) {
-        my $repository = $self->{repository};
-        $modified = $repository->run('log', '-1', '--format=%ct', $source);
-        if ($modified) {
-            $modified = strftime('%Y-%m-%d', gmtime($modified));
+        if (path($self->{source})->subsumes(path($source))) {
+            my $repository = $self->{repository};
+            $modified = $repository->run('log', '-1', '--format=%ct', $source);
+            if ($modified) {
+                $modified = strftime('%Y-%m-%d', gmtime($modified));
+            }
         }
     }
 
@@ -1273,7 +1281,8 @@ sub _cmd_signature {
     if ($modified eq $now) {
         $output .= "    Last modified and\n    $link $modified\n";
     } else {
-        $output .= "    Last $link\n    $now from thread modified $modified\n";
+        $output .= "    Last $link\n";
+        $output .= "    $now from $self->{input_type} modified $modified\n";
     }
 
     # Close out the document.
@@ -1475,6 +1484,39 @@ sub spin_thread_file {
     return;
 }
 
+# Convert thread to HTML and write it to the given output file.  This is used
+# when the thread isn't part of the input tree but instead is intermediate
+# output from some other conversion process.
+#
+# $thread     - Thread to spin
+# $input      - Original input file (for modification timestamps)
+# $input_type - One-word description of input type for the page footer
+# $output     - Output file
+#
+# Returns: Resulting HTML
+sub spin_thread_output {
+    my ($self, $thread, $input, $input_type, $output) = @_;
+
+    # Open the output file.
+    my $out_fh;
+    if (defined($output)) {
+        my $path = realpath($output)
+          or die "cannot canonicalize $output: $!\n";
+        $output = $path;
+        open($out_fh, '>', $output);
+    } else {
+        $output = q{-};
+        open($out_fh, '>&', 'STDOUT');
+    }
+
+    # Do the work.
+    $self->_parse_document($thread, $input, $out_fh, $output, $input_type);
+
+    # Clean up and restore the working directory.
+    close($out_fh);
+    return;
+}
+
 ##############################################################################
 # Module return value and documentation
 ##############################################################################
@@ -1510,11 +1552,14 @@ App::DocKnot::Spin::Thread - Generate HTML from the macro language thread
         versions => $versions,
     });
     $thread->spin_thread_file('/input/file.th', '/output/file.html');
+    $thread->spin_thread_output(
+        $input, '/path/to/file.pod', 'POD', '/output/file.html'
+    );
 
 =head1 REQUIREMENTS
 
-Perl 5.24 or later and the modules Git::Repository, Image::Size, and
-List::SomeUtils, all of which are available from CPAN.
+Perl 5.24 or later and the modules Git::Repository, Image::Size,
+List::SomeUtils, and Path::Tiny, all of which are available from CPAN.
 
 =head1 DESCRIPTION
 
@@ -1594,6 +1639,16 @@ will be used.
 If OUTPUT is omitted, App::DocKnot::Spin::Thread will not be able to obtain
 sitemap information even if a sitemap was provided and therefore will not add
 inter-page links.
+
+=item spin_thread_output(THREAD, INPUT, TYPE[, OUTPUT])
+
+Convert the given thread to HTML, writing the result to OUTPUT.  If OUTPUT is
+not given, write the results to standard output.  This is like spin_thread()
+but does use sitemap information and adds inter-page links.  It should be used
+when the thread input is the result of an intermediate conversion step of a
+known input file.  INPUT should be the full path to the original source file,
+used for modification time information.  TYPE should be set to a one-word
+description of the format of the input file and is used for the page footer.
 
 =back
 

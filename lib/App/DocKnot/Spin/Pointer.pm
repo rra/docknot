@@ -39,7 +39,8 @@ my $URL = 'https://www.eyrie.org/~eagle/software/web/';
 # Convert a Markdown file to HTML.
 #
 # $data_ref - Data from the pointer file
-#   path - Path to the Markdown file to convert
+#   path  - Path to the Markdown file to convert
+#   style - Style sheet to use
 # $output   - Path to the output file
 #
 # Throws: Text exception on conversion failure
@@ -101,6 +102,48 @@ sub _spin_markdown {
     return;
 }
 
+# Convert a POD file to HTML.
+#
+# $data_ref - Data from the pointer file
+#   options - Hash of conversion options
+#     contents - Whether to add a table of contents
+#     navbar   - Whether to add a navigation bar
+#   path    - Path to the POD file to convert
+#   style   - Style sheet to use
+# $output   - Path to the output file
+#
+# Throws: Text exception on conversion failure
+sub _spin_pod {
+    my ($self, $data_ref, $output) = @_;
+    my $source = $data_ref->{path};
+
+    # Construct the Pod::Thread formatter object.
+    #<<<
+    my %options = (
+        contents => $data_ref->{options}{contents},
+        style    => $data_ref->{style} // 'pod',
+    );
+    #<<<
+    if (exists($data_ref->{options}{navbar})) {
+        $options{navbar} = $data_ref->{options}{navbar};
+    } else {
+        $options{navbar} = 1;
+    }
+    if (exists($data_ref->{title})) {
+        $options{title} = $data_ref->{title};
+    }
+    my $podthread = Pod::Thread->new(%options);
+
+    # Convert the POD to thread.
+    my $data;
+    $podthread->output_string(\$data);
+    $podthread->parse_file($source);
+
+    # Spin that page into HTML.
+    $self->{thread}->spin_thread_output($data, $source, 'POD', $output);
+    return;
+}
+
 ##############################################################################
 # Public interface
 ##############################################################################
@@ -109,10 +152,10 @@ sub _spin_markdown {
 # reused for all pointer conversions done while spinning a tree of files.
 #
 # $args - Anonymous hash of arguments with the following keys:
-#   docknot-url - URL to DocKnot itself for use in page footers
-#   output      - Root of the output tree
-#   sitemap     - App::DocKnot::Spin::Sitemap object
-#   style-url   - Partial URL to style sheets
+#   output    - Root of the output tree
+#   sitemap   - App::DocKnot::Spin::Sitemap object
+#   style-url - Partial URL to style sheets
+#   thread    - App::DocKnot::Spin::Thread object
 #
 # Returns: Newly created object
 #  Throws: Text exception on failure to initialize Template Toolkit
@@ -139,6 +182,7 @@ sub new {
         sitemap     => $args_ref->{sitemap},
         style_url   => $style_url,
         template    => $tt,
+        thread      => $args_ref->{thread},
     };
     #>>>
     bless($self, $class);
@@ -175,10 +219,13 @@ sub is_out_of_date {
 sub spin_pointer {
     my ($self, $pointer, $output, $options_ref) = @_;
     my $data_ref = $self->load_yaml_file($pointer, 'pointer');
+    $data_ref->{options} //= {};
 
     # Dispatch to the appropriate conversion function.
     if ($data_ref->{format} eq 'markdown') {
         $self->_spin_markdown($data_ref, $output);
+    } elsif ($data_ref->{format} eq 'pod') {
+        $self->_spin_pod($data_ref, $output);
     } else {
         die "$pointer: unknown output format $data_ref->{format}\n";
     }
@@ -195,6 +242,7 @@ __END__
 
 =for stopwords
 Allbery DocKnot MERCHANTABILITY NONINFRINGEMENT Kwalify sublicense unstyled
+navbar
 
 =head1 NAME
 
@@ -215,7 +263,7 @@ App::DocKnot::Spin::Pointer - Generate HTML from a pointer to an external file
 =head1 REQUIREMENTS
 
 Perl 5.24 or later and the modules File::ShareDir, Kwalify, List::SomeUtils,
-and YAML::XS, all of which are available from CPAN.
+Pod::Thread, and YAML::XS, all of which are available from CPAN.
 
 =head1 DESCRIPTION
 
@@ -258,6 +306,12 @@ be considered to be relative to this URL and this URL will be prepended to it.
 If this option is not given, the name of the style sheet will be used verbatim
 as its URL, except with C<.css> appended.
 
+=item thread
+
+An App::DocKnot::Spin::Thread object, used for converting POD into HTML.  It
+should be configured with the same App::DocKnot::Spin::Sitemap object as the
+C<sitemap> argument.
+
 =back
 
 =back
@@ -288,7 +342,7 @@ conversion.  The valid keys for a pointer file are:
 
 =item format
 
-The format of the source file.  The only valid value currently is C<markdown>.
+The format of the source file.  Supported values are C<markdown> and C<pod>.
 Required.
 
 =item path
@@ -296,17 +350,41 @@ Required.
 The path to the source file.  It may be relative, in which case it's relative
 to the pointer file.  Required.
 
+=item options
+
+Additional options that control the conversion to HTML.  These will be
+different for each supported format.
+
+C<markdown> has no supported options.
+
+The supported options for a format of C<pod> are:
+
+=over 4
+
+=item contents
+
+Boolean saying whether to generate a table of contents.  The default is false.
+
+=item navbar
+
+Boolean saying whether to generate a navigation bar at the top of the page.
+The default is true.
+
+=back
+
 =item style
 
-The style sheet to use for the converted output.  Optional.  If not set, the
-converted output may be unstyled or may use a default style sheet appropriate
-to the input format.
+The style sheet to use for the converted output.  Optional.  If not set,
+converted C<markdown> output will be unstyled and converted C<pod> output will
+use a style sheet named C<pod>.
 
 =item title
 
 The title of the converted page.  Optional.  If not set, the title will be
 taken from the converted file in a format-specific way.  For Markdown, the
-title will be the contents of the first top-level heading.
+title will be the contents of the first top-level heading.  For POD, the title
+will be taken from a NAME section formatted according to the conventions for
+manual pages.
 
 =back
 

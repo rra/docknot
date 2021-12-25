@@ -8,6 +8,16 @@
    This support requires the pandoc program be installed.  The path to
    pandoc may be specified in the DocKnot global configuration file.
 
+ - Support *.spin pointers in addition to *.rpod pointers for external POD
+   files.  The command-line flags used in *.rpod pointers are replaced by
+   the title and options key of the *.spin file.  *.rpod files are
+   deprecated and support will be removed in a future version of DocKnot.
+
+ - Add spin_thread_output method to App::DocKnot::Spin::Thread, intended
+   to convert thread to HTML as part of a conversion pipeline of a
+   non-thread input file, while still using sitemap information and
+   generating the page footer.  DocKnot now depends on Path::Tiny.
+
  - Support creating distributions from branches named main rather than
    master.  The first of main or master that's found in the repository
    will be used.

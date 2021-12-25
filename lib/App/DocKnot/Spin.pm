@@ -574,6 +574,7 @@ sub spin {
             output      => $output,
             sitemap     => $self->{sitemap},
             'style-url' => $self->{style_url},
+            thread      => $self->{thread},
         },
     );
     #>>>
@@ -613,9 +614,10 @@ App::DocKnot::Spin - Static site builder supporting thread macro language
 =head1 REQUIREMENTS
 
 Perl 5.24 or later and the modules Git::Repository, Image::Size,
-List::SomeUtils, and Pod::Thread, all of which are available from CPAN.  Also
-expects to find B<faq2html>, B<cvs2xhtml>, and B<cl2xhtml> on the user's PATH
-to convert certain types of files.
+List::SomeUtils, Path::Tiny, Pod::Thread, Template (part of Template Toolkit),
+and YAML::XS, all of which are available from CPAN.  Also expects to find
+B<faq2html>, B<cvs2xhtml>, and B<cl2xhtml> on the user's PATH to convert
+certain types of files.
 
 =head1 DESCRIPTION
 
