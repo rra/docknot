@@ -1,6 +1,6 @@
                        Revision history for DocKnot
 
-6.00 - Not Released
+6.00 - 2021-12-25
 
  - Add a new *.spin input file for docknot spin that points to an external
    file with instructions for how to convert it to HTML.  Via this
