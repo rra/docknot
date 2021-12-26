@@ -5,6 +5,9 @@
  - Fix spurious requirement for a package metadata file when running
    docknot spin.
 
+ - Don't overwrite output files from docknot generate or generate-all
+   if the generation fails.
+
 6.00 - 2021-12-25
 
  - Add a new *.spin input file for docknot spin that points to an external
