@@ -10,7 +10,7 @@
 # Modules and declarations
 ##############################################################################
 
-package App::DocKnot::Generate 5.00;
+package App::DocKnot::Generate 6.00;
 
 use 5.024;
 use autodie;

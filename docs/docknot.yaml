@@ -15,7 +15,7 @@ format: v1
 
 name: DocKnot
 maintainer: Russ Allbery <rra@cpan.org>
-version: '5.00'
+version: '6.00'
 synopsis: Static web site and documentation generator
 
 license:
