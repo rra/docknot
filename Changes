@@ -1,5 +1,10 @@
                        Revision history for DocKnot
 
+6.01 - Not Released
+
+ - Fix spurious requirement for a package metadata file when running
+   docknot spin.
+
 6.00 - 2021-12-25
 
  - Add a new *.spin input file for docknot spin that points to an external

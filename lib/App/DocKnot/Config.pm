@@ -31,18 +31,9 @@ use YAML::XS ();
 #   metadata - Path to the docknot.yaml file
 #
 # Returns: Newly created object
-#  Throws: Text exceptions on invalid metadata directory path
 sub new {
     my ($class, $args_ref) = @_;
-
-    # Ensure we were given a valid metadata argument.
-    my $metadata = $args_ref->{metadata} // 'docs/docknot.yaml';
-    if (!-e $metadata) {
-        croak("metadata path $metadata does not exist");
-    }
-
-    # Create and return the object.
-    my $self = { metadata => $metadata };
+    my $self = { metadata => $args_ref->{metadata} // 'docs/docknot.yaml' };
     bless($self, $class);
     return $self;
 }
