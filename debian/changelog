@@ -1,4 +1,4 @@
-docknot (6.00-1) UNRELEASED; urgency=medium
+docknot (6.00-1) unstable; urgency=medium
 
   * New upstream release.
     - Add new *.spin file for docknot spin to format an external file.
@@ -8,7 +8,7 @@ docknot (6.00-1) UNRELEASED; urgency=medium
     - Fix unintended localization of dates in RSS output.
     - Fix small whitespace problems in thread output.
 
- -- Russ Allbery <rra@debian.org>  Sat, 25 Dec 2021 17:17:04 -0800
+ -- Russ Allbery <rra@debian.org>  Sat, 25 Dec 2021 17:22:39 -0800
 
 docknot (5.00-2) unstable; urgency=medium
 
