@@ -1,3 +1,15 @@
+docknot (6.00-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+    - Add new *.spin file for docknot spin to format an external file.
+    - Add Markdown support via *.spin files.
+    - Support *.spin files for POD conversion (*.rpod is deprecated).
+    - Support creating distributions from either master or main.
+    - Fix unintended localization of dates in RSS output.
+    - Fix small whitespace problems in thread output.
+
+ -- Russ Allbery <rra@debian.org>  Sat, 25 Dec 2021 17:17:04 -0800
+
 docknot (5.00-2) unstable; urgency=medium
 
   * Add lib/App/DocKnot.pm to the files made available to autopkgtest
