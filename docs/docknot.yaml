@@ -67,6 +67,8 @@ docs:
       title: App::DocKnot::Generate
     - name: api/app-docknot-spin
       title: App::DocKnot::Spin
+    - name: api/app-docknot-spin-pointer
+      title: App::DocKnot::Spin::Pointer
     - name: api/app-docknot-spin-rss
       title: App::DocKnot::Spin::RSS
     - name: api/app-docknot-spin-sitemap
@@ -77,6 +79,8 @@ docs:
       title: App::DocKnot::Spin::Versions
     - name: api/app-docknot-update
       title: App::DocKnot::Update
+    - name: api/app-docknot-util
+      title: App::DocKnot::Util
   developer:
     - name: todo
       title: To-do list
