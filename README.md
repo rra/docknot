@@ -71,7 +71,7 @@ The following additional Perl modules are required to use it:
 * List::SomeUtils 0.07 or later
 * Path::Tiny
 * Perl6::Slurp
-* Pod::Thread 3.00 or later
+* Pod::Thread 3.01 or later
 * Template (part of Template Toolkit)
 * YAML::XS 0.81 or later
 

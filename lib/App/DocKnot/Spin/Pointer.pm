@@ -122,15 +122,13 @@ sub _spin_pod {
     my %options = (
         contents => $data_ref->{options}{contents},
         style    => $data_ref->{style} // 'pod',
+        title    => $data_ref->{title},
     );
     #<<<
     if (exists($data_ref->{options}{navbar})) {
         $options{navbar} = $data_ref->{options}{navbar};
     } else {
         $options{navbar} = 1;
-    }
-    if (exists($data_ref->{title})) {
-        $options{title} = $data_ref->{title};
     }
     my $podthread = Pod::Thread->new(%options);
 
