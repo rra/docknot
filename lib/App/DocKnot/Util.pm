@@ -123,8 +123,8 @@ doesn't because print cannot be prototyped).
 =item print_fh(FH, NAME, DATA[, DATA ...])
 
 Writes the concatenation of the DATA elements (interpreted as scalar strings)
-to the file handle FH.  NAME should be the name of the file open as FH, and is
-used for error reporting.
+to the file handle FH.  NAME should be the name of (or Path::Tiny object for)
+the file open as FH, and is used for error reporting.
 
 This is mostly equivalent to C<print {fh}> but throws a text exception in the
 event of a failure.
