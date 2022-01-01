@@ -69,7 +69,8 @@ The following additional Perl modules are required to use it:
 * JSON::MaybeXS
 * Kwalify
 * List::SomeUtils 0.07 or later
-* Path::Tiny
+* Path::Iterator::Rule
+* Path::Tiny 0.101 or later
 * Perl6::Slurp
 * Pod::Thread 3.01 or later
 * Template (part of Template Toolkit)

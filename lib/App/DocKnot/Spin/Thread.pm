@@ -1460,14 +1460,15 @@ sub new {
 # Convert thread to HTML and return the output as a string.  The working
 # directory still matters for file references in the thread.
 #
-# $thread  - Thread to spin
+# $thread - Thread to spin
+# $input  - Optional input file path (for relative path and timestamps)
 #
 # Returns: Resulting HTML
 sub spin_thread {
-    my ($self, $thread) = @_;
+    my ($self, $thread, $input) = @_;
     my $result;
     open(my $out_fh, '>', \$result);
-    $self->_parse_document($thread, undef, $out_fh, undef);
+    $self->_parse_document($thread, $input, $out_fh, undef);
     close($out_fh);
     return $result;
 }
@@ -1483,10 +1484,9 @@ sub spin_thread_file {
     my $out_fh;
     my $thread;
 
-    # Read the input file.  We do the work from the directory of the file to
-    # ensure that relative file references resolve properly.
+    # Read the input file.
     if (defined($input)) {
-        $input = path($input)->absolute();
+        $input = path($input)->realpath();
         $thread = $input->slurp_utf8();
     } else {
         $thread = slurp(\*STDIN);
@@ -1495,7 +1495,7 @@ sub spin_thread_file {
     # Open the output file.
     if (defined($output)) {
         $output = path($output)->absolute();
-        $out_fh = $output->filehandle('>');
+        $out_fh = $output->openw_utf8();
     } else {
         open($out_fh, '>&', 'STDOUT');
     }
@@ -1513,7 +1513,7 @@ sub spin_thread_file {
 # output from some other conversion process.
 #
 # $thread     - Thread to spin
-# $input      - Original input file path (for modification timestamps)
+# $input      - Original input file path (for relative path and timestamps)
 # $input_type - One-word description of input type for the page footer
 # $output     - Output file
 #
@@ -1645,11 +1645,13 @@ data for the C<\release> and C<\version> commands.
 
 =over 4
 
-=item spin_thread(THREAD)
+=item spin_thread(THREAD[, INPUT])
 
 Convert the given thread to HTML, returning the result.  When run via this
 API, App::DocKnot::Spin::Thread will not be able to obtain sitemap information
 even if a sitemap was provided and therefore will not add inter-page links.
+INPUT, if given, is the full path to the original source file, used for
+relative paths and modification time information.
 
 =item spin_thread_file([INPUT[, OUTPUT]])
 
@@ -1669,8 +1671,9 @@ not given, write the results to standard output.  This is like spin_thread()
 but does use sitemap information and adds inter-page links.  It should be used
 when the thread input is the result of an intermediate conversion step of a
 known input file.  INPUT should be the full path to the original source file,
-used for modification time information.  TYPE should be set to a one-word
-description of the format of the input file and is used for the page footer.
+used for relative paths and modification time information.  TYPE should be set
+to a one-word description of the format of the input file and is used for the
+page footer.
 
 =back
 

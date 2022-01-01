@@ -2,6 +2,10 @@
 
 6.01 - Not Released
 
+ - docknot spin now uses Path::Iterator::Rule and Path::Tiny to construct
+   its paths, which eliminates the need to change the working directory
+   while processing input files.
+
  - Fix spurious requirement for a package metadata file when running
    docknot spin.
 
