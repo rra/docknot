@@ -27,7 +27,7 @@ use Git::Repository ();
 use IPC::System::Simple qw(capture);
 use Path::Iterator::Rule ();
 use Path::Tiny qw(path);
-use Pod::Thread 3.00 ();
+use Pod::Thread 3.01 ();
 use POSIX qw(strftime);
 
 # The default list of files and/or directories to exclude from spinning.  This

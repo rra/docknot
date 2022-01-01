@@ -24,6 +24,7 @@ use Encode qw(decode);
 use File::BaseDir qw(config_files);
 use IPC::System::Simple qw(capturex);
 use Path::Tiny qw(path);
+use Pod::Thread 3.01 ();
 use POSIX qw(strftime);
 use Template ();
 use YAML::XS ();

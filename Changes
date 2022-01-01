@@ -12,6 +12,8 @@
  - Don't overwrite output files from docknot generate or generate-all
    if the generation fails.
 
+ - Require Pod::Thread 3.01 or later.
+
 6.00 - 2021-12-25
 
  - Add a new *.spin input file for docknot spin that points to an external
