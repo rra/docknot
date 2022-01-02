@@ -17,12 +17,10 @@ use parent qw(App::DocKnot);
 use warnings;
 
 use Carp qw(croak);
-use File::Spec;
 use JSON::MaybeXS qw(JSON);
 use Kwalify qw(validate);
 use Path::Iterator::Rule;
 use Path::Tiny qw(path);
-use Perl6::Slurp;
 use YAML::XS ();
 
 # The older JSON metadata format stored text snippets in separate files in the
@@ -51,10 +49,10 @@ our @JSON_METADATA_FILES = qw(
 #
 # @path - The relative path of the file as a list of components
 #
-# Returns: The absolute path in the metadata directory
+# Returns: Path::Tiny for the metadata file
 sub _metadata_path {
     my ($self, @path) = @_;
-    return File::Spec->catdir($self->{metadata}, @path);
+    return path($self->{metadata}, @path);
 }
 
 # Internal helper routine to read a file from the package metadata directory
@@ -67,7 +65,8 @@ sub _metadata_path {
 #  Throws: slurp exception on failure to read the file
 sub _load_metadata {
     my ($self, @path) = @_;
-    return slurp('<:utf8', $self->_metadata_path(@path));
+    my $path = $self->_metadata_path(@path);
+    return $path->slurp_utf8();
 }
 
 # Like _load_metadata, but interprets the contents of the metadata file as
@@ -259,8 +258,8 @@ sub _convert_rpod_pointer {
 sub new {
     my ($class, $args_ref) = @_;
     my $self = {
-        metadata => $args_ref->{metadata} // 'docs/metadata',
-        output => $args_ref->{output} // 'docs/docknot.yaml',
+        metadata => path($args_ref->{metadata} // 'docs/metadata'),
+        output => path($args_ref->{output} // 'docs/docknot.yaml'),
     };
     bless($self, $class);
     return $self;
@@ -276,7 +275,7 @@ sub update {
     my ($self) = @_;
 
     # Ensure we were given a valid metadata argument.
-    if (!-d $self->{metadata}) {
+    if (!$self->{metadata}->is_dir()) {
         my $metadata = $self->{metadata};
         croak("metadata path $metadata does not exist or is not a directory");
     }
@@ -358,7 +357,7 @@ sub update {
     }
 
     # Write the new YAML package configuration.
-    YAML::XS::DumpFile($self->{output}, $data_ref);
+    YAML::XS::DumpFile($self->{output}->stringify(), $data_ref);
     return;
 }
 
