@@ -540,8 +540,7 @@ sub spin {
     }
     my $versions_path = $input->child('.versions');
     if ($versions_path->exists()) {
-        $self->{versions}
-          = App::DocKnot::Spin::Versions->new("$versions_path");
+        $self->{versions} = App::DocKnot::Spin::Versions->new($versions_path);
     }
     if ($input->child('.git')->is_dir()) {
         $self->{repository} = Git::Repository->new(work_tree => $input);
@@ -741,7 +740,7 @@ Russ Allbery <rra@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 1999-2011, 2013, 2021 Russ Allbery <rra@cpan.org>
+Copyright 1999-2011, 2013, 2021-2022 Russ Allbery <rra@cpan.org>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
