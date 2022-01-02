@@ -2,6 +2,11 @@
 
 6.01 - Not Released
 
+ - Add new docknot update-spin command and corresponding update_spin
+   method in App::DocKnot::Update to update a spin input tree to the
+   latest expectations.  Currently, all this does is convert *.rpod
+   pointer files to *.spin pointer files.
+
  - docknot spin now uses Path::Iterator::Rule and Path::Tiny to construct
    its paths, which eliminates the need to change the working directory
    while processing input files.

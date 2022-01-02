@@ -104,6 +104,11 @@ our %COMMANDS = (
         options => ['metadata|m=s', 'output|o=s'],
         maximum => 0,
     },
+    'update-spin' => {
+        method => 'update_spin',
+        module => 'App::DocKnot::Update',
+        maximum => 1,
+    },
 );
 
 ##############################################################################
@@ -338,7 +343,7 @@ Russ Allbery <rra@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2018-2021 Russ Allbery <rra@cpan.org>
+Copyright 2018-2022 Russ Allbery <rra@cpan.org>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

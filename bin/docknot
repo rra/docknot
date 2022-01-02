@@ -47,6 +47,8 @@ B<docknot> spin-thread [B<-f>] [B<-s> I<url>] [I<source> [I<output>]]
 
 B<docknot> update [B<-m> I<metadata>] [B<-o> I<output>]
 
+B<docknot> update-spin [I<path>]
+
 =head1 DESCRIPTION
 
 B<docknot> is a static web site generator with special support for managing
@@ -96,6 +98,12 @@ Like C<spin>, but convert a single file written in thread to HTML.
 =item update
 
 Update the DocKnot package configuration from an older format.
+
+=item update-spin
+
+Update an input tree for C<spin> to the latest expectations.  This will, for
+example, convert old-style F<*.rpod> pointer files to new-style F<*.spin>
+pointer files.
 
 =back
 
@@ -285,6 +293,17 @@ recommended metadata path for a project).
 
 =back
 
+=head2 update-spin
+
+=over 4
+
+=item I<path>
+
+The path to the spin input tree to update.  If not given, defaults to the
+current directory.
+
+=back
+
 =head1 DIAGNOSTICS
 
 If B<docknot> fails with errors, see the underlying module for that subcommand
@@ -320,7 +339,7 @@ Russ Allbery <rra@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2016, 2018-2021 Russ Allbery <rra@cpan.org>
+Copyright 2016, 2018-2022 Russ Allbery <rra@cpan.org>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
