@@ -16,6 +16,7 @@ requires 'Path::Iterator::Rule';
 requires 'Path::Tiny', '0.101';
 requires 'Perl6::Slurp';
 requires 'Pod::Thread', '3.01';
+requires 'Sort::Versions';
 requires 'Template';
 requires 'YAML::XS', '0.81';
 

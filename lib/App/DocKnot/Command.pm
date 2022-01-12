@@ -78,6 +78,12 @@ our %COMMANDS = (
         options => ['metadata|m=s', 'width|w=i'],
         maximum => 0,
     },
+    release => {
+        method => 'release',
+        module => 'App::DocKnot::Release',
+        options => ['archivedir|a=s', 'distdir|d=s', 'metadata|m=s'],
+        maximum => 0,
+    },
     spin => {
         method => 'spin',
         module => 'App::DocKnot::Spin',

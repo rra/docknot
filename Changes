@@ -2,6 +2,12 @@
 
 6.01 - Not Released
 
+ - Add new docknot release command and corresponding App::DocKnot::Release
+   module to copy a tarball releaes (normally created by docknot dist)
+   into a release area, update symlinks, archive any previous releases,
+   and update the .versions file used by docknot spin.  DocKnot now
+   depends on Sort::Versions.
+
  - Add new docknot update-spin command and corresponding update_spin
    method in App::DocKnot::Update to update a spin input tree to the
    latest expectations.  Currently, all this does is convert *.rpod

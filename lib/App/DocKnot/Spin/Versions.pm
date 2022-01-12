@@ -64,6 +64,8 @@ sub _datetime_to_seconds {
 #         Text exception on file parsing errors
 sub _read_data {
     my ($self) = @_;
+    $self->{depends} = {};
+    $self->{versions} = {};
     my $timestamp;
 
     my $lineno = 0;
@@ -119,13 +121,7 @@ sub new {
     my ($class, $path) = @_;
 
     # Create an empty object.
-    #<<<
-    my $self = {
-        depends  => {},
-        path     => path($path),
-        versions => {},
-    };
-    #>>>
+    my $self = { path => path($path) };
     bless($self, $class);
 
     # Parse the file into the newly-created object.
@@ -155,6 +151,50 @@ sub release_date {
     my ($self, $package) = @_;
     my $version = $self->{versions}{$package};
     return defined($version) ? $version->[1] : undef;
+}
+
+# Update the version and release date for a package.  Add the change to Git if
+# the .versions file is at the top of a Git repository.
+#
+# $package   - Name of the package
+# $version   - New version
+# $timestamp - New release date as seconds since epoch
+#
+# Throws: Text exception on failure
+sub update_version {
+    my ($self, $package, $version, $timestamp) = @_;
+    my $date = strftime('%Y-%m-%d', localtime($timestamp));
+    my $time = strftime('%H:%M:%S', localtime($timestamp));
+
+    # Edits the line for the package to replace the version and release date.
+    my $edit = sub {
+        my $line = $_;
+        my ($product, $old_version, $old_date, $old_time)
+          = split(q{ }, $line);
+        return if $product ne $package;
+
+        # We're going to replace the old version with the new one, but we need
+        # to space-pad one or the other if they're not the same length.
+        my $version_string = $version;
+        while (length($old_version) > length($version_string)) {
+            $version_string .= q{ };
+        }
+        while (length($old_version) < length($version_string)) {
+            $old_version .= q{ };
+        }
+
+        # Make the replacement.
+        $line =~ s{ \Q$old_version\E }{$version_string}xms;
+        $line =~ s{ \Q$old_date\E }{$date}xms;
+        $line =~ s{ \Q$old_time\E }{$time}xms;
+        $_ = $line;
+    };
+
+    # Apply that change to our versions file, and then re-read the contents to
+    # update the internal data structure.
+    $self->{path}->edit_utf8($edit);
+    $self->_read_data();
+    return;
 }
 
 # Return the latest version for a given package.
@@ -273,6 +313,13 @@ PATH, or 0 if no releases affect that file.
 
 Return the release date of the latest release of PACKAGE (in UTC), or C<undef>
 if there is no release information for PACKAGE.
+
+=item update_version(PACKAGE, VERSION, TIMESTAMP)
+
+Given a new VERSION and TIMESTAMP (in seconds since epoch) for a release of
+PACKAGE, update the release information in the F<.versions> file for that
+package accordingly.  If the F<.versions> file is at the root of a Git
+repository, this change will be staged with C<git add>.
 
 =item version(PACKAGE)
 

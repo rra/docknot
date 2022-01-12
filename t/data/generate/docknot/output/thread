@@ -121,6 +121,7 @@ The following additional Perl modules are required to use it:
 \bullet(packed)[Path::Tiny 0.101 or later]
 \bullet(packed)[Perl6::Slurp]
 \bullet(packed)[Pod::Thread 3.01 or later]
+\bullet(packed)[Sort::Versions]
 \bullet(packed)[Template (part of Template Toolkit)]
 \bullet(packed)[YAML::XS 0.81 or later]
 

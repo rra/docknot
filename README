@@ -68,6 +68,7 @@ REQUIREMENTS
   * Path::Tiny 0.101 or later
   * Perl6::Slurp
   * Pod::Thread 3.01 or later
+  * Sort::Versions
   * Template (part of Template Toolkit)
   * YAML::XS 0.81 or later
 
