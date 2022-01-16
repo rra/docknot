@@ -1,5 +1,9 @@
                        Revision history for DocKnot
 
+6.02 - Not Released
+
+ - Fix import error when running docknot release.
+
 6.01 - 2022-01-15
 
  - Add new docknot release command and corresponding App::DocKnot::Release

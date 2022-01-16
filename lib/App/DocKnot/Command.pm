@@ -18,6 +18,7 @@ use warnings;
 
 use App::DocKnot::Dist;
 use App::DocKnot::Generate;
+use App::DocKnot::Release;
 use App::DocKnot::Spin;
 use App::DocKnot::Spin::RSS;
 use App::DocKnot::Spin::Thread;
