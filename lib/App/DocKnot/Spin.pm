@@ -15,7 +15,7 @@ package App::DocKnot::Spin 6.01;
 
 use 5.024;
 use autodie;
-use warnings;
+use warnings FATAL => 'utf8';
 
 use App::DocKnot::Spin::Pointer;
 use App::DocKnot::Spin::RSS;

@@ -2,7 +2,7 @@
 #
 # Test Markdown conversion.
 #
-# Copyright 2021 Russ Allbery <rra@cpan.org>
+# Copyright 2021-2022 Russ Allbery <rra@cpan.org>
 #
 # SPDX-License-Identifier: MIT
 
@@ -40,7 +40,8 @@ require_ok('App::DocKnot::Spin::Pointer');
 # can't find a better one; +ignore doesn't work.)
 my $pointer = App::DocKnot::Spin::Pointer->new();
 my $template = $pointer->appdata_path('templates', 'html.tmpl');
-my $tt = Template->new({ ABSOLUTE => 1 }) or croak(Template->error());
+my $tt = Template->new({ ABSOLUTE => 1, ENCODING => 'utf8' })
+  or croak(Template->error());
 $tt->process($template, {}, \my $result);
 
 # Spin the tree of files and check the result.

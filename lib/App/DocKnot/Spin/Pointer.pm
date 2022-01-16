@@ -15,7 +15,7 @@ package App::DocKnot::Spin::Pointer 6.01;
 use 5.024;
 use autodie;
 use parent qw(App::DocKnot);
-use warnings;
+use warnings FATAL => 'utf8';
 
 use App::DocKnot::Config;
 use App::DocKnot::Util qw(is_newer);
@@ -172,7 +172,8 @@ sub new {
     }
 
     # Create and return the object.
-    my $tt = Template->new({ ABSOLUTE => 1 }) or croak(Template->error());
+    my $tt = Template->new({ ABSOLUTE => 1, ENCODING => 'utf8' })
+      or croak(Template->error());
     #<<<
     my $self = {
         output      => $args_ref->{output},

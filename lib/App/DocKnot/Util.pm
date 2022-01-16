@@ -13,7 +13,7 @@ package App::DocKnot::Util 6.01;
 
 use 5.024;
 use autodie;
-use warnings;
+use warnings FATAL => 'utf8';
 
 use Carp qw(croak);
 use Exporter qw(import);
