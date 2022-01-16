@@ -2,7 +2,7 @@
 #
 # Tests for the App::DocKnot command dispatch for spin and spin-file.
 #
-# Copyright 2021 Russ Allbery <rra@cpan.org>
+# Copyright 2021-2022 Russ Allbery <rra@cpan.org>
 #
 # SPDX-License-Identifier: MIT
 
@@ -76,11 +76,8 @@ print_fh($fh, $pointer_path, "format: pod\n");
 print_fh($fh, $pointer_path, "path: $pod_source\n");
 close($fh);
 
-# Spin a tree of files.  Do this from the temporary directory because 6.00 had
-# a regression where docknot spin would fail if there were no package metadata
-# even though it didn't use it.
+# Spin a tree of files.
 my $cwd = getcwd();
-chdir($tempdir->dirname);
 $expected = File::Spec->catfile($datadir, 'output');
 capture_stdout {
     $docknot->run(
@@ -88,7 +85,6 @@ capture_stdout {
         $tempdir->dirname,
     );
 };
-chdir($cwd);
 my $count = is_spin_output_tree($tempdir->dirname, $expected, 'spin');
 
 # Spin a file with warnings.  The specific warnings are checked in
