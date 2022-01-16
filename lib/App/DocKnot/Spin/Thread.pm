@@ -13,10 +13,11 @@ package App::DocKnot::Spin::Thread 6.01;
 
 use 5.024;
 use autodie;
-use warnings;
+use warnings FATAL => 'utf8';
 
 use App::DocKnot;
 use App::DocKnot::Util qw(print_fh);
+use Encode qw(decode);
 use Git::Repository ();
 use Image::Size qw(html_imgsize);
 use Path::Tiny qw(path);
@@ -1467,10 +1468,10 @@ sub new {
 sub spin_thread {
     my ($self, $thread, $input) = @_;
     my $result;
-    open(my $out_fh, '>', \$result);
+    open(my $out_fh, '>:raw:encoding(utf-8)', \$result);
     $self->_parse_document($thread, $input, $out_fh, undef);
     close($out_fh);
-    return $result;
+    return decode('utf-8', $result);
 }
 
 # Spin a single file of thread to HTML.
@@ -1497,7 +1498,7 @@ sub spin_thread_file {
         $output = path($output)->absolute();
         $out_fh = $output->openw_utf8();
     } else {
-        open($out_fh, '>&', 'STDOUT');
+        open($out_fh, '>&:raw:encoding(utf-8)', 'STDOUT');
     }
 
     # Do the work.
@@ -1526,9 +1527,9 @@ sub spin_thread_output {
     my $out_fh;
     if (defined($output)) {
         $output = path($output)->absolute();
-        $out_fh = $output->filehandle('>');
+        $out_fh = $output->openw_utf8();
     } else {
-        open($out_fh, '>&', 'STDOUT');
+        open($out_fh, '>&:raw:encoding(utf-8)', 'STDOUT');
     }
 
     # Do the work.
@@ -2097,7 +2098,7 @@ Russ Allbery <rra@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 1999-2011, 2013, 2021 Russ Allbery <rra@cpan.org>
+Copyright 1999-2011, 2013, 2021-2022 Russ Allbery <rra@cpan.org>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
