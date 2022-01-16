@@ -6,6 +6,8 @@ docknot (6.01-1) UNRELEASED; urgency=medium
     - Avoid changing working directories in docknot spin.
     - Fix requirement for package metadata when running docknot spin.
     - Don't overwrite output files if docknot generate fails.
+  * Update the package description to reflect that it is now also a static
+    web site generator.
 
  -- Russ Allbery <rra@debian.org>  Sat, 15 Jan 2022 17:15:09 -0800
 
