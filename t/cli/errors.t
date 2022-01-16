@@ -66,7 +66,7 @@ eval { $docknot->run('generate', '-m', '/nonexistent', 'readme') };
 is_error(
     $@,
     (
-            'generate: can\'t open \'/nonexistent\' for input:'
+        'generate: can\'t open \'/nonexistent\' for input:'
           . ' No such file or directory'
     ),
 );
