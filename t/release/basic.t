@@ -59,6 +59,7 @@ my $spin_path = $tempdir->child('spin');
 $spin_path->mkpath();
 my $versions_path = $spin_path->child('.versions');
 $versions_path->spew_utf8(
+    "foo    1.0  2021-12-14 17:31:32  software/foo/index.th\n",
     "empty  1.9  2022-01-01 16:00:00  software/empty/index.th\n",
 );
 Git::Repository->run('init', { cwd => "$spin_path", quiet => 1 });
@@ -105,7 +106,9 @@ for my $ext (@extensions) {
 }
 
 # Check that the version file was updated.
-my @versions = split(q{ }, $versions_path->slurp_utf8());
+my $versions_line;
+(undef, $versions_line) = $versions_path->lines_utf8();
+my @versions = split(q{ }, $versions_line);
 is($versions[0], 'empty', '.versions line');
 is($versions[1], '1.10', '...version updated');
 isnt(join(q{ }, @versions[2, 3]), '2022-01-01 16:00:00', '...date updated');

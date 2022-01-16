@@ -4,6 +4,9 @@
 
  - Fix import error when running docknot release.
 
+ - Fix .versions updating via docknot release when the package that needs
+   to be udpated is not the first line of the file.
+
 6.01 - 2022-01-15
 
  - Add new docknot release command and corresponding App::DocKnot::Release

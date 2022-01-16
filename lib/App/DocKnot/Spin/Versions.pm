@@ -168,26 +168,29 @@ sub update_version {
 
     # Edits the line for the package to replace the version and release date.
     my $edit = sub {
-        my $line = $_;
-        my ($product, $old_version, $old_date, $old_time)
-          = split(q{ }, $line);
-        return if $product ne $package;
+        my @lines = split(m{ \n }xms, $_);
+        for my $line (@lines) {
+            my ($product, $old_version, $old_date, $old_time)
+              = split(q{ }, $line);
+            next if $product ne $package;
 
-        # We're going to replace the old version with the new one, but we need
-        # to space-pad one or the other if they're not the same length.
-        my $version_string = $version;
-        while (length($old_version) > length($version_string)) {
-            $version_string .= q{ };
-        }
-        while (length($old_version) < length($version_string)) {
-            $old_version .= q{ };
-        }
+            # We're going to replace the old version with the new one, but we
+            # need to space-pad one or the other if they're not the same
+            # length.
+            my $version_string = $version;
+            while (length($old_version) > length($version_string)) {
+                $version_string .= q{ };
+            }
+            while (length($old_version) < length($version_string)) {
+                $old_version .= q{ };
+            }
 
-        # Make the replacement.
-        $line =~ s{ \Q$old_version\E }{$version_string}xms;
-        $line =~ s{ \Q$old_date\E }{$date}xms;
-        $line =~ s{ \Q$old_time\E }{$time}xms;
-        $_ = $line;
+            # Make the replacement.
+            $line =~ s{ \Q$old_version\E }{$version_string}xms;
+            $line =~ s{ \Q$old_date\E }{$date}xms;
+            $line =~ s{ \Q$old_time\E }{$time}xms;
+        }
+        $_ = join("\n", @lines) . "\n";
     };
 
     # Apply that change to our versions file, and then re-read the contents to
