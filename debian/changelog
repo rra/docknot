@@ -1,4 +1,4 @@
-docknot (6.01-1) UNRELEASED; urgency=medium
+docknot (6.01-1) unstable; urgency=medium
 
   * New upstream release.
     - Add new docknot release command to update a software release area.
@@ -9,7 +9,7 @@ docknot (6.01-1) UNRELEASED; urgency=medium
   * Update the package description to reflect that it is now also a static
     web site generator.
 
- -- Russ Allbery <rra@debian.org>  Sat, 15 Jan 2022 17:15:09 -0800
+ -- Russ Allbery <rra@debian.org>  Sat, 15 Jan 2022 17:20:06 -0800
 
 docknot (6.00-1) unstable; urgency=medium
 
