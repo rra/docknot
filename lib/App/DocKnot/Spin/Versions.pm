@@ -168,7 +168,7 @@ sub update_version {
 
     # Edits the line for the package to replace the version and release date.
     my $edit = sub {
-        my @lines = split(m{ \n }xms, $_);
+        my @lines = split(m{ \n }xms);
         for my $line (@lines) {
             my ($product, $old_version, $old_date, $old_time)
               = split(q{ }, $line);
