@@ -65,6 +65,8 @@ docs:
       title: App::DocKnot::Dist
     - name: api/app-docknot-generate
       title: App::DocKnot::Generate
+    - name: api/app-docknot-release
+      title: App::DocKnot::Release
     - name: api/app-docknot-spin
       title: App::DocKnot::Spin
     - name: api/app-docknot-spin-pointer
