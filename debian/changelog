@@ -1,3 +1,14 @@
+docknot (6.01-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+    - Add new docknot release command to update a software release area.
+    - Add new docknot update-spin command to update a spin input tree.
+    - Avoid changing working directories in docknot spin.
+    - Fix requirement for package metadata when running docknot spin.
+    - Don't overwrite output files if docknot generate fails.
+
+ -- Russ Allbery <rra@debian.org>  Sat, 15 Jan 2022 17:15:09 -0800
+
 docknot (6.00-1) unstable; urgency=medium
 
   * New upstream release.
