@@ -2,6 +2,8 @@
 
 6.02 - Not Released
 
+ - Fix processing of old-style pointers in docknot spin.
+
  - Fix import error when running docknot release.
 
  - Fix .versions updating via docknot release when the package that needs

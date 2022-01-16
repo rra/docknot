@@ -325,7 +325,7 @@ sub _read_pointer {
     }
 
     # Return the details.
-    return ($master, $options, $style);
+    return (path($master), $options, $style);
 }
 
 # Convert an input path to an output path.
@@ -421,7 +421,7 @@ sub _process_file {
         my ($extension) = ($input->basename =~ m{ [.] ([^.]+) \z }xms);
         if (defined($extension) && $rules{$extension}) {
             my ($name, $sub) = $rules{$extension}->@*;
-            my $output = $self->_output_for_file($input, $extension);
+            my $output = $self->_output_for_file($input, q{.} . $extension);
             $self->{generated}{"$output"} = 1;
             my ($source, $options, $style) = $self->_read_pointer($input);
             return if is_newer($output, $input, $source);
