@@ -12,7 +12,7 @@
 # Modules and declarations
 ##############################################################################
 
-package App::DocKnot::Spin::Versions 6.00;
+package App::DocKnot::Spin::Versions 6.01;
 
 use 5.024;
 use autodie;

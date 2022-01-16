@@ -9,7 +9,7 @@
 # Modules and declarations
 ##############################################################################
 
-package App::DocKnot::Spin::Thread 6.00;
+package App::DocKnot::Spin::Thread 6.01;
 
 use 5.024;
 use autodie;

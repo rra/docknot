@@ -1,6 +1,6 @@
                        Revision history for DocKnot
 
-6.01 - Not Released
+6.01 - 2022-01-15
 
  - Add new docknot release command and corresponding App::DocKnot::Release
    module to copy a tarball releaes (normally created by docknot dist)
