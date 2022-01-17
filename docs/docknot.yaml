@@ -7,7 +7,7 @@
 #
 # DocKnot is available from <https://www.eyrie.org/~eagle/software/docknot/>.
 #
-# Copyright 2016, 2018-2021 Russ Allbery <rra@cpan.org>
+# Copyright 2016, 2018-2022 Russ Allbery <rra@cpan.org>
 #
 # SPDX-License-Identifier: MIT
 
@@ -15,7 +15,7 @@ format: v1
 
 name: DocKnot
 maintainer: Russ Allbery <rra@cpan.org>
-version: '6.01'
+version: '7.00'
 synopsis: Static web site and documentation generator
 
 license:
