@@ -1,6 +1,6 @@
                        Revision history for DocKnot
 
-7.00 - Not Released
+7.00 - 2022-01-17
 
  - Various module APIs now take Path::Tiny objects instead of string
    paths.  Roughly, any module API that is not called directly by
