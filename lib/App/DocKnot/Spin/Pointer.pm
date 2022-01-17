@@ -66,11 +66,11 @@ sub _spin_markdown {
     my ($links, $navbar, $style);
     if ($self->{sitemap}) {
         my $page = $output->relative($self->{output});
-        my @links = $self->{sitemap}->links("/$page");
+        my @links = $self->{sitemap}->links($page);
         if (@links) {
             $links = join(q{}, @links);
         }
-        my @navbar = $self->{sitemap}->navbar("/$page");
+        my @navbar = $self->{sitemap}->navbar($page);
         if (@navbar) {
             $navbar = join(q{}, @navbar);
         }

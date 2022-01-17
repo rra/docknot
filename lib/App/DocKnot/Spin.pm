@@ -70,7 +70,7 @@ sub _footer {
     # Add the end-of-page navbar if we have sitemap information.
     if ($self->{sitemap} && $self->{output}) {
         my $page = $out_path->relative($self->{output});
-        $output .= join(q{}, $self->{sitemap}->navbar("/$page")) . "\n";
+        $output .= join(q{}, $self->{sitemap}->navbar($page)) . "\n";
     }
 
     # Figure out the modification dates.  Use the RCS/CVS Id if available,
@@ -536,7 +536,7 @@ sub spin {
     # Read metadata from the top of the input directory.
     my $sitemap_path = $input->child('.sitemap');
     if ($sitemap_path->exists()) {
-        $self->{sitemap} = App::DocKnot::Spin::Sitemap->new("$sitemap_path");
+        $self->{sitemap} = App::DocKnot::Spin::Sitemap->new($sitemap_path);
     }
     my $versions_path = $input->child('.versions');
     if ($versions_path->exists()) {

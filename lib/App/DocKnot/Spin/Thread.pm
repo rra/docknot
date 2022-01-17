@@ -1080,7 +1080,7 @@ sub _cmd_heading {
 
     # Add <link> tags based on the sitemap.
     if ($self->{sitemap} && defined($page)) {
-        my @links = $self->{sitemap}->links("/$page");
+        my @links = $self->{sitemap}->links($page);
         if (@links) {
             $output .= join(q{}, @links);
         }
@@ -1099,7 +1099,7 @@ sub _cmd_heading {
     # Add the <body> tag and the navbar (if we have a sitemap).
     $output .= "\n<body>\n";
     if ($self->{sitemap} && defined($page)) {
-        my @navbar = $self->{sitemap}->navbar("/$page");
+        my @navbar = $self->{sitemap}->navbar($page);
         if (@navbar) {
             $output .= join(q{}, @navbar);
         }
@@ -1279,7 +1279,7 @@ sub _cmd_signature {
     # Add the end-of-page navbar if we have sitemap information.
     if ($self->{sitemap} && $self->{output}) {
         my $page = $self->{out_path}->relative($self->{output});
-        $output .= join(q{}, $self->{sitemap}->navbar("/$page")) . "\n";
+        $output .= join(q{}, $self->{sitemap}->navbar($page)) . "\n";
     }
 
     # Figure out the modification dates.  Use the Git repository if available.
