@@ -120,7 +120,7 @@ ok($distdir->child('Empty-1.00.tar.xz.asc')->exists(), 'xz signature');
 is(
     "some signature\n",
     $distdir->child('Empty-1.00.tar.gz.asc')->slurp_utf8(),
-    'fake-gpg was run'
+    'fake-gpg was run',
 );
 
 # If we add a new file to the source tree and run make_distribution() again,

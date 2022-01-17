@@ -403,15 +403,15 @@ sub make_distribution {
         systemx($command_ref->@*);
     }
 
-    # Move the generated tarball to the parent directory.
+    # Generate additional compression formats if needed.
+    $self->_generate_compression_formats(path(q{.}), $prefix);
+
+    # Move the generated tarballs to the parent directory.
     $self->_move_tarballs(path(q{.}), $prefix, $self->{distdir});
 
     # Remove the working tree.
     chdir($self->{distdir});
     $workdir->remove_tree();
-
-    # Generate additional compression formats if needed.
-    $self->_generate_compression_formats($self->{distdir}, $prefix);
 
     # Check the distribution for any missing files.  If there are any, report
     # them and then fail with an error.

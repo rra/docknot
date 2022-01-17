@@ -18,6 +18,10 @@
    pass.  This ensurse the output files are seen when spinning the tree
    into the output directory.
 
+ - Ensure docknot dist always regenerates the *.tar.xz file if necessary,
+   rather than reusing one left over from a previous build of the same
+   version.
+
  - Always recreate GnuPG signatures when generating distribution tarballs
    in docknot dist.
 
