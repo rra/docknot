@@ -1,3 +1,20 @@
+docknot (7.00-1) unstable; urgency=medium
+
+  * New upstream release.
+    - Various module APIs now take Path::Tiny objects instead of strings.
+    - Unicode should now be handled uniformly and correctly.
+    - Fix processing of old-style pointers in docknot spin.
+    - Fix import error when running docknot release.
+    - Fix .versions updating in docknot release.
+    - Process .rss files in an initial pass to avoid problems when their
+      output files are newly-created and Path::Iterator::Rule doesn't
+      re-read the directory.
+    - Ensure the *.tar.xz file is always regenerated if needed.
+    - Ensure GnuPG signatures are always regenerated.
+    - Copy the file modification timestamps in docknot release.
+
+ -- Russ Allbery <rra@debian.org>  Mon, 17 Jan 2022 12:56:42 -0800
+
 docknot (6.01-1) unstable; urgency=medium
 
   * New upstream release.
