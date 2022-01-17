@@ -1,6 +1,11 @@
                        Revision history for DocKnot
 
-6.02 - Not Released
+7.00 - Not Released
+
+ - Various module APIs now take Path::Tiny objects instead of string
+   paths.  Roughly, any module API that is not called directly by
+   App::DocKnot::Command now expects paths in the form of Path::Tiny
+   objects and does not always do an explicit conversion.
 
  - Fix Unicode handling in App::DocKnot::Spin::Thread methods.  Output to
    files was handled correctly in most cases, but output to a scalar or to

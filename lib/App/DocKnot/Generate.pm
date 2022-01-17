@@ -18,9 +18,8 @@ use parent qw(App::DocKnot);
 use warnings;
 
 use App::DocKnot::Config;
-use App::DocKnot::Util qw(print_fh);
 use Carp qw(croak);
-use Encode qw(encode);
+use Path::Tiny qw(path);
 use Template;
 use Text::Wrap qw(wrap);
 
@@ -482,10 +481,8 @@ sub generate {
     $vars{to_text} = $self->_code_for_to_text;
     $vars{to_thread} = $self->_code_for_to_thread;
 
-    # Ensure we were given a valid template.
-    $template = $self->appdata_path('templates', "${template}.tmpl");
-
     # Run Template Toolkit processing.
+    $template = $self->appdata_path('templates', "${template}.tmpl");
     my $tt = Template->new({ ABSOLUTE => 1, ENCODING => 'utf8' })
       or croak(Template->error());
     my $result;
@@ -530,9 +527,7 @@ sub generate_output {
 
     # Generate the output.
     my $data = $self->generate($template);
-    open(my $outfh, '>', $output);
-    print_fh($outfh, $output, encode('utf-8', $data));
-    close($outfh);
+    path($output)->spew_utf8($data);
     return;
 }
 
@@ -564,8 +559,8 @@ App::DocKnot::Generate - Generate documentation from package metadata
 =head1 REQUIREMENTS
 
 Perl 5.24 or later and the modules File::BaseDir, File::ShareDir, Kwalify,
-Template (part of Template Toolkit), and YAML::XS, all of which are available
-from CPAN.
+Path::Tiny, Template (part of Template Toolkit), and YAML::XS, all of which
+are available from CPAN.
 
 =head1 DESCRIPTION
 
