@@ -14,6 +14,10 @@
  - Fix .versions updating via docknot release when the package that needs
    to be udpated is not the first line of the file.
 
+ - When spinning an input tree, process all .rss files first in a separate
+   pass.  This ensurse the output files are seen when spinning the tree
+   into the output directory.
+
 6.01 - 2022-01-15
 
  - Add new docknot release command and corresponding App::DocKnot::Release

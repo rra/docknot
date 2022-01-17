@@ -360,8 +360,6 @@ sub _report_action {
 #
 # Throws: Text exception on any processing error
 #         autodie exception if files could not be accessed or written
-#
-## no critic (Subroutines::ProhibitExcessComplexity)
 sub _process_file {
     my ($self, $input) = @_;
 
@@ -386,10 +384,6 @@ sub _process_file {
         } elsif (!$output->is_dir()) {
             $self->_report_action('Creating', $output);
             $output->mkpath();
-        }
-        my $rss_path = path($input, '.rss');
-        if ($rss_path->exists()) {
-            $self->{rss}->generate("$rss_path", "$input");
         }
     } elsif ($input->basename() =~ m{ [.] spin \z }xms) {
         my $output = $self->_output_for_file($input, '.spin');
@@ -512,7 +506,6 @@ sub spin {
 
     # Reset data from a previous run.
     delete $self->{repository};
-    delete $self->{rss};
     delete $self->{sitemap};
     delete $self->{versions};
 
@@ -546,13 +539,14 @@ sub spin {
         $self->{repository} = Git::Repository->new(work_tree => $input);
     }
 
-    # Create a new RSS generator object.
-    $self->{rss} = App::DocKnot::Spin::RSS->new({ base => $input });
-
-    # Process an .rss file at the top of the tree, if present.
-    my $rss_path = $input->child('.rss');
-    if ($rss_path->exists()) {
-        $self->{rss}->generate("$rss_path", "$input");
+    # Process all .rss files in the input tree first.  This is done as a
+    # separate pass because Path::Iterator::Rule appears to not always re-read
+    # the directory when it's modified during the iteration.
+    my $rss = App::DocKnot::Spin::RSS->new({ base => $input });
+    my $rule = Path::Iterator::Rule->new()->name('.rss');
+    my $iter = $rule->iter("$input", { follow_symlinks => 0 });
+    while (defined(my $file = $iter->())) {
+        $rss->generate(path($file), path($file)->parent);
     }
 
     # Create a new thread converter object.
@@ -581,9 +575,9 @@ sub spin {
     #>>>
 
     # Process the input tree.
-    my $rule = Path::Iterator::Rule->new();
+    $rule = Path::Iterator::Rule->new();
     $rule = $rule->skip($rule->new()->name($self->{excludes}->@*));
-    my $iter = $rule->iter("$input", { follow_symlinks => 0 });
+    $iter = $rule->iter("$input", { follow_symlinks => 0 });
     while (defined(my $file = $iter->())) {
         $self->_process_file(path($file));
     }

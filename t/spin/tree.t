@@ -2,7 +2,7 @@
 #
 # Test running spin on a tree of files.
 #
-# Copyright 2021 Russ Allbery <rra@cpan.org>
+# Copyright 2021-2022 Russ Allbery <rra@cpan.org>
 #
 # SPDX-License-Identifier: MIT
 
@@ -32,14 +32,14 @@ setlocale(LC_ALL, 'C');
 my $EXPECTED_OUTPUT = <<'OUTPUT';
 Generating thread file .../changes.th
 Generating RSS file .../changes.rss
-Updating .../changes.rss
-Spinning .../changes.html
-Spinning .../index.html
-Creating .../journal
 Generating index file .../journal/index.th
 Generating RSS file .../journal/index.rss
 Generating RSS file .../journal/debian.rss
 Generating RSS file .../journal/reviews.rss
+Updating .../changes.rss
+Spinning .../changes.html
+Spinning .../index.html
+Creating .../journal
 Updating .../names.png
 Spinning .../random.html
 Creating .../reviews
