@@ -22,7 +22,6 @@ use Carp qw(croak);
 use Date::Language ();
 use Date::Parse qw(str2time);
 use Path::Tiny qw(path);
-use Perl6::Slurp qw(slurp);
 use POSIX qw(strftime);
 
 ##############################################################################
