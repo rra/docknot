@@ -388,9 +388,9 @@ sub _process_file {
     } elsif ($input->basename() =~ m{ [.] spin \z }xms) {
         my $output = $self->_output_for_file($input, '.spin');
         $self->{generated}{"$output"} = 1;
-        if ($self->{pointer}->is_out_of_date("$input", "$output")) {
+        if ($self->{pointer}->is_out_of_date($input, $output)) {
             $self->_report_action('Converting', $output);
-            $self->{pointer}->spin_pointer("$input", "$output");
+            $self->{pointer}->spin_pointer($input, $output);
         }
     } elsif ($input->basename() =~ m{ [.] th \z }xms) {
         my $output = $self->_output_for_file($input, '.th');
@@ -400,12 +400,11 @@ sub _process_file {
         # a software release.
         if ($output->exists() && $self->{versions}) {
             my $relative = $input->relative($self->{source});
-            my $time = $self->{versions}->latest_release("$relative");
+            my $time = $self->{versions}->latest_release($relative);
             return
-              if is_newer("$output", "$input")
-              && $output->stat()->[9] >= $time;
+              if is_newer($output, $input) && $output->stat()->[9] >= $time;
         } else {
-            return if is_newer("$output", "$input");
+            return if is_newer($output, $input);
         }
 
         # The output file is not newer.  Respin it.
@@ -424,14 +423,13 @@ sub _process_file {
         } else {
             my $output = $self->_output_for_file($input);
             $self->{generated}{"$output"} = 1;
-            return if is_newer("$output", "$input");
+            return if is_newer($output, $input);
             $self->_report_action('Updating', $output);
             $input->copy($output);
         }
     }
     return;
 }
-## use critic
 
 # This routine is called for every file in the destination tree in depth-first
 # order, if the user requested file deletion of files not generated from the
