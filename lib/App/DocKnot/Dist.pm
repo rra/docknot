@@ -232,6 +232,10 @@ sub _sign_tarballs {
     my $files_ref = latest_tarball($path, $prefix)->{files};
     for my $file (grep { m{ [.]tar [.][xg]z }xms } $files_ref->@*) {
         my $tarball_path = $path->child($file);
+        my $sig_path = $path->child($tarball_path->basename() . '.asc');
+        if ($sig_path->exists()) {
+            $sig_path->remove();
+        }
         systemx(
             $self->{gpg}, '--detach-sign', '--armor', '-u',
             $self->{pgp_key}, $tarball_path,
