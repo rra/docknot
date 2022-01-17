@@ -49,7 +49,6 @@ sub is_newer {
 #
 # Returns: Anonymous hash with the following keys:
 #            version - Latest version found
-#            date    - Date (in seconds since epoch) of oldest file
 #            files   - Array of files for that version
 #          or undef if no matching files were found
 #  Throws: Text exception on any error
@@ -69,14 +68,10 @@ sub latest_tarball {
     my $latest = $versions[0][0];
     @files = map { $_->[1] } grep { $_->[0] eq $latest } @versions;
 
-    # Find the timestamps of those files.
-    my @times = sort(map { $path->child($_)->stat()->[9] } @files);
-
     # Return the results.
     #<<<
     return {
         version => $latest,
-        date    => $times[0],
         files   => \@files,
     };
     #<<<
@@ -173,10 +168,6 @@ Path::Tiny object).  Versions are compared using Sort::Versions.  The return
 valid is a hash with the following keys:
 
 =over 4
-
-=item date
-
-The timestamp of the oldest file for that version, in seconds since epoch.
 
 =item files
 

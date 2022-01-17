@@ -30,6 +30,9 @@
  - Always recreate GnuPG signatures when generating distribution tarballs
    in docknot dist.
 
+ - When copying distribution files with docknot release, also copy the
+   modification timestamps of those files.
+
 6.01 - 2022-01-15
 
  - Add new docknot release command and corresponding App::DocKnot::Release

@@ -15,7 +15,7 @@ use lib 't/lib';
 use Git::Repository ();
 use Path::Tiny qw(path);
 
-use Test::More tests => 30;
+use Test::More tests => 34;
 
 # Isolate from the environment.
 local $ENV{XDG_CONFIG_HOME} = '/nonexistent';
@@ -35,7 +35,10 @@ $dist_path->mkpath();
 # Make a release when there are no existing files.
 my @extensions = qw(tar.gz tar.gz.asc tar.xz tar.xz.asc);
 for my $ext (@extensions) {
-    $dist_path->child('Empty-1.9.' . $ext)->touch();
+    my $path = $dist_path->child('Empty-1.9.' . $ext);
+    $path->touch();
+    utime(time() - 5, time() - 5, $path)
+      or die "Cannot reset timestamps for $path: $!\n";
 }
 my $metadata = path('t', 'data', 'dist', 'package', 'docs', 'docknot.yaml');
 my %options = (
@@ -49,7 +52,13 @@ $release->release();
 # Check that the files were copied correctly and the symlinks were created.
 for my $ext (@extensions) {
     my $file = 'Empty-1.9.' . $ext;
-    ok($archive_path->child('devel', $file)->is_file(), "Copied $file");
+    my $file_path = $archive_path->child('devel', $file);
+    ok($file_path->is_file(), "Copied $file");
+    is(
+        $dist_path->child($file)->stat()->[9],
+        $file_path->stat()->[9],
+        "Timestamp set on $file",
+    );
     my $link = 'Empty.' . $ext;
     is(readlink($archive_path->child('devel', $link)), $file, "Linked $link");
 }
