@@ -573,16 +573,17 @@ sub spin {
     #>>>
 
     # Process the input tree.
+    my %options = (follow_symlinks => 0, report_symlinks => 1);
     $rule = Path::Iterator::Rule->new();
     $rule = $rule->skip($rule->new()->name($self->{excludes}->@*));
-    $iter = $rule->iter("$input", { follow_symlinks => 0 });
+    $iter = $rule->iter("$input", \%options);
     while (defined(my $file = $iter->())) {
         $self->_process_file(path($file));
     }
 
     # Remove stray files from the output tree.
     if ($self->{delete}) {
-        my %options = (depthfirst => 1, follow_symlinks => 0);
+        $options{depthfirst} = 1;
         $iter = $rule->iter("$output", \%options);
         while (defined(my $file = $iter->())) {
             $self->_delete_files(path($file));
