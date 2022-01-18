@@ -1333,7 +1333,7 @@ sub _cmd_size {
     }
 
     # Format the size using SI units.
-    my @suffixes = qw(K M G T);
+    my @suffixes = qw(Ki Mi Gi Ti);
     my $suffix = q{};
     while ($size > 1024 && @suffixes) {
         $size /= 1024;
