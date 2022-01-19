@@ -23,6 +23,7 @@ use App::DocKnot::Spin::Sitemap;
 use App::DocKnot::Spin::Thread;
 use App::DocKnot::Spin::Versions;
 use App::DocKnot::Util qw(is_newer print_checked print_fh);
+use Encode qw(decode);
 use Git::Repository ();
 use IPC::System::Simple qw(capture);
 use Path::Iterator::Rule ();
@@ -186,6 +187,7 @@ sub _cl2xhtml {
     my ($self, $source, $output, $options, $style) = @_;
     $style ||= $self->{style_url} . 'changelog.css';
     my @page = capture("cl2xhtml $options -s $style $source");
+    @page = map { decode('utf-8', $_) } @page;
     my $footer = sub {
         my ($blurb, $id) = @_;
         if ($blurb) {
@@ -216,6 +218,7 @@ sub _cvs2xhtml {
 
     # Run the converter and write the output.
     my @page = capture("(cd $dir && cvs log $name) | cvs2xhtml $options");
+    @page = map { decode('utf-8', $_) } @page;
     my $footer = sub {
         my ($blurb, $id, $file) = @_;
         if ($blurb) {
@@ -234,6 +237,7 @@ sub _faq2html {
     my ($self, $source, $output, $options, $style) = @_;
     $style ||= $self->{style_url} . 'faq.css';
     my @page = capture("faq2html $options -s $style $source");
+    @page = map { decode('utf-8', $_) } @page;
     my $footer = sub {
         my ($blurb, $id, $file) = @_;
         if ($blurb) {
@@ -270,6 +274,7 @@ sub _pod2html {
     my $data;
     $podthread->output_string(\$data);
     $podthread->parse_file("$source");
+    $data = decode('utf-8', $data);
 
     # Spin that thread into HTML.
     my $page = $self->{thread}->spin_thread($data);

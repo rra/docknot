@@ -2,6 +2,10 @@
 
 7.01 - Not Released
 
+ - Correctly handle Unicode output from commands run by pointers and from
+   POD processing by Pod::Thread.  Previous versions since 6.01 were
+   double-encoding.  Thanks to Julien ÉLIE for the report.
+
  - Follow symlinks to ordinary files in docknot spin, just not
    directories.  The Path::Iterator::Rule conversion in 6.01 broke copying
    of files referenced by symlink.
