@@ -1,3 +1,13 @@
+docknot (7.01-1) unstable; urgency=medium
+
+  * New upstream release.
+    - Correctly handle Unicode output from commands run from pointers and
+      from POD processing by Pod::Thread.
+    - Follow symlinks to ordinary files in docknot spin.
+    - Use IEC units for \size spin command output.
+
+ -- Russ Allbery <rra@debian.org>  Wed, 19 Jan 2022 20:57:09 -0800
+
 docknot (7.00-1) unstable; urgency=medium
 
   * New upstream release.
