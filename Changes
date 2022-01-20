@@ -1,6 +1,6 @@
                        Revision history for DocKnot
 
-7.01 - Not Released
+7.01 - 2022-01-19
 
  - Correctly handle Unicode output from commands run by pointers and from
    POD processing by Pod::Thread.  Previous versions since 6.01 were
