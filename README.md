@@ -66,7 +66,7 @@ The following additional Perl modules are required to use it:
 * IO::Uncompress::Gunzip (part of IO-Compress)
 * IPC::Run
 * IPC::System::Simple
-* JSON::MaybeXS
+* JSON::MaybeXS 1.004000 or later
 * Kwalify
 * List::SomeUtils 0.07 or later
 * Path::Iterator::Rule
