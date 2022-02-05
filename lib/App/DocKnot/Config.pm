@@ -267,7 +267,7 @@ SOFTWARE.
 
 =head1 SEE ALSO
 
-L<docknot(1)>, L<App::DocKnot::Dist>, L<App:DocKnot::Release>,
+L<docknot(1)>, L<App::DocKnot::Dist>, L<App::DocKnot::Release>,
 L<App::DocKnot::Spin::Versions>
 
 This module is part of the App-DocKnot distribution.  The current version of
