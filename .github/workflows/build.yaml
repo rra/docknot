@@ -35,7 +35,7 @@ jobs:
       image: perldocker/perl-tester:${{ matrix.perl-version }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install pandoc
         run: apt-get -y --no-install-recommends install pandoc
       - uses: perl-actions/install-with-cpm@v1.4
