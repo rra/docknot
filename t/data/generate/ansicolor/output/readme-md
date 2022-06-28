@@ -97,7 +97,7 @@ with:
     make test
 ```
 
-If a test vails, you can run a single test with verbose output via:
+If a test fails, you can run a single test with verbose output via:
 
 ```
     prove -vb <path-to-test>

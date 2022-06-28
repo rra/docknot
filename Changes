@@ -1,5 +1,9 @@
                        Revision history for DocKnot
 
+7.02 - Not Released
+
+ - Fix typo in README.md template for ExtUtils::MakeMaker packages.
+
 7.01 - 2022-01-19
 
  - Correctly handle Unicode output from commands run by pointers and from
