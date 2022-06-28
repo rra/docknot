@@ -121,7 +121,8 @@ sub _config_from_json {
 
     # If the package is marked orphaned, load the explanation.
     if ($data_ref->{orphaned}) {
-        $data_ref->{orphaned} = $self->_load_metadata('orphaned');
+        $data_ref->{unmaintained} = $self->_load_metadata('orphaned');
+        delete($data_ref->{orphaned});
     }
 
     # If the package has a quote, load the text of the quote.

@@ -6,11 +6,11 @@
   [% copr.holder %].  [% END %]This software is distributed under
   [% license.summary %].  Please see the section LICENSE below for more
   information.
-[% IF orphaned %]
+[% IF unmaintained %]
 WARNING
 
-  This package is orphaned.
-[% indent(to_text(orphaned), 2) %]
+  This package is not maintained.
+[% indent(to_text(unmaintained), 2) %]
 [% END %]
 BLURB
 

@@ -1,6 +1,10 @@
                        Revision history for DocKnot
 
-7.02 - Not Released
+8.00 - Not Released
+
+ - Change the docknot.yaml field orphaned to unmaintained, and change the
+   templates to say the package is not maintained instead of orphaned.
+   This terminology is more precise and less metaphorical.
 
  - Fix typo in README.md template for ExtUtils::MakeMaker packages.
 
