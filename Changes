@@ -6,6 +6,10 @@
    templates to say the package is not maintained instead of orphaned.
    This terminology is more precise and less metaphorical.
 
+ - Remove support information from the README.md and README templates for
+   packages that are no longer maintained, and adjust some of the wording
+   there and in the thread template.
+
  - Fix typo in README.md template for ExtUtils::MakeMaker packages.
 
 7.01 - 2022-01-19
