@@ -2,6 +2,11 @@
 
 8.00 - Not Released
 
+ - Merge faq2html into this package as App::DocKnot::Spin::Text, and add a
+   new command, docknot spin-text, which takes roughly the same options as
+   faq2html.  This adds the ability to convert text files in my personal
+   format into HTML.
+
  - Change the docknot.yaml field orphaned to unmaintained, and change the
    templates to say the package is not maintained instead of orphaned.
    This terminology is more precise and less metaphorical.

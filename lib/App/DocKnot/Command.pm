@@ -99,6 +99,14 @@ our %COMMANDS = (
         minimum => 1,
         maximum => 1,
     },
+    'spin-text' => {
+        method => 'spin_text_file',
+        module => 'App::DocKnot::Spin::Text',
+        options => [
+            'last-modified|l', 'style-url|s=s', 'title|t=s', 'use-value|u',
+        ],
+        maximum => 2,
+    },
     'spin-thread' => {
         method => 'spin_thread_file',
         module => 'App::DocKnot::Spin::Thread',

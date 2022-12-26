@@ -1,9 +1,8 @@
 #!/usr/bin/perl -w
-$ID = q$Id$;
 #
 # faq2html -- Convert some particular text formats into XHTML.
 #
-# Copyright 1999-2002, 2004-2005, 2008, 2010, 2013-2014, 2021
+# Copyright 1999-2002, 2004-2005, 2008, 2010, 2013-2014, 2021, 2022
 #     Russ Allbery <eagle@eyrie.org>
 #
 # This program is free software; you may redistribute it and/or modify it
@@ -16,18 +15,20 @@ $ID = q$Id$;
 # text; this doesn't try to solve the general problem.  Rather, it's good
 # enough to turn the FAQs I maintain into XHTML documents, which is all that I
 # need of it.
+#
+# SPDX-License-Identifier: MIT
 
 ##############################################################################
 # Modules and declarations
 ##############################################################################
 
-require 5.003;
+package App::DocKnot::Spin::Text 7.01;
 
-use strict;
-use vars qw($BUFFER $ID $IN $INDENT @INDENT @MONTHS $OUT %STATE $USEVALUE
-            $WS);
+use 5.024;
+use warnings;
 
-use Getopt::Long qw(GetOptions);
+use vars qw($BUFFER $IN $INDENT @INDENT @MONTHS $OUT %STATE $USEVALUE $WS);
+my $VERSION = '1.36';
 
 # Replace with the month names you want to use, if you don't want English.
 @MONTHS = qw(January February March April May June July August September
@@ -528,452 +529,472 @@ sub handle_doc_headers {
 }
 
 ##############################################################################
-# Main routine
+# Public interface
 ##############################################################################
 
-# Trim extraneous garbage from the path.
-my $fullpath = $0;
-$0 =~ s%.*/%%;
+# Create a new text to HTML converter.
+#
+# $args_ref - Anonymous hash of arguments with the following keys:
+#   last-modified - Whether to get last-modified date from source file
+#   style-url     - URL to the style sheet
+#   title         - Document title
+#   use-value     - Whether to use the value attribute of <li> in <ol>
+#
+# Returns: Newly created object
+sub new {
+    my ($class, $args_ref) = @_;
 
-# Parse command-line options, if any.
-my ($help, $lastmod, $numbered, $style, $realtitle, $version);
-Getopt::Long::config ('bundling');
-GetOptions ('h|help'          => \$help,
-            'l|last-modified' => \$lastmod,
-            's|style=s'       => \$style,
-            't|title=s'       => \$realtitle,
-            'u|use-value'     => \$USEVALUE,
-            'v|version'       => \$version) or exit 1;
+    # Temporary compatibility with old global variables.
+    $USEVALUE = $args_ref->{'use-value'};
 
-# If they asked for help, give them the documentation.
-if ($help) {
-    print "Feeding myself to perldoc, please wait....\n";
-    exec ('perldoc', '-t', $fullpath) or die "$0: can't fork: $!\n";
+    # Create and return the object.
+    #<<<
+    my $self = {
+        last_modified => $args_ref->{'last-modified'},
+        style_url     => $args_ref->{'style-url'},
+        title         => $args_ref->{title},
+    };
+    #<<<
+    bless($self, $class);
+    return $self;
 }
 
-# If they asked for the version number, print it and exit.
-if ($version) {
-    my $version = join (' ', (split (' ', $ID))[1..3]);
-    $version =~ s/,v\b//;
-    $version =~ s/(\S+)$/($1)/;
-    $version =~ tr%/%-%;
-    print $version, "\n";
-    exit;
-}
+# Convert text to HTML.
+#
+# $input  - Input file (if not given, assumes standard input)
+# $output - Output file (if not given, assumes standard output)
+sub spin_text_file {
+    my ($self, $input, $output) = @_;
 
-# Figure out what file we're going to be processing.  We can function as a
-# filter if so desired.
-my ($input, $output) = @ARGV;
-if (defined $input && $input ne '-') {
-    open (IN, $input) or die "$0: can't open $input: $!\n";
-    $IN = \*IN;
-} else {
-    $IN = \*STDIN;
-}
-if (defined $output) {
-    open (OUT, "> $output") or die "$0: can't write to $output: $!\n";
-    $OUT = \*OUT;
-} else {
-    $OUT = \*STDOUT;
-}
-
-# Check for a leading RCS/CVS version identifier.  For FAQs that I'm posting
-# to Usenet using postfaq, this will always be the first line of the file
-# stored on disk.
-my $id;
-$_ = <$IN>;
-if (is_id $_) {
-    chomp ($id = $_);
-    do { $_ = <$IN> } while (defined && /^\s*$/);
-}
-
-# Check for the type of document.  First we see if it looks like a FAQ with
-# news/mail headers, and if so we read those headers and the subheaders.
-# Otherwise, we see if it looks like one of my documentation files and try to
-# grab information from it if so.
-my ($author, $title, $original);
-if (!$realtitle) {
-    if (is_header ($_) || /^From /) {
-        ($author, $title, $original) = handle_faq_headers;
+    # Figure out what file we're going to be processing.  We can function as a
+    # filter if so desired.
+    my ($closein, $closeout);
+    if (defined $input && $input ne '-') {
+        open (IN, $input) or die "$0: can't open $input: $!\n";
+        $IN = \*IN;
+        $closein = 1;
     } else {
-        my $newid;
-        ($author, $title, $newid) = handle_doc_headers;
-        $id = $newid if defined $newid;
+        $IN = \*STDIN;
     }
-}
-
-# Skip over whitespace after headers, and also skip over rules.
-$_ = <$IN> while (defined && (/^\s*$/ || is_rule $_));
-
-# See if we have a centered title at the top of the document.  If so, we'll
-# make that the document title unless we also saw a Subject header.  Titles
-# shouldn't be in all caps, though.
-my $heading;
-if (is_centered ($_)) {
-    $heading = whitechomp $_;
-    if (!$title) {
-        $title = $heading;
-        $title =~ s/\b([A-Z]+)\b/\L\u$1/g if (is_allcaps $title);
+    if (defined $output) {
+        open (OUT, "> $output") or die "$0: can't write to $output: $!\n";
+        $OUT = \*OUT;
+        $closeout = 1;
+    } else {
+        $OUT = \*STDOUT;
     }
-    do { $_ = <$IN> } while (defined && (/^\s*$/ || is_rule $_));
-}
-$title = $realtitle if $realtitle;
-$heading ||= $title;
-$heading = urlize $heading;
 
-# Generate the heading of the HTML file, using the filename as the title if we
-# haven't been able to find a title.  We claim "transitional" XHTML 1.0
-# compliance; we can't claim strict solely because we use the value attribute
-# in <li> in the absence of widespread implementation of CSS Level 2.
-($version) = (split (' ', $ID))[2];
-output dtd;
-output "\n";
-output html, "\n";
-output head ("  ", title ($title || $output || 'faq2html output'),
-             $style ? ("\n  ", style ($style)) : '', "\n  ",
-             charset, "\n"), "\n";
-output comment ($id), "\n" if $id;
-output comment ("Converted to XHTML by faq2html version $version"), "\n\n";
+    # Check for a leading RCS/CVS version identifier.  For FAQs that I'm
+    # posting to Usenet using postfaq, this will always be the first line of
+    # the file stored on disk.
+    my $id;
+    $_ = <$IN>;
+    if (is_id $_) {
+        chomp ($id = $_);
+        do { $_ = <$IN> } while (defined && /^\s*$/);
+    }
 
-# Open the body of the document, and print out the heading if we found one.
-output "<body>\n\n";
-output h1 ($heading), "\n" if $heading;
-
-# If we have additional headers, print them out.  Otherwise, if we have author
-# information from a From header, print that out under the main heading.
-#
-# If we have RCS/CVS Id information, add another subheading containing the
-# last modified date.  Alternately, if the -l option was given, get the last
-# modified date from the source file.  Existing subheadings that look like
-# they're just Revision or Date strings are replaced by our more nicely
-# formatted string.
-#
-# We go to some length here to avoid unnecessary <br> tags.
-#
-# Note that </strong> has to be on the end of the last line rather than the
-# beginning of the next to work around a bug in lynx.
-if ($heading) {
-    my ($subheading, $modified);
-    if ($id) {
-        $modified = modified_id ($id);
-    } elsif ($lastmod && $input ne '-') {
-        my $timestamp = (stat $input)[9];
-        if ($timestamp) {
-            $modified = modified_timestamp ($timestamp);
+    # Check for the type of document.  First we see if it looks like a FAQ
+    # with news/mail headers, and if so we read those headers and the
+    # subheaders.  Otherwise, we see if it looks like one of my documentation
+    # files and try to grab information from it if so.
+    my ($author, $title, $original);
+    if (!$self->{title}) {
+        if (is_header ($_) || /^From /) {
+            ($author, $title, $original) = handle_faq_headers;
+        } else {
+            my $newid;
+            ($author, $title, $newid) = handle_doc_headers;
+            $id = $newid if defined $newid;
         }
     }
-    while (defined && (/^\s*$/ || is_centered ($_) || $subheading)) {
-        if (/^\s*$/) {
-            do { $_ = <$IN> } while (defined && is_rule $_);
-            if (defined && is_centered ($_)) {
-                output "\n</p>\n" if $subheading;
-                $subheading = 0;
-                next;
-            } else {
-                last;
+
+    # Skip over whitespace after headers, and also skip over rules.
+    $_ = <$IN> while (defined && (/^\s*$/ || is_rule $_));
+
+    # See if we have a centered title at the top of the document.  If so,
+    # we'll make that the document title unless we also saw a Subject header.
+    # Titles shouldn't be in all caps, though.
+    my $heading;
+    if (is_centered ($_)) {
+        $heading = whitechomp $_;
+        if (!$title) {
+            $title = $heading;
+            $title =~ s/\b([A-Z]+)\b/\L\u$1/g if (is_allcaps $title);
+        }
+        do { $_ = <$IN> } while (defined && (/^\s*$/ || is_rule $_));
+    }
+    $title = $self->{title} if $self->{title};
+    $heading ||= $title;
+    $heading = urlize $heading;
+
+    # Generate the heading of the HTML file, using the filename as the title
+    # if we haven't been able to find a title.  We claim "transitional" XHTML
+    # 1.0 compliance; we can't claim strict solely because we use the value
+    # attribute in <li> in the absence of widespread implementation of CSS
+    # Level 2.
+    output dtd;
+    output "\n";
+    output html, "\n";
+    output head ("  ", title ($title || $output || 'faq2html output'),
+                 $self->{style_url}
+                 ? ("\n  ", style ($self->{style_url}))
+                 : '',
+                 "\n  ",
+                 charset, "\n"), "\n";
+    output comment ($id), "\n" if $id;
+    output comment ("Converted to XHTML by faq2html version $VERSION"), "\n\n";
+
+    # Open the body of the document, and print out the heading if we found
+    # one.
+    output "<body>\n\n";
+    output h1 ($heading), "\n" if $heading;
+
+    # If we have additional headers, print them out.  Otherwise, if we have
+    # author information from a From header, print that out under the main
+    # heading.
+    #
+    # If we have RCS/CVS Id information, add another subheading containing the
+    # last modified date.  Alternately, if the -l option was given, get the
+    # last modified date from the source file.  Existing subheadings that look
+    # like they're just Revision or Date strings are replaced by our more
+    # nicely formatted string.
+    #
+    # We go to some length here to avoid unnecessary <br> tags.
+    #
+    # Note that </strong> has to be on the end of the last line rather than
+    # the beginning of the next to work around a bug in lynx.
+    if ($heading) {
+        my ($subheading, $modified);
+        if ($id) {
+            $modified = modified_id ($id);
+        } elsif ($self->{last_modified} && $input ne '-') {
+            my $timestamp = (stat $input)[9];
+            if ($timestamp) {
+                $modified = modified_timestamp ($timestamp);
             }
-        } else {
+        }
+        while (defined && (/^\s*$/ || is_centered ($_) || $subheading)) {
+            if (/^\s*$/) {
+                do { $_ = <$IN> } while (defined && is_rule $_);
+                if (defined && is_centered ($_)) {
+                    output "\n</p>\n" if $subheading;
+                    $subheading = 0;
+                    next;
+                } else {
+                    last;
+                }
+            } else {
+                output qq(<p class="subheading">\n) unless $subheading;
+                output "<br />\n" if $subheading;
+                $subheading++;
+                if ($modified && (/\$Revision/ || /\$Date/)) {
+                    output '  ', $modified;
+                    undef $modified;
+                } else {
+                    $_ = urlize (escape (whitechomp ($_)));
+                    output '  ', $_;
+                }
+            }
+            do { $_ = <$IN> } while (defined && is_rule $_);
+        }
+        if (!defined $subheading && $author) {
+            $subheading++;
+            output qq(<p class="subheading">\n);
+            output '  ', escape ($author);
+            output "<br />\n  (originally by ", escape ($original), ')'
+                if $original;
+        }
+        if ($modified) {
             output qq(<p class="subheading">\n) unless $subheading;
             output "<br />\n" if $subheading;
+            output '  ', $modified;
             $subheading++;
-            if ($modified && (/\$Revision/ || /\$Date/)) {
-                output '  ', $modified;
-                undef $modified;
-            } else {
-                $_ = urlize (escape (whitechomp ($_)));
-                output '  ', $_;
+        }
+        output "\n</p>\n" if $subheading;
+    }
+
+    # Scan the actual body of the text.  We don't use paragraph mode, since it
+    # doesn't work with blank lines that contain whitespace; instead, we
+    # cobble together our own paragraph mode that does.  Note that $_ already
+    # has a non-blank line of input coming into this loop.
+    output "\n" if $heading;
+    $BUFFER = $_;
+    my $space;
+    while (defined $BUFFER) {
+        $_ = slurp;
+
+        # Ignore any text after a signature block.
+        last if (is_signature $_);
+
+        # If we just hit a digest divider, the next thing will likely be a
+        # Subject: line that we want to turn into a section header.  Digest
+        # section titles are always level 2 headers currently.
+        if (is_divider $_) {
+            $STATE{pre} = 0;
+            output start (-1);
+            undef $INDENT;
+            ($WS) = /\n(\s*)$/;
+            $_ = slurp;
+            s/\n(\s*)$/\n/;
+            $space = $1;
+            if (s/^Subject:\s+//) {
+                $STATE{contents} = /\bcontents\b/i;
+                $_ = escape $_;
+                if (/^([\d.]+)[.\)]\s/) {
+                    output h2 (container (qq(a name="S$1" id="S$1"), $_));
+                } else {
+                    output h2 ($_);
+                }
+                next;
             }
         }
-        do { $_ = <$IN> } while (defined && is_rule $_);
-    }
-    if (!defined $subheading && $author) {
-        $subheading++;
-        output qq(<p class="subheading">\n);
-        output '  ', escape ($author);
-        output "<br />\n  (originally by ", escape ($original), ')'
-            if $original;
-    }
-    if ($modified) {
-        output qq(<p class="subheading">\n) unless $subheading;
-        output "<br />\n" if $subheading;
-        output '  ', $modified;
-        $subheading++;
-    }
-    output "\n</p>\n" if $subheading;
-}
 
-# Scan the actual body of the text.  We don't use paragraph mode, since it
-# doesn't work with blank lines that contain whitespace; instead, we cobble
-# together our own paragraph mode that does.  Note that $_ already has a
-# non-blank line of input coming into this loop.
-output "\n" if $heading;
-$BUFFER = $_;
-my $space;
-while (defined $BUFFER) {
-    $_ = slurp;
+        # Treat lines of dash-type characters as rules.
+        if (is_rule $_) {
+            $STATE{pre} = 0;
+            ($space) = /\n(\s*)$/;
+            output start (-1), "<hr />\n";
+            undef $INDENT;
+            next
+        }
 
-    # Ignore any text after a signature block.
-    last if (is_signature $_);
+        # Everything else needs to have special characters escaped.  We don't
+        # do this earlier because if we want to allow < and > in rules, the
+        # escaping would make our lives miserable.
+        $_ = escape $_;
 
-    # If we just hit a digest divider, the next thing will likely be a
-    # Subject: line that we want to turn into a section header.  Digest
-    # section titles are always level 2 headers currently.
-    if (is_divider $_) {
-        $STATE{pre} = 0;
-        output start (-1);
-        undef $INDENT;
-        ($WS) = /\n(\s*)$/;
-        $_ = slurp;
+        # Do this before untabification and stashing of trailing whitespace,
+        # but after escaping.  Check to see if this paragraph looks like
+        # literal text.  If so, we wrap it in <pre> and output it as is.  As a
+        # special exception to our normal paragraph handling, this paragraph
+        # doesn't end until we find a literal blank line; this hack lets full
+        # diffs be included in a FAQ without confusing the parser.
+        if (is_literal $_) {
+            if (/\n[ \t]+$/) { $_ .= slurp (1) }
+            output pre (strip_indent ($_, $INDENT));
+            s/\n(\n\s*)$/\n/;
+            $space = $1;
+            $STATE{pre} = 1;
+            next;
+        }
+
+        # Not literal text, so untabify it and stash whitespace.
+        $_ = untabify $_;
         s/\n(\s*)$/\n/;
         $space = $1;
-        if (s/^Subject:\s+//) {
+        my $indent = indent $_;
+
+        # If the paragraph has inconsistent indentation, or is indented
+        # relative to the baseline *and* the last paragraph we emitted was
+        # enclosed in <pre>, assume that this paragraph belongs in <pre> as
+        # well.
+        if ($STATE{pre}) {
+            if (is_offset ($_) || (defined $INDENT && $indent > $INDENT)) {
+                output pre (strip_indent ($_, $INDENT));
+                next;
+            } else {
+                $STATE{pre} = 0;
+            }
+        }
+
+        # Check for a heading.  We distinguish between level 2 headings and
+        # level 3 headings as follows: The first heading we encounter is
+        # assumed to be a level 2 heading, and any further headers at that
+        # same indentation level are also level 2 headings.  If we detect any
+        # other headings at a greater indent, they're marked as level 3.
+        if (is_heading ($_)) {
+            s/^\s+//;
             $STATE{contents} = /\bcontents\b/i;
-            $_ = escape $_;
+            my $h;
+            if (defined $STATE{h2}) {
+                if ($indent <= $STATE{h2}) { $h = \&h2 }
+                else                       { $h = \&h3 }
+            } else {
+                $STATE{h2} = $indent;
+                $h = \&h2;
+            }
             if (/^([\d.]+)[.\)]\s/) {
-                output h2 (container (qq(a name="S$1" id="S$1"), $_));
+                my $anchor = qq(a name="S$1" id="S$1");
+                output start, &$h (container ($anchor, derule ($_)));
             } else {
-                output h2 ($_);
+                output start, &$h (derule ($_));
             }
+            $INDENT = $STATE{baseline};
             next;
         }
-    }
 
-    # Treat lines of dash-type characters as rules.
-    if (is_rule $_) {
-        $STATE{pre} = 0;
-        ($space) = /\n(\s*)$/;
-        output start (-1), "<hr />\n";
-        undef $INDENT;
-        next
-    }
-
-    # Everything else needs to have special characters escaped.  We don't do
-    # this earlier because if we want to allow < and > in rules, the escaping
-    # would make our lives miserable.
-    $_ = escape $_;
-
-    # Do this before untabification and stashing of trailing whitespace, but
-    # after escaping.  Check to see if this paragraph looks like literal text.
-    # If so, we wrap it in <pre> and output it as is.  As a special exception
-    # to our normal paragraph handling, this paragraph doesn't end until we
-    # find a literal blank line; this hack lets full diffs be included in a
-    # FAQ without confusing the parser.
-    if (is_literal $_) {
-        if (/\n[ \t]+$/) { $_ .= slurp (1) }
-        output pre (strip_indent ($_, $INDENT));
-        s/\n(\n\s*)$/\n/;
-        $space = $1;
-        $STATE{pre} = 1;
-        next;
-    }
-
-    # Not literal text, so untabify it and stash whitespace.
-    $_ = untabify $_;
-    s/\n(\s*)$/\n/;
-    $space = $1;
-    my $indent = indent $_;
-
-    # If the paragraph has inconsistent indentation, or is indented relative
-    # to the baseline *and* the last paragraph we emitted was enclosed in
-    # <pre>, assume that this paragraph belongs in <pre> as well.
-    if ($STATE{pre}) {
-        if (is_offset ($_) || (defined $INDENT && $indent > $INDENT)) {
-            output pre (strip_indent ($_, $INDENT));
-            next;
-        } else {
-            $STATE{pre} = 0;
-        }
-    }
-
-    # Check for a heading.  We distinguish between level 2 headings and level
-    # 3 headings as follows: The first heading we encounter is assumed to be a
-    # level 2 heading, and any further headers at that same indentation level
-    # are also level 2 headings.  If we detect any other headings at a greater
-    # indent, they're marked as level 3.
-    if (is_heading ($_)) {
-        s/^\s+//;
-        $STATE{contents} = /\bcontents\b/i;
-        my $h;
-        if (defined $STATE{h2}) {
-            if ($indent <= $STATE{h2}) { $h = \&h2 }
-            else                       { $h = \&h3 }
-        } else {
-            $STATE{h2} = $indent;
-            $h = \&h2;
-        }
-        if (/^([\d.]+)[.\)]\s/) {
-            my $anchor = qq(a name="S$1" id="S$1");
-            output start, &$h (container ($anchor, derule ($_)));
-        } else {
-            output start, &$h (derule ($_));
-        }
-        $INDENT = $STATE{baseline};
-        next;
-    }
-
-    # A sudden change to an indentation of 0 when that's less than our
-    # indentation baseline is also a sign of literal text.
-    if ($INDENT && $indent == 0 && $INDENT > 0 && defined ($STATE{baseline})
-        && $STATE{baseline} > 0) {
-        output pre (strip_indent ($_, $INDENT));
-        $STATE{pre} = 1;
-        next;
-    }
-
-    # We're dealing with a normal paragraph of some sort, so go ahead and turn
-    # URLs into links.  Check whether the paragraph is broken first, though,
-    # and stash that information, since turning URLs into links can
-    # artificially lengthen lines.
-    my $broken = is_broken $_;
-    $_ = urlize $_;
-
-    # Check to see if we're in a contents section, and if so if this paragraph
-    # looks like a table of contents.  If so, turn all of the section headings
-    # into links and assume broken text.
-    if ($STATE{contents} && is_contents $_) { $_ = contents $_ }
-
-    # Check for paragraphs that are entirely bulletted lines, and turn them
-    # into unordered lists without <p> tags.
-    if (is_allbullet $_) {
-        my $last;
-        my @lines = split (/\n/, $_);
-        for (@lines) {
-            next unless /\S/;
-            if (is_bullet $_) {
-                if (defined $last) {
-                    output start ($INDENT, 'ul');
-                    output li ($INDENT, embolden $last);
-                }
-                $last = debullet $_;
-                $INDENT = indent $last;
-            } else {
-                $last .= "\n$_";
-            }
-        }
-        if (defined $last) {
-            output start ($INDENT, 'ul');
-            output li ($INDENT, embolden $last);
-        }
-        next;
-    }
-
-    # Check for paragraphs that are entirely numbered lines, and turn them
-    # into ordered lists without <p> tags.
-    if (is_allnumbered $_) {
-        my @lines = split (/\n/, $_);
-        for (@lines) {
-            next unless /\S/;
-            my ($number) = /^(\d+)/;
-            $_ = denumber $_;
-            $INDENT = indent $_;
-            output start ($INDENT, 'ol');
-            output li ($INDENT, embolden ($_), $number);
-        }
-        next;
-    }
-
-    # Check for bulletted paragraphs and turn them into lists.
-    if (is_bullet $_) {
-        $_ = debullet $_;
-        $INDENT = indent $_;
-        output start ($INDENT, 'ul');
-        output li ($INDENT, p (embolden $_));
-        next;
-    }
-
-    # Check for paragraphs quoted with some character and turn them into
-    # blockquotes provided they don't have inconsisted indentation.
-    my $quote = is_quoted ($_);
-    if ($quote && !$broken) {
-        $_ = unquote ($_, $quote);
-        $INDENT = indent $_;
-        output start ($INDENT, 'blockquote', p (embolden $_));
-        next;
-    }
-
-    # Check for numbered paragraphs and turn them into lists.
-    my $number = is_numbered ($_);
-    if (defined $number) {
-        my $contents = is_contents ($_);
-        $_ = denumber $_;
-        $INDENT = indent $_;
-        s%(\n\s*\S)%<br />$1%g if ($broken || $contents);
-        output start ($INDENT, 'ol');
-        output li ($INDENT, p (embolden $_), $number);
-        next;
-    }
-
-    # Check for things that look like description lists and handle them.  Note
-    # that we don't allow indented description lists, because they're usually
-    # something we actually want to make <pre>.  This is another fairly
-    # fragile heuristic.
-    if (is_description ($_) && defined $INDENT) {
-        my (@title, $body);
-        ($title[0], $body) = split ("\n", $_, 2);
-        my ($space) = ($title[0] =~ /^(\s*)/);
-        while ($body =~ /^$space\S/) {
-            my $title;
-            ($title, $body) = split ("\n", $body, 2);
-            push (@title, $title);
-        }
-        if ($indent == $INDENT || indent ($body) == $INDENT) {
-            @title = map { embolden ($_) } @title;
-            my $title = join ("<br />\n", @title) . "\n";
-            $INDENT = indent $body;
-            $body =~ s%(\n\s*\S)%<br />$1%g if is_broken $body;
-            output start ($indent, 'dl', dt ($title));
-            output start ($INDENT, 'dd', (p (embolden $body)));
-            next;
-        }
-    }
-
-    # If the paragraph has inconsistent indentation, we should output it in
-    # <pre>.
-    if (is_offset $_) {
-        output pre (strip_indent ($_, $INDENT));
-        $STATE{pre} = 1;
-        next;
-    }
-
-    # A sudden indentation change also means the paragraph should be
-    # blockquoted.  We render broken blockquoted text in <pre>, which may not
-    # be what's wanted for things like quotes of poetry... this is probably
-    # worth looking at in more detail.
-    if (defined $INDENT && $indent > $INDENT) {
-        if ($broken || (lines ($_) == 1 && !is_sentence $_)) {
+        # A sudden change to an indentation of 0 when that's less than our
+        # indentation baseline is also a sign of literal text.
+        if ($INDENT && $indent == 0 && $INDENT > 0 && defined($STATE{baseline})
+            && $STATE{baseline} > 0) {
             output pre (strip_indent ($_, $INDENT));
             $STATE{pre} = 1;
-        } else {
-            $INDENT = $indent;
-            output start ($INDENT, 'blockquote', p (embolden $_));
+            next;
         }
-        next;
+
+        # We're dealing with a normal paragraph of some sort, so go ahead and
+        # turn URLs into links.  Check whether the paragraph is broken first,
+        # though, and stash that information, since turning URLs into links
+        # can artificially lengthen lines.
+        my $broken = is_broken $_;
+        $_ = urlize $_;
+
+        # Check to see if we're in a contents section, and if so if this
+        # paragraph looks like a table of contents.  If so, turn all of the
+        # section headings into links and assume broken text.
+        if ($STATE{contents} && is_contents $_) { $_ = contents $_ }
+
+        # Check for paragraphs that are entirely bulletted lines, and turn
+        # them into unordered lists without <p> tags.
+        if (is_allbullet $_) {
+            my $last;
+            my @lines = split (/\n/, $_);
+            for (@lines) {
+                next unless /\S/;
+                if (is_bullet $_) {
+                    if (defined $last) {
+                        output start ($INDENT, 'ul');
+                        output li ($INDENT, embolden $last);
+                    }
+                    $last = debullet $_;
+                    $INDENT = indent $last;
+                } else {
+                    $last .= "\n$_";
+                }
+            }
+            if (defined $last) {
+                output start ($INDENT, 'ul');
+                output li ($INDENT, embolden $last);
+            }
+            next;
+        }
+
+        # Check for paragraphs that are entirely numbered lines, and turn them
+        # into ordered lists without <p> tags.
+        if (is_allnumbered $_) {
+            my @lines = split (/\n/, $_);
+            for (@lines) {
+                next unless /\S/;
+                my ($number) = /^(\d+)/;
+                $_ = denumber $_;
+                $INDENT = indent $_;
+                output start ($INDENT, 'ol');
+                output li ($INDENT, embolden ($_), $number);
+            }
+            next;
+        }
+
+        # Check for bulletted paragraphs and turn them into lists.
+        if (is_bullet $_) {
+            $_ = debullet $_;
+            $INDENT = indent $_;
+            output start ($INDENT, 'ul');
+            output li ($INDENT, p (embolden $_));
+            next;
+        }
+
+        # Check for paragraphs quoted with some character and turn them into
+        # blockquotes provided they don't have inconsisted indentation.
+        my $quote = is_quoted ($_);
+        if ($quote && !$broken) {
+            $_ = unquote ($_, $quote);
+            $INDENT = indent $_;
+            output start ($INDENT, 'blockquote', p (embolden $_));
+            next;
+        }
+
+        # Check for numbered paragraphs and turn them into lists.
+        my $number = is_numbered ($_);
+        if (defined $number) {
+            my $contents = is_contents ($_);
+            $_ = denumber $_;
+            $INDENT = indent $_;
+            s%(\n\s*\S)%<br />$1%g if ($broken || $contents);
+            output start ($INDENT, 'ol');
+            output li ($INDENT, p (embolden $_), $number);
+            next;
+        }
+
+        # Check for things that look like description lists and handle them.
+        # Note that we don't allow indented description lists, because they're
+        # usually something we actually want to make <pre>.  This is another
+        # fairly fragile heuristic.
+        if (is_description ($_) && defined $INDENT) {
+            my (@title, $body);
+            ($title[0], $body) = split ("\n", $_, 2);
+            my ($space) = ($title[0] =~ /^(\s*)/);
+            while ($body =~ /^$space\S/) {
+                my $title;
+                ($title, $body) = split ("\n", $body, 2);
+                push (@title, $title);
+            }
+            if ($indent == $INDENT || indent ($body) == $INDENT) {
+                @title = map { embolden ($_) } @title;
+                my $title = join ("<br />\n", @title) . "\n";
+                $INDENT = indent $body;
+                $body =~ s%(\n\s*\S)%<br />$1%g if is_broken $body;
+                output start ($indent, 'dl', dt ($title));
+                output start ($INDENT, 'dd', (p (embolden $body)));
+                next;
+            }
+        }
+
+        # If the paragraph has inconsistent indentation, we should output it
+        # in <pre>.
+        if (is_offset $_) {
+            output pre (strip_indent ($_, $INDENT));
+            $STATE{pre} = 1;
+            next;
+        }
+
+        # A sudden indentation change also means the paragraph should be
+        # blockquoted.  We render broken blockquoted text in <pre>, which may
+        # not be what's wanted for things like quotes of poetry... this is
+        # probably worth looking at in more detail.
+        if (defined $INDENT && $indent > $INDENT) {
+            if ($broken || (lines ($_) == 1 && !is_sentence $_)) {
+                output pre (strip_indent ($_, $INDENT));
+                $STATE{pre} = 1;
+            } else {
+                $INDENT = $indent;
+                output start ($INDENT, 'blockquote', p (embolden $_));
+            }
+            next;
+        }
+
+        # Close multiparagraph structure if we've outdented again.
+        if ($INDENT && $indent < $INDENT) { output start ($indent) }
+
+        # Looks like a normal paragraph.  Establish our indentation baseline
+        # if we haven't already.
+        if (!defined $STATE{baseline} && !$INDENT) {
+            $STATE{baseline} = $indent;
+        }
+        $INDENT = $indent;
+        s%(\n\s*\S)%<br />$1%g if $broken;
+        output p (embolden $_);
+
+    } continue {
+        $WS = $space;
     }
 
-    # Close multiparagraph structure if we've outdented again.
-    if ($INDENT && $indent < $INDENT) { output start ($indent) }
+    # All done.  Print out our closing tags.
+    output start (-1), "\n</body>\n</html>\n";
 
-    # Looks like a normal paragraph.  Establish our indentation baseline if we
-    # haven't already.
-    if (!defined $STATE{baseline} && !$INDENT) {
-        $STATE{baseline} = $indent;
-    }
-    $INDENT = $indent;
-    s%(\n\s*\S)%<br />$1%g if $broken;
-    output p (embolden $_);
-
-} continue {
-    $WS = $space;
+    # Close input and output if needed.
+    close($IN) if $closein;
+    close($OUT) if $closeout;
 }
-
-# All done.  Print out our closing tags.
-output start (-1), "\n</body>\n</html>\n";
 __END__
 
 
 ##############################################################################
 # Documentation
 ##############################################################################
+
+=for stopwords
+Allbery outdenting RCS XHTML documentable faq2html -hluv outdented subheaders
 
 =head1 NAME
 
@@ -1024,12 +1045,12 @@ turned into links.  Other URLs will not be turned into links, nor is any
 effort made to turn random body text into links because it happens to look
 like a link.  I dislike link syndrome.
 
-Bulletted lists and numbered lists will be turned into the appropriate HTML
+Bullet lists and numbered lists will be turned into the appropriate HTML
 structures.  Some attempt is also made to recognize description lists, but
-B<faq2html> was written by someone who writes a lot of technical
-documentation and therefore tends to prefer <pre>; description lists are
-therefore only going to work if the description titles aren't indented
-relative to the surrounding text.
+B<faq2html> was written by someone who writes a lot of technical documentation
+and therefore tends to prefer <pre>; description lists are therefore only
+going to work if the description titles aren't indented relative to the
+surrounding text.
 
 Regular indented paragraphs or paragraphs quoted with a consistent
 non-alphanumeric quote character are recognized and turned into HTML block
@@ -1055,9 +1076,9 @@ already.  If there's a subheading that contains RCS identifiers, it will be
 replaced by a nicely formatted heading generated from the RCS Id
 information in the HTML output.
 
-Text marked as *bold* using the standard asterix notation will be surrounded
-by <strong> tags, if the asterixes appear to be marking bold text rather
-than serving as wildcards or some other function.
+Text marked as *bold* using the standard asterisk notation will be surrounded
+by <strong> tags, if the asterisks appear to be marking bold text rather than
+serving as wildcards or some other function.
 
 B<faq2html> produces output (at least in the absence of any lurking bugs)
 which complies with the XHTML 1.0 Strict standard (unless B<-n> is given, in
@@ -1154,7 +1175,7 @@ the language of the document is English.
 The XHTML 1.0 standard at L<http://www.w3.org/TR/xhtml1/>.
 
 Current versions of this program are available from my web tools page at
-L<http://www.eyrie.org/~eagle/software/web/>.
+L<https://www.eyrie.org/~eagle/software/web/>.
 
 =head1 AUTHOR
 
