@@ -27,7 +27,7 @@ use Text::Balanced qw(extract_bracketed);
 
 # The URL to the software page for all of my web page generation software,
 # used to embed a link to the software that generated the page.
-my $URL = 'https://www.eyrie.org/~eagle/software/web/';
+my $URL = 'https://www.eyrie.org/~eagle/software/docknot/';
 
 # The table of available commands.  The columns are:
 #

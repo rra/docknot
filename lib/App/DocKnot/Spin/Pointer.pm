@@ -29,9 +29,9 @@ use POSIX qw(strftime);
 use Template ();
 use YAML::XS ();
 
-# The URL to the software page for all of my web page generation software,
-# used to embed a link to the software that generated the page.
-my $URL = 'https://www.eyrie.org/~eagle/software/web/';
+# The URL to the software page for this package, used to embed a link to the
+# software that generated the page.
+my $URL = 'https://www.eyrie.org/~eagle/software/docknot/';
 
 ##############################################################################
 # Format conversions
