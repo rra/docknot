@@ -103,7 +103,7 @@ our %COMMANDS = (
         method => 'spin_text_file',
         module => 'App::DocKnot::Spin::Text',
         options => [
-            'last-modified|l', 'style-url|s=s', 'title|t=s', 'use-value|u',
+            'last-modified|l', 'style|s=s', 'title|t=s', 'use-value|u',
         ],
         maximum => 2,
     },

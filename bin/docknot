@@ -307,7 +307,7 @@ modification timestamp of the source file.  This is only done if no RCS/CVS Id
 string is found in the file.  If there is one, it is used in preference.  This
 option is ignored if the input is not a file.
 
-=item B<-s> I<style>, B<--style-url>=I<style>
+=item B<-s> I<style>, B<--style>=I<style>
 
 Use I<style> as the URL of a style sheet for the generated web page.  Unless
 this argument is given, no style sheet will be referred to in the generated

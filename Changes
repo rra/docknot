@@ -7,6 +7,10 @@
    faq2html.  This adds the ability to convert text files in my personal
    format into HTML.
 
+ - Support *.spin pointers in addition to *.faq pointers for external text
+   files.  *.faq files are deprecated and support will be removed in a
+   future version of DocKnot.
+
  - Change the docknot.yaml field orphaned to unmaintained, and change the
    templates to say the package is not maintained instead of orphaned.
    This terminology is more precise and less metaphorical.

@@ -54,7 +54,7 @@ $output->spew($stdout);
 is_spin_output($output, $expected, 'spin-thread (standard output)');
 
 # Copy the input tree to a new temporary directory since .rss files generate
-# additional thread files.  Replace the .spin pointer since it points to a
+# additional thread files.  Replace the .spin pointers since they points to a
 # relative path in the source tree.
 my $indir = Path::Tiny->tempdir();
 $input = $datadir->child('input');
@@ -66,6 +66,12 @@ my $pointer_path = $indir->child(
 );
 $pointer_path->chmod(0644);
 $pointer_path->spew_utf8("format: pod\n", "path: $pod_source\n");
+my $text_source = path(
+    't', 'data', 'spin', 'text', 'input', 'docknot',
+)->realpath();
+my $text_pointer_path = $indir->child('software', 'docknot', 'readme.spin');
+$text_pointer_path->chmod(0644);
+$text_pointer_path->spew_utf8("format: text\n", "path: $text_source\n");
 
 # Spin a tree of files.
 $expected = $datadir->child('output');

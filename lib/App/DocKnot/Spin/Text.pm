@@ -30,6 +30,8 @@ use warnings;
 use vars qw($BUFFER $IN $INDENT @INDENT @MONTHS $OUT %STATE $USEVALUE $WS);
 my $VERSION = '1.36';
 
+use Path::Tiny qw(path);
+
 # Replace with the month names you want to use, if you don't want English.
 @MONTHS = qw(January February March April May June July August September
              October November December);
@@ -535,8 +537,10 @@ sub handle_doc_headers {
 # Create a new text to HTML converter.
 #
 # $args_ref - Anonymous hash of arguments with the following keys:
+#   output        - Root of the output tree (for sitemap information)
 #   last-modified - Whether to get last-modified date from source file
-#   style-url     - URL to the style sheet
+#   sitemap       - App::DocKnot::Spin::Sitemap object
+#   style         - URL to the style sheet
 #   title         - Document title
 #   use-value     - Whether to use the value attribute of <li> in <ol>
 #
@@ -550,8 +554,10 @@ sub new {
     # Create and return the object.
     #<<<
     my $self = {
+        output        => $args_ref->{output},
         last_modified => $args_ref->{'last-modified'},
-        style_url     => $args_ref->{'style-url'},
+        sitemap       => $args_ref->{sitemap},
+        style         => $args_ref->{style},
         title         => $args_ref->{title},
     };
     #<<<
@@ -628,6 +634,16 @@ sub spin_text_file {
     $heading ||= $title;
     $heading = urlize $heading;
 
+    # Get the <link> tags if we have the necessary information.
+    my $links = q{};
+    if ($self->{sitemap} && defined($self->{output}) && defined($output)) {
+        my $page = path($output)->relative($self->{output});
+        my @links = $self->{sitemap}->links($page);
+        if (@links) {
+            $links = join(q{}, @links);
+        }
+    }
+
     # Generate the heading of the HTML file, using the filename as the title
     # if we haven't been able to find a title.  We claim "transitional" XHTML
     # 1.0 compliance; we can't claim strict solely because we use the value
@@ -637,17 +653,21 @@ sub spin_text_file {
     output "\n";
     output html, "\n";
     output head ("  ", title ($title || $output || 'faq2html output'),
-                 $self->{style_url}
-                 ? ("\n  ", style ($self->{style_url}))
-                 : '',
-                 "\n  ",
-                 charset, "\n"), "\n";
+                 $self->{style} ? ("\n  ", style ($self->{style})) : '',
+                 "\n  ", charset, "\n", $links), "\n";
     output comment ($id), "\n" if $id;
     output comment ("Converted to XHTML by faq2html version $VERSION"), "\n\n";
 
     # Open the body of the document, and print out the heading if we found
     # one.
     output "<body>\n\n";
+    if ($self->{sitemap} && defined($self->{output}) && defined($output)) {
+        my $page = path($output)->relative($self->{output});
+        my @navbar = $self->{sitemap}->navbar($page);
+        if (@navbar) {
+            output @navbar, "\n";
+        }
+    }
     output h1 ($heading), "\n" if $heading;
 
     # If we have additional headers, print them out.  Otherwise, if we have
@@ -980,7 +1000,15 @@ sub spin_text_file {
     }
 
     # All done.  Print out our closing tags.
-    output start (-1), "\n</body>\n</html>\n";
+    output start (-1);
+    if ($self->{sitemap} && defined($self->{output}) && defined($output)) {
+        my $page = path($output)->relative($self->{output});
+        my @navbar = $self->{sitemap}->navbar($page);
+        if (@navbar) {
+            output "\n", @navbar;
+        }
+    }
+    output "\n</body>\n</html>\n";
 
     # Close input and output if needed.
     close($IN) if $closein;

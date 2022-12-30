@@ -18,6 +18,7 @@ use parent qw(App::DocKnot);
 use warnings FATAL => 'utf8';
 
 use App::DocKnot::Config;
+use App::DocKnot::Spin::Text;
 use App::DocKnot::Util qw(is_newer);
 use Carp qw(croak);
 use Encode qw(decode);
@@ -42,6 +43,7 @@ my $URL = 'https://www.eyrie.org/~eagle/software/docknot/';
 # $data_ref - Data from the pointer file
 #   path  - Path to the Markdown file to convert
 #   style - Style sheet to use
+#   title - Title of the page
 # $base     - Base path of pointer file (for relative paths)
 # $output   - Path to the output file
 #
@@ -109,6 +111,7 @@ sub _spin_markdown {
 #     navbar   - Whether to add a navigation bar
 #   path    - Path to the POD file to convert
 #   style   - Style sheet to use
+#   title   - Title of the page
 # $base     - Base path of pointer file (for relative paths)
 # $output   - Path to the output file
 #
@@ -140,6 +143,42 @@ sub _spin_pod {
 
     # Spin that page into HTML.
     $self->{thread}->spin_thread_output($data, $source, 'POD', $output);
+    return;
+}
+
+# Convert a text file to HTML.
+#
+# $data_ref - Data form the pointer file
+#   path  - Path to the text file to convert
+#   style - Style sheet to use
+#   title - Title of the page
+# $base     - Base path of pointer file (for relative paths)
+# $output   - Path to the output file
+#
+# Throws: Text exception on conversion failure
+sub _spin_text {
+    my ($self, $data_ref, $base, $output) = @_;
+    my $source = path($data_ref->{path})->absolute($base);
+
+    # Determine the style URL.
+    my $style = ($data_ref->{style} // 'faq') . '.css';
+    if ($self->{style_url}) {
+        $style = $self->{style_url} . $style;
+    }
+
+    # Create the formatter object.
+    #<<<
+    my %options = (
+        output  => $self->{output},
+        sitemap => $self->{sitemap},
+        style   => $style,
+        title   => $data_ref->{title},
+    );
+    #<<<
+    my $text = App::DocKnot::Spin::Text->new(\%options);
+
+    # Generate the output page.
+    $text->spin_text_file($source, $output);
     return;
 }
 
@@ -227,6 +266,8 @@ sub spin_pointer {
         $self->_spin_markdown($data_ref, $pointer->parent(), $output);
     } elsif ($data_ref->{format} eq 'pod') {
         $self->_spin_pod($data_ref, $pointer->parent(), $output);
+    } elsif ($data_ref->{format} eq 'text') {
+        $self->_spin_text($data_ref, $pointer->parent(), $output);
     } else {
         die "$pointer: unknown output format $data_ref->{format}\n";
     }

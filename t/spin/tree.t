@@ -56,6 +56,7 @@ Spinning .../journal/2011-08/006.html
 Spinning .../reviews/books/0-385-49362-2.html
 Creating .../software/docknot/api
 Spinning .../software/docknot/index.html
+Converting .../software/docknot/readme.html
 Updating .../usefor/drafts/draft-ietf-usefor-message-id-01.txt
 Updating .../usefor/drafts/draft-ietf-usefor-posted-mailed-01.txt
 Updating .../usefor/drafts/draft-ietf-usefor-useage-01.txt
@@ -68,19 +69,22 @@ BEGIN { use_ok('App::DocKnot::Util', qw(print_fh)) }
 require_ok('App::DocKnot::Spin');
 
 # Copy the input tree to a new temporary directory since .rss files generate
-# additional thread files.  Replace the POD pointer since it points to a
-# relative path in the source tree, but change its modification timestamp to
-# something in the past.
+# additional thread files.  Replace the pointers since they points to a
+# relative path in the source tree.
 my $tmpdir = Path::Tiny->tempdir();
 my $datadir = path('t', 'data', 'spin');
 my $input = $datadir->child('input');
 dircopy($input, $tmpdir) or die "Cannot copy $input to $tmpdir: $!\n";
 my $pod_source = path('lib', 'App', 'DocKnot.pm')->realpath();
-my $pointer_path = $tmpdir->path(
+my $text_source = path(
+    't', 'data', 'spin', 'text', 'input', 'docknot',
+)->realpath();
+my $pointer_path = $tmpdir->child(
     'software', 'docknot', 'api', 'app-docknot.spin',
 );
 $pointer_path->spew_utf8("format: pod\n", "path: $pod_source\n");
-my $old_timestamp = time() - 10;
+my $text_pointer_path = $tmpdir->child('software', 'docknot', 'readme.spin');
+$text_pointer_path->spew_utf8("format: text\n", "path: $text_source\n");
 
 # Spin a tree of files.
 my $output = Path::Tiny->tempdir();
