@@ -537,12 +537,12 @@ sub handle_doc_headers {
 # Create a new text to HTML converter.
 #
 # $args_ref - Anonymous hash of arguments with the following keys:
-#   output        - Root of the output tree (for sitemap information)
-#   last-modified - Whether to get last-modified date from source file
-#   sitemap       - App::DocKnot::Spin::Sitemap object
-#   style         - URL to the style sheet
-#   title         - Document title
-#   use-value     - Whether to use the value attribute of <li> in <ol>
+#   output    - Root of the output tree (for sitemap information)
+#   modified  - Whether to get last-modified date from source file
+#   sitemap   - App::DocKnot::Spin::Sitemap object
+#   style     - URL to the style sheet
+#   title     - Document title
+#   use-value - Whether to use the value attribute of <li> in <ol>
 #
 # Returns: Newly created object
 sub new {
@@ -554,11 +554,11 @@ sub new {
     # Create and return the object.
     #<<<
     my $self = {
-        output        => $args_ref->{output},
-        last_modified => $args_ref->{'last-modified'},
-        sitemap       => $args_ref->{sitemap},
-        style         => $args_ref->{style},
-        title         => $args_ref->{title},
+        output   => $args_ref->{output},
+        modified => $args_ref->{modified},
+        sitemap  => $args_ref->{sitemap},
+        style    => $args_ref->{style},
+        title    => $args_ref->{title},
     };
     #<<<
     bless($self, $class);
@@ -675,9 +675,9 @@ sub spin_text_file {
     # heading.
     #
     # If we have RCS/CVS Id information, add another subheading containing the
-    # last modified date.  Alternately, if the -l option was given, get the
-    # last modified date from the source file.  Existing subheadings that look
-    # like they're just Revision or Date strings are replaced by our more
+    # last modified date.  Alternately, if the modified option was set, get
+    # the last modified date from the source file.  Existing subheadings that
+    # look like they're just Revision or Date strings are replaced by our more
     # nicely formatted string.
     #
     # We go to some length here to avoid unnecessary <br> tags.
@@ -688,7 +688,7 @@ sub spin_text_file {
         my ($subheading, $modified);
         if ($id) {
             $modified = modified_id ($id);
-        } elsif ($self->{last_modified} && $input ne '-') {
+        } elsif ($self->{modified} && $input ne '-') {
             my $timestamp = (stat $input)[9];
             if ($timestamp) {
                 $modified = modified_timestamp ($timestamp);

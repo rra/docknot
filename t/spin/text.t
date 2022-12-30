@@ -28,7 +28,7 @@ my $outputdir = $datadir->child('output');
 
 # Spin a simple file.
 my $spin = App::DocKnot::Spin::Text->new(
-    { 'last-modified' => 1, 'style' => '/~eagle/styles/faq-short.css' },
+    { modified => 1, style => '/~eagle/styles/faq-short.css' },
 );
 my $input = $inputdir->child('rgra');
 $spin->spin_text_file($input, $tempfile);
@@ -38,7 +38,7 @@ is_spin_output(
 
 # Spin a more complex file.
 $spin = App::DocKnot::Spin::Text->new(
-    { 'last-modified' => 1, 'style' => '/~eagle/styles/faq.css' },
+    { modified => 1, style => '/~eagle/styles/faq.css' },
 );
 $input = $inputdir->child('mjqmail');
 $spin->spin_text_file($input, $tempfile);
@@ -48,7 +48,7 @@ is_spin_output(
 
 # Spin a file with the use-value setting to standard output.
 $spin = App::DocKnot::Spin::Text->new(
-    { 'style' => '/~eagle/styles/faq.css', 'use-value' => 1 },
+    { style => '/~eagle/styles/faq.css', 'use-value' => 1 },
 );
 $input = $inputdir->child('big-eight');
 my $html = capture_stdout {

@@ -55,6 +55,7 @@ Spinning .../usefor/index.html
 Spinning .../journal/2011-08/006.html
 Spinning .../reviews/books/0-385-49362-2.html
 Creating .../software/docknot/api
+Converting .../software/docknot/changes.html
 Spinning .../software/docknot/index.html
 Converting .../software/docknot/readme.html
 Updating .../usefor/drafts/draft-ietf-usefor-message-id-01.txt

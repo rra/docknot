@@ -39,7 +39,7 @@ our @EXPORT_OK = qw(fix_pointers is_spin_output is_spin_output_tree);
 # $base - Base path of the original input tree as a Path::Tiny object
 sub fix_pointers {
     my ($tree, $base) = @_;
-    my $rule = Path::Iterator::Rule->new()->name("*.spin")->file();
+    my $rule = Path::Iterator::Rule->new()->name('*.spin')->file();
     my $iter = $rule->iter("$tree", { follow_symlinks => 0 });
     while (defined(my $file = $iter->())) {
         my $data_ref = YAML::XS::LoadFile("$file");
@@ -48,6 +48,7 @@ sub fix_pointers {
         $data_ref->{path} = $path->absolute($top)->realpath()->stringify();
         YAML::XS::DumpFile($file, $data_ref);
     }
+    return;
 }
 
 # Compare an output file with expected file contents, with modifications for

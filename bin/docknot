@@ -300,7 +300,7 @@ of the file format.
 
 =over 4
 
-=item B<-l>, B<--last-modified>
+=item B<-m>, B<--modified>
 
 Add a last modified subheading to the converted document based on the last
 modification timestamp of the source file.  This is only done if no RCS/CVS Id

@@ -149,9 +149,11 @@ sub _spin_pod {
 # Convert a text file to HTML.
 #
 # $data_ref - Data form the pointer file
-#   path  - Path to the text file to convert
-#   style - Style sheet to use
-#   title - Title of the page
+#   options - Hash of conversion options
+#     modified - Whether to add a last modified subheader
+#   path    - Path to the text file to convert
+#   style   - Style sheet to use
+#   title   - Title of the page
 # $base     - Base path of pointer file (for relative paths)
 # $output   - Path to the output file
 #
@@ -169,10 +171,11 @@ sub _spin_text {
     # Create the formatter object.
     #<<<
     my %options = (
-        output  => $self->{output},
-        sitemap => $self->{sitemap},
-        style   => $style,
-        title   => $data_ref->{title},
+        modified => $data_ref->{options}{modified},
+        output   => $self->{output},
+        sitemap  => $self->{sitemap},
+        style    => $style,
+        title    => $data_ref->{title},
     );
     #<<<
     my $text = App::DocKnot::Spin::Text->new(\%options);
@@ -390,8 +393,8 @@ conversion.  The valid keys for a pointer file are:
 
 =item format
 
-The format of the source file.  Supported values are C<markdown> and C<pod>.
-Required.
+The format of the source file.  Supported values are C<markdown>, C<pod>, and
+C<text>.  Required.
 
 =item path
 
@@ -417,6 +420,18 @@ Boolean saying whether to generate a table of contents.  The default is false.
 
 Boolean saying whether to generate a navigation bar at the top of the page.
 The default is true.
+
+=back
+
+The supported options for a format of C<text> are:
+
+=over 4
+
+=item modified
+
+Boolean saying whether to add a last modified header.  This will always be
+done if the file contains a CVS-style C<$Id$> string, but otherwise will only
+be done if this option is set to true.  The default is false.
 
 =back
 

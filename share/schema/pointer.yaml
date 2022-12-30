@@ -21,6 +21,8 @@ mapping:
     mapping:
       contents:
         type: bool
+      modified:
+        type: bool
       navbar:
         type: bool
   style:
