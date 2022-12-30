@@ -20,14 +20,35 @@ use File::Find qw(find);
 use Path::Iterator::Rule ();
 use Path::Tiny qw(path);
 use Test::RRA qw(is_file_contents);
+use YAML::XS ();
 
 use Test::More;
 
-our @EXPORT_OK = qw(is_spin_output is_spin_output_tree);
+our @EXPORT_OK = qw(fix_pointers is_spin_output is_spin_output_tree);
 
 ##############################################################################
 # Test functions
 ##############################################################################
+
+# Replace pointers in a spin input tree containing relative paths with
+# absolute paths.  This is used after copying an input tree to a temporary
+# directory when it contains references to other files in the same source
+# tree.
+#
+# $tree - Path::Tiny pointing to a tree of files containing pointers
+# $base - Base path of the original input tree as a Path::Tiny object
+sub fix_pointers {
+    my ($tree, $base) = @_;
+    my $rule = Path::Iterator::Rule->new()->name("*.spin")->file();
+    my $iter = $rule->iter("$tree", { follow_symlinks => 0 });
+    while (defined(my $file = $iter->())) {
+        my $data_ref = YAML::XS::LoadFile("$file");
+        my $path = path($data_ref->{path});
+        my $top = path($file)->parent()->relative($tree)->absolute($base);
+        $data_ref->{path} = $path->absolute($top)->realpath()->stringify();
+        YAML::XS::DumpFile($file, $data_ref);
+    }
+}
 
 # Compare an output file with expected file contents, with modifications for
 # things that are expected to vary on each run, such as timestamps and version
@@ -152,6 +173,14 @@ None of these functions are imported by default.  The ones used by a script
 should be explicitly imported.
 
 =over 4
+
+=item fix_pointers(TREE, BASE)
+
+Find all F<*.spin> pointer files in TREE, treat any relative paths found in
+those pointer files as if they were relative to BASE, convert them to absolute
+paths, and write out the modified pointer file.  This is intended to be used
+after copying an input tree for App::DocKnot::Spin to a temporary directory,
+which would otherwise break any relative paths in pointer files.
 
 =item is_spin_output(OUTPUT, EXPECTED, MESSAGE)
 

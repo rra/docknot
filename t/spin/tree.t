@@ -16,7 +16,7 @@ use Capture::Tiny qw(capture_stdout);
 use File::Copy::Recursive qw(dircopy);
 use Path::Tiny qw(path);
 use POSIX qw(LC_ALL setlocale strftime);
-use Test::DocKnot::Spin qw(is_spin_output_tree);
+use Test::DocKnot::Spin qw(fix_pointers is_spin_output_tree);
 
 use Test::More;
 
@@ -69,22 +69,12 @@ BEGIN { use_ok('App::DocKnot::Util', qw(print_fh)) }
 require_ok('App::DocKnot::Spin');
 
 # Copy the input tree to a new temporary directory since .rss files generate
-# additional thread files.  Replace the pointers since they points to a
-# relative path in the source tree.
+# additional thread files.
 my $tmpdir = Path::Tiny->tempdir();
 my $datadir = path('t', 'data', 'spin');
 my $input = $datadir->child('input');
 dircopy($input, $tmpdir) or die "Cannot copy $input to $tmpdir: $!\n";
-my $pod_source = path('lib', 'App', 'DocKnot.pm')->realpath();
-my $text_source = path(
-    't', 'data', 'spin', 'text', 'input', 'docknot',
-)->realpath();
-my $pointer_path = $tmpdir->child(
-    'software', 'docknot', 'api', 'app-docknot.spin',
-);
-$pointer_path->spew_utf8("format: pod\n", "path: $pod_source\n");
-my $text_pointer_path = $tmpdir->child('software', 'docknot', 'readme.spin');
-$text_pointer_path->spew_utf8("format: text\n", "path: $text_source\n");
+fix_pointers($tmpdir, $input);
 
 # Spin a tree of files.
 my $output = Path::Tiny->tempdir();
@@ -121,6 +111,10 @@ ok(!$bogus->exists(), 'Stray file and directory was deleted');
 
 # Override the title of the POD document and request a contents section.  Set
 # the modification timestamp in the future to force a repsin.
+my $pod_source = path('lib', 'App', 'DocKnot.pm')->realpath();
+my $pointer_path = $tmpdir->child(
+    'software', 'docknot', 'api', 'app-docknot.spin',
+);
 $pointer_path->spew_utf8(
     "format: pod\n",
     "path: $pod_source\n",
