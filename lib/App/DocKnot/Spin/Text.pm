@@ -633,7 +633,6 @@ sub _convert_document {
 
     # Parse the document headers.
     $self->_parse_headers($in_fh);
-    $self->{title} //= 'faq2html output';
 
     # Generate the heading of the HTML file, using the filename as the title
     # if we haven't been able to find a title.  We claim "transitional" XHTML
@@ -643,7 +642,7 @@ sub _convert_document {
     $self->_output(dtd(), "\n", html(), "\n");
     $self->_output(
         head(
-            q{  }, title($self->{title}),
+            q{  }, title($self->{title} // q{}),
             $self->{style} ? ("\n  ", style($self->{style})) : q{},
             "\n  ", charset(), "\n", $links
         ), "\n",
