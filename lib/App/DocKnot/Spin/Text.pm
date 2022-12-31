@@ -91,36 +91,6 @@ sub modified_timestamp {
     'Last modified ' . $MONTHS[$month] . ' ' . $day . ', ' . $year;
 }
 
-# Output some text, adding any preserved whitespace after any closing tags.
-#
-# @data - HTML to output
-sub _output {
-    my ($self, @data) = @_;
-    if ($WS) {
-        $data[0] =~ s{ \A (\s* (?: </(?!body)[^>]+> \s*)* )}{$1$WS}xms;
-        $WS = q{};
-    }
-    print_fh($self->{out_fh}, $self->{output}, @data);
-    return;
-}
-
-# Read a paragraph.  By default, lines with nothing but whitespace are
-# paragraph dividers.  Use $BUFFER to store the unwanted next line.
-#
-# $in_fh - Input file handle
-# $ws    - If true, only completely blank lines are dividers
-sub slurp {
-    my ($in_fh, $ws) = @_;
-    my $p;
-    local $_;
-    $p = $BUFFER || '';
-    $p .= $_ while (defined ($_ = <$in_fh>) && ($ws ? !/^$/ : /\S/));
-    $p .= $_ if defined;
-    $p .= $_ while (defined ($_ = <$in_fh>) && /^\s*$/);
-    $BUFFER = $_;
-    $p;
-}
-
 # Remove all whitespace in a string.
 sub smash { local $_ = shift; s/\s//g; $_ }
 
@@ -322,6 +292,68 @@ sub is_signature { $_[0] =~ /^-- \n/ }
 sub is_url { $_[0] =~ m%^\s*&lt;<a href.+>\S+</a>&gt;\s*$% }
 
 ##############################################################################
+# Input and output
+##############################################################################
+
+# Output some text, adding any preserved whitespace after any closing tags.
+#
+# @data - HTML to output
+sub _output {
+    my ($self, @data) = @_;
+    if ($WS) {
+        $data[0] =~ s{ \A (\s* (?: </(?!body)[^>]+> \s*)* )}{$1$WS}xms;
+        $WS = q{};
+    }
+    print_fh($self->{out_fh}, $self->{output}, @data);
+    return;
+}
+
+# Read a paragraph.  By default, lines with nothing but whitespace are
+# paragraph dividers.  Use $BUFFER to store the unwanted next line.
+#
+# $in_fh - Input file handle
+# $ws    - If true, only completely blank lines are dividers
+sub slurp {
+    my ($in_fh, $ws) = @_;
+    my $p;
+    local $_;
+    $p = $BUFFER || '';
+    $p .= $_ while (defined ($_ = <$in_fh>) && ($ws ? !/^$/ : /\S/));
+    $p .= $_ if defined;
+    $p .= $_ while (defined ($_ = <$in_fh>) && /^\s*$/);
+    $BUFFER = $_;
+    $p;
+}
+
+# Read from the input file descriptor, skipping blank lines.
+#
+# $in_fh - Input file handle
+#
+# Returns: Next non-blank line or undef on end of file
+sub _skip_blank_lines {
+    my ($self, $in_fh) = @_;
+    my $line;
+    do {
+        $line = <$in_fh>;
+    } while (defined($line) && $line !~ m{ \S }xms);
+    return $line;
+}
+
+# Read from the input file descriptor, skipping blank lines and rules.
+#
+# $line  - Buffered line
+# $in_fh - Input file handle
+#
+# Returns: Next non-blank, non-rule line or undef on end of file
+sub _skip_blank_lines_and_rules {
+    my ($self, $line, $in_fh) = @_;
+    while (defined($line) && ($line !~ m{ \S }xms || is_rule($line))) {
+        $line = <$in_fh>;
+    }
+    return $line;
+}
+
+##############################################################################
 # HTML constructors
 ##############################################################################
 
@@ -457,65 +489,113 @@ sub pre        { container ('pre',        @_) }
 # Header parsing
 ##############################################################################
 
-# Check to see if the header looks like that of a FAQ.  If it doesn't, return
-# undefs; otherwise, return a list consisting of the author, the title, and
-# the original author if any was given.
-sub _handle_faq_headers {
-    my ($self, $in_fh) = @_;
-    my ($author, $title);
-    if (defined && /^From /) { $_ = <$in_fh> }
-    while (defined && is_header $_) {
-        my ($header, $content) = /^([\w-]+):\s+(.*)/;
+# Parse a block of RFC 2822 headers.
+#
+# $line  - Buffered input line
+# $in_fh - Input file handle
+#
+# Returns: Hash of lower-cased header names to contents, or the empty hash if
+#          no headers were seen
+sub _parse_rfc2822_headers {
+    my ($self, $line, $in_fh) = @_;
+    my %header;
+
+    while (defined($line) && $line =~ m{ \A ([\w-]+): \s+ (.*) }xms) {
+        my ($header, $content) = ($1, $2);
 
         # Deal with continuation lines.
-        $_ = <$in_fh>;
-        while (defined && /^\s+\S/) { $content .= $_; $_ = <$in_fh> }
+        $line = <$in_fh>;
+        while (defined($line) && $line =~ m{ \A \s+ \S }xms) {
+            $content .= $line;
+            $line = <$in_fh>;
+        }
 
-        # Save information we care about.
-        if    (lc $header eq 'from')    { $author = $content }
-        elsif (lc $header eq 'subject') { $title  = $content }
+        # Save the header contents.
+        chomp($content);
+        $header{lc($header)} = $content;
     }
 
-    # Skip blank lines (either initial ones or ones after headers.
-    $_ = <$in_fh> while (defined && /^\s*$/);
-
-    # Parse the FAQ subheaders, if any.  If we see any, we use the HTML-title
-    # and the Original-author headers.
-    my $original;
-    while (defined && is_header $_) {
-        my ($header, $content) = /^([\w-]+):\s+(.*)/;
-
-        # Deal with continuation lines.
-        $_ = <$in_fh>;
-        while (defined && /^\s+\S/) { $content .= $_; $_ = <$in_fh> }
-
-        # Save information we care about.
-        if    (lc $header eq 'html-title')      { $title    = $content }
-        elsif (lc $header eq 'original-author') { $original = $content }
-    }
-
-    # Return the information we found.
-    return ($author, $title, $original);
+    return \%header;
 }
 
-# Check to see if the header looks like my documentation format.  If it
-# doesn't, return undefs.  Otherwise, return a list consisting of the author,
-# the title, and the CVS revision string.
-sub _handle_doc_headers {
-    my ($self, $in_fh) = @_;
-    my ($author, $subject, $id);
-    while (defined && /^\s*[\w-]+:\s/) {
-        my ($header, $content) = /^\s*([\w-]+):\s+(.*)/;
-        $_ = <$in_fh>;
+# Check to see if the header looks like that of a FAQ.  If so, parse it and
+# set the appropriate attributes of the object.
+#
+# $line  - Buffered input line
+# $in_fh - Input file handle
+sub _handle_faq_headers {
+    my ($self, $line, $in_fh) = @_;
 
-        # Save information we care about.
-        if    (lc $header eq 'author')   { $author  = $content }
-        elsif (lc $header eq 'subject')  { $subject = $content }
-        elsif (lc $header eq 'revision') { $id = $content if is_id $content }
+    # Skip over a leading "From " line from an mbox file.
+    if (defined($line) && $line =~ m{ \A From [ ] }xms) {
+        $line = <$in_fh>;
     }
 
-    # Return the information we found.
-    return ($author, $subject, $id);
+    # Parse the top-level headers, if any.
+    my $header_ref = $self->_parse_rfc2822_headers($line, $in_fh);
+
+    # Skip blank lines (either initial ones or ones after headers.
+    $line = $self->_skip_blank_lines($in_fh);
+
+    # Parse the FAQ subheaders, if any.
+    my $faq_header_ref = $self->_parse_rfc2822_headers($line, $in_fh);
+
+    # Store the information we care about from the headers.
+    $self->{author} = $header_ref->{from};
+    $self->{original} = $faq_header_ref->{'original-author'};
+    $self->{title} //= (
+        $faq_header_ref->{'html-title'} // $header_ref->{subject}
+    );
+    return;
+}
+
+# Parse the headers of a text document.  Sets the title, heading, id, author,
+# and original (author) attributes in the object if the corresponding
+# information was found.
+#
+# $in_fh - Input file handle
+sub _parse_headers {
+    my ($self, $in_fh) = @_;
+
+    # Check for a leading RCS/CVS version identifier.  For FAQs that I'm
+    # posting to Usenet using postfaq, this will always be the first line of
+    # the file stored on disk.
+    my $line = <$in_fh>;
+    if (is_id($line)) {
+        chomp($line);
+        $self->{id} = $line;
+        $line = $self->_skip_blank_lines($in_fh);
+    }
+
+    # Check for the type of document.  First, see if it looks like a FAQ with
+    # news/mail headers, and if so read those headers and the subheaders.
+    # Otherwise, skip over leading blank lines and rules.
+    if (!$self->{title} && (is_header($line) || $line =~ m{ \A From }xms)) {
+        $self->_handle_faq_headers($line, $in_fh);
+        $line = $self->_skip_blank_lines_and_rules(q{}, $in_fh);
+    } else {
+        $line = $self->_skip_blank_lines_and_rules($line, $in_fh);
+    }
+
+    # See if we have a centered title at the top of the document.  If so,
+    # we'll make that the document title unless we also saw a Subject header
+    # or a constructor argument.  Titles shouldn't be in all caps, though.
+    if (is_centered($line)) {
+        $self->{heading} = whitechomp($line);
+        if (!defined($self->{title})) {
+            $self->{title} = $self->{heading};
+            if (is_allcaps($self->{title})) {
+                $self->{title} =~ s{ \b ([A-Z]+) \b }{\L\u$1}xmsg;
+            }
+        }
+        $line = $self->_skip_blank_lines_and_rules(q{}, $in_fh);
+    } else {
+        $self->{heading} = $self->{title};
+    }
+
+    # Buffer the next line.
+    $BUFFER = $line;
+    return;
 }
 
 ##############################################################################
@@ -533,53 +613,12 @@ sub _convert_document {
 
     # Initialize object state for a new document.
     #<<<
+    $self->{author}   = undef;
+    $self->{heading}  = undef;
+    $self->{original} = undef;
     $self->{out_fh}   = $out_fh;
     $self->{out_path} = $out_path;
     #>>>
-
-    # Check for a leading RCS/CVS version identifier.  For FAQs that I'm
-    # posting to Usenet using postfaq, this will always be the first line of
-    # the file stored on disk.
-    my $id;
-    $_ = <$in_fh>;
-    if (is_id $_) {
-        chomp ($id = $_);
-        do { $_ = <$in_fh> } while (defined && /^\s*$/);
-    }
-
-    # Check for the type of document.  First we see if it looks like a FAQ
-    # with news/mail headers, and if so we read those headers and the
-    # subheaders.  Otherwise, we see if it looks like one of my documentation
-    # files and try to grab information from it if so.
-    my ($author, $title, $original);
-    if (!$self->{title}) {
-        if (is_header ($_) || /^From /) {
-            ($author, $title, $original) = $self->_handle_faq_headers($in_fh);
-        } else {
-            my $newid;
-            ($author, $title, $newid) = $self->_handle_doc_headers($in_fh);
-            $id = $newid if defined $newid;
-        }
-    }
-
-    # Skip over whitespace after headers, and also skip over rules.
-    $_ = <$in_fh> while (defined && (/^\s*$/ || is_rule $_));
-
-    # See if we have a centered title at the top of the document.  If so,
-    # we'll make that the document title unless we also saw a Subject header.
-    # Titles shouldn't be in all caps, though.
-    my $heading;
-    if (is_centered ($_)) {
-        $heading = whitechomp $_;
-        if (!$title) {
-            $title = $heading;
-            $title =~ s/\b([A-Z]+)\b/\L\u$1/g if (is_allcaps $title);
-        }
-        do { $_ = <$in_fh> } while (defined && (/^\s*$/ || is_rule $_));
-    }
-    $title = $self->{title} if $self->{title};
-    $heading ||= $title;
-    $heading = urlize $heading;
 
     # Get the <link> tags if we have the necessary information.
     my $links = q{};
@@ -591,6 +630,10 @@ sub _convert_document {
         }
     }
 
+    # Parse the document headers.
+    $self->_parse_headers($in_fh);
+    $self->{title} //= 'faq2html output';
+
     # Generate the heading of the HTML file, using the filename as the title
     # if we haven't been able to find a title.  We claim "transitional" XHTML
     # 1.0 compliance; we can't claim strict solely because we use the value
@@ -599,18 +642,18 @@ sub _convert_document {
     $self->_output(dtd(), "\n", html(), "\n");
     $self->_output(
         head(
-            q{  }, title($title || $out_path || 'faq2html output'),
+            q{  }, title($self->{title}),
             $self->{style} ? ("\n  ", style($self->{style})) : q{},
             "\n  ", charset(), "\n", $links
         ), "\n",
     );
-    $self->_output(comment($id), "\n") if $id;
+    $self->_output(comment($self->{id}), "\n") if $self->{id};
     $self->_output(
         comment("Converted to XHTML by faq2html version $VERSION"), "\n\n",
     );
 
-    # Open the body of the document, and print out the heading if we found
-    # one.
+    # Open the body of the document, print the navigation links if possible,
+    # and print out the heading if we found one.
     $self->_output("<body>\n\n");
     if ($self->{sitemap} && defined($self->{output}) && defined($out_path)) {
         my $page = $out_path->relative($self->{output});
@@ -619,7 +662,9 @@ sub _convert_document {
             $self->_output(@navbar, "\n");
         }
     }
-    $self->_output(h1($heading), "\n") if $heading;
+    if ($self->{heading}) {
+        $self->_output(h1($self->{heading}), "\n");
+    }
 
     # If we have additional headers, print them out.  Otherwise, if we have
     # author information from a From header, print that out under the main
@@ -635,16 +680,17 @@ sub _convert_document {
     #
     # Note that </strong> has to be on the end of the last line rather than
     # the beginning of the next to work around a bug in lynx.
-    if ($heading) {
+    if ($self->{heading}) {
         my ($subheading, $modified);
-        if ($id) {
-            $modified = modified_id ($id);
+        if ($self->{id}) {
+            $modified = modified_id($self->{id});
         } elsif ($self->{modified} && $in_path ne '-') {
             my $timestamp = (stat $in_path)[9];
             if ($timestamp) {
                 $modified = modified_timestamp ($timestamp);
             }
         }
+        $_ = $BUFFER;
         while (defined && (/^\s*$/ || is_centered ($_) || $subheading)) {
             if (/^\s*$/) {
                 do { $_ = <$in_fh> } while (defined && is_rule $_);
@@ -670,12 +716,15 @@ sub _convert_document {
             }
             do { $_ = <$in_fh> } while (defined && is_rule $_);
         }
-        if (!defined $subheading && $author) {
+        $BUFFER = $_;
+        if (!defined $subheading && $self->{author}) {
             $subheading++;
             $self->_output(qq(<p class="subheading">\n));
-            $self->_output(q{  }, escape($author));
-            $self->_output("<br />\n  (originally by ", escape($original), ')')
-              if $original;
+            $self->_output(q{  }, escape($self->{author}));
+            if ($self->{original}) {
+                $self->_output("<br />\n  (originally by ");
+                $self->_output(escape($self->{original}), ')');
+            }
         }
         if ($modified) {
             $self->_output(qq(<p class="subheading">\n)) unless $subheading;
@@ -685,13 +734,12 @@ sub _convert_document {
         }
         $self->_output("\n</p>\n") if $subheading;
     }
+    $self->_output("\n") if $self->{heading};
 
     # Scan the actual body of the text.  We don't use paragraph mode, since it
     # doesn't work with blank lines that contain whitespace; instead, we
     # cobble together our own paragraph mode that does.  Note that $_ already
     # has a non-blank line of input coming into this loop.
-    $self->_output("\n") if $heading;
-    $BUFFER = $_;
     my $space;
     while (defined $BUFFER) {
         $_ = slurp($in_fh);
