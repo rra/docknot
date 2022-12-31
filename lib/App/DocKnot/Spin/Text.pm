@@ -27,7 +27,7 @@ package App::DocKnot::Spin::Text 7.01;
 use 5.024;
 use warnings;
 
-use vars qw($BUFFER $IN $INDENT @INDENT @MONTHS $OUT %STATE $USEVALUE $WS);
+use vars qw($BUFFER $IN $INDENT @INDENT @MONTHS $OUT %STATE $WS);
 my $VERSION = '1.36';
 
 use Path::Tiny qw(path);
@@ -334,19 +334,11 @@ sub is_url { $_[0] =~ m%^\s*&lt;<a href.+>\S+</a>&gt;\s*$% }
 # can't claim strict solely because we use the value attribute in <li> in the
 # absence of widespread implementation of CSS Level 2.
 sub dtd {
-    if ($USEVALUE) {
-        qq(<?xml version="1.0" encoding="utf-8"?>\n)
-            . qq(<!DOCTYPE html\n    )
-            . qq(PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"\n    )
-            . qq("http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">)
-            . "\n";
-    } else {
-        qq(<?xml version="1.0" encoding="utf-8"?>\n)
-            . qq(<!DOCTYPE html\n    )
-            . qq(PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"\n    )
-            . qq("http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">)
-            . "\n";
-    }
+    qq(<?xml version="1.0" encoding="utf-8"?>\n)
+      . qq(<!DOCTYPE html\n    )
+      . qq(PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"\n    )
+      . qq("http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">)
+      . "\n";
 }
 
 # An XML comment.
@@ -397,7 +389,6 @@ sub li {
         shift @INDENT;
     }
     unshift (@INDENT, [ 'li', $indent ]);
-    undef $value unless $USEVALUE;
     my $tag = defined $value ? qq(<li value="$value">\n) : "<li>\n";
     $output . $tag . $data;
 }
@@ -542,14 +533,10 @@ sub handle_doc_headers {
 #   sitemap   - App::DocKnot::Spin::Sitemap object
 #   style     - URL to the style sheet
 #   title     - Document title
-#   use-value - Whether to use the value attribute of <li> in <ol>
 #
 # Returns: Newly created object
 sub new {
     my ($class, $args_ref) = @_;
-
-    # Temporary compatibility with old global variables.
-    $USEVALUE = $args_ref->{'use-value'};
 
     # Create and return the object.
     #<<<

@@ -46,9 +46,10 @@ is_spin_output(
     $tempfile, $outputdir->child('mjqmail.html'), "spin_text_file of $input",
 );
 
-# Spin a file with the use-value setting to standard output.
+# Spin a file that tests value settings in numbered lists and has an Id
+# string.
 $spin = App::DocKnot::Spin::Text->new(
-    { style => '/~eagle/styles/faq.css', 'use-value' => 1 },
+    { style => '/~eagle/styles/faq.css' },
 );
 $input = $inputdir->child('big-eight');
 my $html = capture_stdout {

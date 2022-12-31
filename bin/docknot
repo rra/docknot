@@ -318,16 +318,6 @@ web page.
 Use I<title> as the page title rather than whatever may be determined from
 looking at the input file.
 
-=item B<-u>, B<--use-value>
-
-If this option is given, include value attributes in all C<< <li> >> tags so
-that the item numbers will match the numbers specified in the source.  This is
-only necessary if the item numbers must continue to increase through
-disconnected numbered lists, or if the lists don't count as normal.  Without
-this option, no value tags are given and the numbering is left up to the
-browser, allowing the output to validate as XHTML 1.0 Strict instead of XHTML
-1.0 Transitional.
-
 =back
 
 =head2 spin-thread
