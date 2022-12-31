@@ -16,7 +16,8 @@
 package App::DocKnot::Spin::Text 7.01;
 
 use 5.024;
-use warnings;
+use autodie;
+use warnings FATAL => 'utf8';
 
 use vars qw($BUFFER $IN $INDENT @INDENT @MONTHS %STATE $WS);
 my $VERSION = '1.36';
@@ -1058,7 +1059,7 @@ sub spin_text_file {
         $input = path($input)->realpath();
         $in_fh = $input->openr_utf8();
     } else {
-        open($in_fh, '<&', 'STDIN');
+        open($in_fh, '<&:raw:encoding(utf-8)', 'STDIN');
     }
 
     # Open the output file.
@@ -1066,7 +1067,7 @@ sub spin_text_file {
         $output = path($output)->absolute();
         $out_fh = $output->openw_utf8();
     } else {
-        open($out_fh, '>&', 'STDOUT');
+        open($out_fh, '>&:raw:encoding(utf-8)', 'STDOUT');
     }
 
     # Do the work.
