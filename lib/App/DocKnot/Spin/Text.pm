@@ -358,15 +358,46 @@ sub _skip_blank_lines_and_rules {
 # HTML constructors
 ##############################################################################
 
-# Output the DTD for XHTML.  We claim "transitional" XHTML 1.0 compliance; we
-# can't claim strict solely because we use the value attribute in <li> in the
-# absence of widespread implementation of CSS Level 2.
-sub dtd {
-    qq(<?xml version="1.0" encoding="utf-8"?>\n)
-      . qq(<!DOCTYPE html\n    )
-      . qq(PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"\n    )
-      . qq("http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">)
-      . "\n";
+# Output the header of the HTML document.  We claim "transitional" XHTML 1.0
+# compliance; we can't claim strict solely because we use the value attribute
+# in <li> in the absence of widespread implementation of CSS Level 2.  Assume
+# English output.
+#
+# $header_ref - Additional information from the headers of the text document
+sub _output_header {
+    my ($self, $header_ref) = @_;
+    $self->_output(
+        '<?xml version="1.0" encoding="utf-8"?>', "\n",
+        '<!DOCTYPE html', "\n",
+        '    PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"', "\n",
+        '    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">', "\n",
+        "\n",
+        '<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">',
+        "\n",
+        '<head>', "\n",
+        q{  }, title($self->{title} // $header_ref->{title} // q{}), "\n",
+    );
+    if ($self->{style}) {
+        $self->_output(q{  }, style($self->{style}), "\n");
+    }
+    $self->_output(
+        q{  },
+        '<meta http-equiv="content-type" content="text/html; charset=utf-8"',
+        " />\n",
+    );
+    if ($self->{sitemap}) {
+        if (defined($self->{output}) && defined($self->{out_path})) {
+            my $page = $self->{out_path}->relative($self->{output});
+            $self->_output($self->{sitemap}->links($page));
+        }
+    }
+    $self->_output("</head>\n\n");
+    if ($header_ref->{id}) {
+        $self->_output(comment($header_ref->{id}), "\n");
+    }
+    $self->_output(
+        comment("Converted to XHTML by faq2html version $VERSION"), "\n\n",
+    );
 }
 
 # An XML comment.
@@ -376,22 +407,10 @@ sub comment {
     '<!-- ' . $data . ' -->';
 }
 
-# The character set for the page; we assume UTF-8 for all pages.
-sub charset {
-    qq(<meta http-equiv="content-type" content="text/html;)
-        . qq( charset=utf-8" />);
-}
-
 # A link to a CSS style sheet.
 sub style {
     my $style = shift;
     qq(<link rel="stylesheet" href="$style" type="text/css" />);
-}
-
-# The initial <html> tag, which is a bit complicated for XHTML.  Assume
-# English output.
-sub html {
-    qq(<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">);
 }
 
 # Wrap a container around data, keeping the tags on the same line.
@@ -482,7 +501,6 @@ sub dt         { container ('dt',         @_) }
 sub h1         { container ('h1',         @_) }
 sub h2         { container ('h2',         @_) }
 sub h3         { container ('h3',         @_) }
-sub head       { paragraph ('head',       @_) }
 sub p          { paragraph ('p',          @_) }
 sub pre        { container ('pre',        @_) }
 
@@ -627,36 +645,11 @@ sub _convert_document {
     $self->{out_path} = $out_path;  # Path to the output file
     #>>>
 
-    # Get the <link> tags if we have the necessary information.
-    my $links = q{};
-    if ($self->{sitemap} && defined($self->{output}) && defined($out_path)) {
-        my $page = $out_path->relative($self->{output});
-        my @links = $self->{sitemap}->links($page);
-        if (@links) {
-            $links = join(q{}, @links);
-        }
-    }
-
     # Parse the document headers.
     my $header_ref = $self->_parse_headers($in_fh);
 
-    # Generate the heading of the HTML file, using the filename as the title
-    # if we haven't been able to find a title.  We claim "transitional" XHTML
-    # 1.0 compliance; we can't claim strict solely because we use the value
-    # attribute in <li> in the absence of widespread implementation of CSS
-    # Level 2.
-    $self->_output(dtd(), "\n", html(), "\n");
-    $self->_output(
-        head(
-            q{  }, title($self->{title} // $header_ref->{title} // q{}),
-            $self->{style} ? ("\n  ", style($self->{style})) : q{},
-            "\n  ", charset(), "\n", $links
-        ), "\n",
-    );
-    $self->_output(comment($header_ref->{id}), "\n") if $header_ref->{id};
-    $self->_output(
-        comment("Converted to XHTML by faq2html version $VERSION"), "\n\n",
-    );
+    # Generate the header of the HTML file.
+    $self->_output_header($header_ref);
 
     # Open the body of the document, print the navigation links if possible,
     # and print out the heading if we found one.
