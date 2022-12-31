@@ -71,6 +71,9 @@ sub is_spin_output {
         \w{3}, [ ] \d\d [ ] \w{3} [ ] \d{4} [ ] \d\d:\d\d:\d\d [ ] [-+]\d{4}
     }{%DATE%}gxms;
     $results =~ s{
+        Last [ ] modified [ ] \w+ [ ] \d{1,2}, [ ] \d{4}
+    }{Last modified %DATE%}gxms;
+    $results =~ s{
         Last [ ] modified [ ] and \s+ (<a[^>]+>spun</a>) [ ] [%]DATE[%]
     }{Last $1\n    %DATE% from thread modified %DATE%}gxms;
     $results =~ s{
