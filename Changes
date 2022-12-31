@@ -19,6 +19,8 @@
    packages that are no longer maintained, and adjust some of the wording
    there and in the thread template.
 
+ - Add missing </address> closing tag in pages rendered from Markdown.
+
  - Fix typo in README.md template for ExtUtils::MakeMaker packages.
 
  - Fix the URL in the footer added by docknot spin to point to DocKnot
