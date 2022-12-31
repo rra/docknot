@@ -1,20 +1,11 @@
-#!/usr/bin/perl -w
-#
-# faq2html -- Convert some particular text formats into XHTML.
-#
-# Copyright 1999-2002, 2004-2005, 2008, 2010, 2013-2014, 2021, 2022
-#     Russ Allbery <eagle@eyrie.org>
-#
-# This program is free software; you may redistribute it and/or modify it
-# under the same terms as Perl itself.
+# Convert some particular text formats into HTML.
 #
 # This program is an ad hoc set of heuristics and tricks, attempting to
-# convert a few text file formats that I commonly use into reasonable XHTML.
-# It's my opinion that general text to XHTML conversions is impossible due to
-# the huge number of differing formats used by different people when writing
-# text; this doesn't try to solve the general problem.  Rather, it's good
-# enough to turn the FAQs I maintain into XHTML documents, which is all that I
-# need of it.
+# convert a few text file formats that I commonly use into reasonable HTML.
+# General text to XHTML conversions is impossible due to the wildly differing
+# formats used by people when writing text, so this module doesn't try to
+# solve the general problem.  It's good enough to turn the FAQs I maintain
+# into HTML documents, which is all that I need of it.
 #
 # SPDX-License-Identifier: MIT
 
@@ -1038,163 +1029,187 @@ sub spin_text_file {
     close($out_fh);
 }
 
+##############################################################################
+# Module return value and documentation
+##############################################################################
+
 1;
 __END__
 
-##############################################################################
-# Documentation
-##############################################################################
-
 =for stopwords
-Allbery outdenting RCS XHTML documentable faq2html -hluv outdented subheaders
+Allbery DocKnot MERCHANTABILITY NONINFRINGEMENT sublicense outdenting RCS
+documentable outdented subheaders preformatted XHTML
 
 =head1 NAME
 
-faq2html - Convert some particular text formats into XHTML
+App::DocKnot::Spin::Text - Convert some particular text formats into HTML
 
 =head1 SYNOPSIS
 
-B<faq2html> [B<-hluv>] [B<-s> I<style>] [B<-t> I<title>]
-    [I<infile> [I<outfile>]]
+    use App::DocKnot::Spin::Text;
+
+    my $text = App::DocKnot::Spin::Text->new({style => '/styles/faq.css'});
+    $text->spin_text_file('/path/to/input', '/path/to/output.html');
+
+=head1 REQUIREMENTS
+
+Perl 5.24 or later and the modules List::SomeUtils, Path::Tiny, and
+Sort::Versions, available from CPAN.
 
 =head1 DESCRIPTION
 
-Yes, this is another of those odd breed of partially functional beasts, a
-text to XHTML converter.  It is my belief that writing a general text to
-XHTML converter is completely impossible, on the grounds that people do too
-many varied things with their text to intuit document structure from it.
-This is therefore a converter that will translate documents written the way
-I write.
+This is another of those odd breed of partially functional beasts, a text to
+HTML converter.
 
-It may or may not work for you.  The chances that it will work for you are
-directly proportional to how much your writing looks like mine.
+This is not truly possible in general; people do too many varied things with
+their text to intuit document structure from it.  This is therefore a
+converter that will translate documents written the way I write.  It may or
+may not work for you.  The chances that it will work for you are directly
+proportional to how much your writing looks like mine.
 
-Usage is simple; just give it an input file and an output file.  If the
-output file isn't given, it will write to stdout.  If the input file also
-isn't given, it will read from stdin.
-
-B<faq2html> understands digest separators (lines of exactly thirty hyphens,
-from the minimal digest standard) and will treat a Subject header
-immediately after them as a section header.  Beyond that, headings must
+App::DocKnot::Spin::Text understands digest separators (lines of exactly
+thirty hyphens, from the minimal digest standard) and will treat a C<Subject>
+header immediately after them as a section header.  Beyond that, headings must
 either be outdented, underlined on the following line, or in all caps to be
 recognized as section headers.  (Outdenting means that the regular text is
 indented by a few spaces, but headers start in column 0, or at least in a
 column farther to the left than the regular text.)
 
 Section headers that begin with numbers (with any number of periods) will be
-given <a id> tags containing that number prepended with C<S>.  As a special
-case of the parsing, any section with a header containing "contents" will
-have lines beginning with numbers turned into links to the appropriate <a
-id> tags in the same document.  You can use this to turn the table of
-contents of your minimal digest format FAQ into a real table of contents
-with links in the HTML version.
+given C<< <a id> >> tags containing that number prepended with C<S>.  As a
+special case of the parsing, any section with a header containing C<contents>
+will have lines beginning with numbers turned into links to the appropriate <a
+id> tags in the same document.  You can use this to turn the table of contents
+of your minimal digest format FAQ into a real table of contents with links in
+the HTML version.
 
 Text with embedded whitespace more than a single space or a couple of spaces
-at a sentence boundary or after a colon (and any text with literal tabs)
-will be wrapped in <pre> tags.  So will any indented text that doesn't look
-like English paragraphs.  URLs surrounded by <...> or <URL:...> will be
-turned into links.  Other URLs will not be turned into links, nor is any
-effort made to turn random body text into links because it happens to look
-like a link.  I dislike link syndrome.
+at a sentence boundary or after a colon (and any text with literal tabs) will
+be wrapped in C<< <pre> >> tags.  So will any indented text that doesn't look
+like English paragraphs.  URLs surrounded by C<< <...> >> or C<< <URL:...> >>
+will be turned into links.  Other URLs will not be turned into links, nor is
+any effort made to turn random body text into links because it happens to look
+like a link.
 
 Bullet lists and numbered lists will be turned into the appropriate HTML
 structures.  Some attempt is also made to recognize description lists, but
-B<faq2html> was written by someone who writes a lot of technical documentation
-and therefore tends to prefer <pre>; description lists are therefore only
-going to work if the description titles aren't indented relative to the
-surrounding text.
+App::DocKnot::Spin::Text was written by someone who writes a lot of technical
+documentation and therefore tends to prefer C<< <pre> >> if unsure whether
+something is a description list or preformatted text.  Description lists are
+therefore only going to work if the description titles aren't indented
+relative to the surrounding text.
 
 Regular indented paragraphs or paragraphs quoted with a consistent
 non-alphanumeric quote character are recognized and turned into HTML block
 quotes.
 
-It's worthwhile paying attention to the headers at the top of your document
-so that B<faq2html> can get a few things right.  If you use RCS or CVS, put
-the RCS Id keyword as the first line of your document; it will be stripped
-out of the resulting output and B<faq2html> will use it to determine the
-document revision.  This should be followed by regular message headers and
-news.answers subheaders if the document is an actual FAQ, and B<faq2html>
-will use the From and Subject headers to figure out a title and headings to
-use.
+It's worthwhile paying attention to the headers at the top of your document so
+that App::DocKnot::Spin::Text can get a few things right.  If you use RCS or
+CVS, put the RCS C<Id> keyword as the first line of your document; it will be
+stripped out of the resulting output and App::DocKnot::Spin::Text will use it
+to determine the document revision.  This should be followed by regular
+message headers and news.answers subheaders if the document is an actual FAQ,
+and App::DocKnot::Spin::Text will use the C<From> and C<Subject> headers to
+figure out a title and headings to use.  As a special case, an HTML-title
+header in the subheaders will override any other title that
+App::DocKnot::Spin::Text thinks it should use for the document.
 
-As a special case, an HTML-title header in the subheaders will override any
-other title that B<faq2html> thinks it should use for the document.
+App::DocKnot::Spin::Text expects your document to have an C<< <h1> >> title,
+and will add one from the Subject header if it doesn't find one.  It will also
+add subheaders (C<class="subheading">) giving the author (from the C<From>
+header) and the last modified time and revision (from the RCS C<Id> string) if
+there are no subheadings already.  If there's a subheading that contains RCS
+identifiers, it will be replaced by a nicely formatted heading generated from
+the RCS C<Id> information in the HTML output.
 
-B<faq2html> expects your document to have a centered title, and will add one
-from the Subject header if it doesn't find one.  It will also add centered
-subheaders giving the author (from the From header) and the last modified
-time and revision (from the RCS Id string) if there are no subheadings
-already.  If there's a subheading that contains RCS identifiers, it will be
-replaced by a nicely formatted heading generated from the RCS Id
-information in the HTML output.
+Text marked as C<*bold*> using the standard asterisk notation will be
+surrounded by C<< <strong> >> tags, if the asterisks appear to be marking bold
+text rather than serving as wildcards or some other function.
 
-Text marked as *bold* using the standard asterisk notation will be surrounded
-by <strong> tags, if the asterisks appear to be marking bold text rather than
-serving as wildcards or some other function.
+App::DocKnot::Spin::Text produces output (at least in the absence of any
+lurking bugs) which complies with the XHTML 1.0 Transitional standard.  The
+input and output character set is assumed to be UTF-8.
 
-B<faq2html> produces output (at least in the absence of any lurking bugs)
-which complies with the XHTML 1.0 Strict standard (unless B<-n> is given, in
-which case it complies with XHTML 1.0 Transitional).  The input and output
-character set is assumed to be UTF-8.
-
-=head1 OPTIONS
+=head1 CLASS METHODS
 
 =over 4
 
-=item B<-h>, B<--help>
+=item new(ARGS)
 
-Print out this documentation (which is done simply by feeding the script
-to C<perldoc -t>.
+Create a new App::DocKnot::Spin::Thread object.  A single converter object can
+be reused repeatedly to convert multiple files, provided that they have the
+same options.  ARGS should be a hash reference with one or more of the
+following keys, all of which are optional:
 
-=item B<-l>, B<--last-modified>
+=over 4
 
-Add a last modified subheading to the converted document based on the last
-modification timestamp of the source file.  This is only done if no
-RCS/CVS Id string is found in the file.  If there is one, it is used in
-preference.  This option is ignored if the input is not a file.
+=item output
 
-=item B<-s> I<style>, B<--style>=I<style>
+The path to the root of the output tree when converting a tree of files.  This
+will be used to calculate relative path names for generating inter-page links
+using the provided C<sitemap> argument.  If C<sitemap> is given, this option
+should also always be given.
 
-Insert a reference to I<style> as a style sheet into the generated web
-page.  Unless this argument is given, no style sheet will be referred to
-in the generated web page.
+=item modified
 
-=item B<-t> I<title>, B<--title>=I<title>
+Add a last modified subheader to the document.  This will always be done if an
+RCS C<Id> string is present in the input.  Otherwise, a last modified
+subheader based on the last modification date of the input file will be added
+if the input is a file and this option is set to a true value.  The default is
+false.
 
-Use I<title> as the page title rather than whatever may be determined from
-looking at the input file.
+=item sitemap
 
-=item B<-u>, B<--use-value>
+An App::DocKnot::Spin::Sitemap object.  This will be used to create inter-page
+links.  For inter-page links, the C<output> argument must also be provided.
 
-If this option is given, faq2html includes value attributes in all <li> tags
-so that the item numbers will match the numbers specified in the source.
-This is only necessary if the item numbers must continue to increase through
-disconnected numbered lists, or if the lists don't count as normal.  Without
-this option, no value tags are given and the numbering is left up to the
-browser, allowing the output to validate as XHTML 1.0 Strict instead of
-XHTML 1.0 Transitional.
+=item style
 
-=item B<-v>, B<--version>
+The URL to the style sheet to use.  The appropriate HTML will be added to the
+C<< <head> >> section of the resulting document.
 
-Print out the version of B<faq2html> and exit.
+=item title
+
+The HTML page title to use.  This will also be used as the C<< <h1> >> heading
+if the document doesn't contain one, but will not override a heading found in
+the document (only the HTML C<< <title> >> attribute).
+
+=back
+
+=back
+
+=head1 INSTANCE METHODS
+
+=over 4
+
+=item spin_text_file([INPUT[, OUTPUT]])
+
+Convert a single text file to HTML.  INPUT is the path of the input file and
+OUTPUT is the path of the output file.  OUTPUT or both INPUT and OUTPUT may be
+omitted, in which case standard input or standard output, respectively, will
+be used.
+
+If OUTPUT is omitted, App::DocKnot::Spin::Text will not be able to obtain
+sitemap information even if a sitemap was provided, and therefore will not add
+inter-page links.
 
 =back
 
 =head1 NOTES
 
-I wrote this program because every other text to HTML converter that I've
-seen made specific assumptions about the document format and wanted you to
-write like it wanted you to write rather than like the way you wanted to
-write.  This program instead wants you to write like I write.  Which from my
+I wrote this program because every other text to HTML converter that I've seen
+made specific assumptions about the document format and wanted you to write
+like it wanted you to write rather than like the way you wanted to write.
+This program instead wants you to write like I write, which from my
 perspective is an improvement.
 
-I don't claim that this is the be-all and end-all of text to XHTML
-converters, as I don't believe such a beast exists.  I do believe it's
-pretty close to being the be-all and end-all of text to XHTML converters for
-text that I personally have written, since I've written into it a lot of
-knowledge of the sorts of text formatting conventions that I use.  If you
-happen to use the same ones, you may be delighted with this program.  If you
-don't, you'll probably be very frustrated with it.
+I don't claim that this is the be-all and end-all of text to HTML converters,
+as I don't believe such a beast exists.  I do believe it's pretty close to
+being the be-all and end-all of text to HTML converters for text that I
+personally have written, since I've written into it a lot of knowledge of the
+sorts of text formatting conventions that I use.  If you happen to use the
+same ones, you may be delighted with this module.  If you don't, you'll
+probably be very frustrated with it.
 
 In any case, I took to this project the perspective that whenever there was
 something this program couldn't handle, I wanted to make it smarter rather
@@ -1202,43 +1217,62 @@ than change the input.  I've mostly been successful at that, so far.
 
 =head1 CAVEATS
 
-This program attempts to do the impossible, namely intuit structure from an
-unstructured markup format.  To do that, it relies on a whole bunch of fussy
-heuristics, poorly-understood assumptions, and sheer blind luck.  To fully
-document the boundary cases of this program would take more time and
-patience than I care to invest; see the source code if you're curious.  This
-is not a predictable or easily documentable program.  Instead, it attempts
-to do what I mean without bugging me about it.
+This program attempts to intuit structure from an unstructured markup format.
+It therefore relies on a whole bunch of fussy heuristics, poorly-understood
+assumptions, and sheer blind luck.  To fully document the boundary cases of
+this program would take more time and patience than I care to invest; see the
+source code if you're curious.  This is not a predictable or easily
+documentable program.  Instead, it attempts to do what I mean without bugging
+me about it.
 
-There is therefore, at least currently, no way to control or adjust
-parameters in this program without editing it.  I may someday add that, but
-I'm leery of it, since the code complexity would start increasing
-exponentially if I tried to let people tweak everything.  I've completely
-given up on more than one text to HTML converter because it had more options
-than ls and expected you to try to figure out which ones should be used for
-a document yourself.  That's not the way I want this program to work.
+There is therefore, at least currently, no way to control or adjust parameters
+in this program without editing it.  I may someday add that, but I'm leery of
+it, since the code complexity would start increasing exponentially if I tried
+to let people tweak everything.  I've given up on more than one text to HTML
+converter because it had more options than B<ls> and expected you to try to
+figure out which ones should be used for a document yourself.
 
-English month names are used for the last modification dates.  To change the
-names used, see the top of the script.  Similarly, B<faq2html> always says
-the language of the document is English.
-
-=head1 SEE ALSO
-
-The XHTML 1.0 standard at L<http://www.w3.org/TR/xhtml1/>.
-
-Current versions of this program are available from my web tools page at
-L<https://www.eyrie.org/~eagle/software/web/>.
+English month names are used for the last modification dates, and the
+resulting HTML always declares that the document is in English.  This could be
+made configurable if anyone wishes.
 
 =head1 AUTHOR
 
-Russ Allbery <eagle@eyrie.org>
+Russ Allbery <rra@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 1999-2002, 2004-2005, 2008, 2010, 2013, 2021 Russ
-Allbery <eagle@eyrie.org>
+Copyright 1999-2002, 2004-2005, 2008, 2010, 2013, 2021-2022 Russ Allbery
+<rra@cpan.org>
 
-This program is free software; you may redistribute it and/or modify it
-under the same terms as Perl itself.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+=head1 SEE ALSO
+
+L<docknot(1)>, L<App::DocKnot::Spin>, L<App::DocKnot::Spin::Sitemap>
+
+This module is part of the App-DocKnot distribution.  The current version of
+DocKnot is available from CPAN, or directly from its web site at
+L<https://www.eyrie.org/~eagle/software/docknot/>.
 
 =cut
+
+# Local Variables:
+# copyright-at-end-flag: t
+# End:
