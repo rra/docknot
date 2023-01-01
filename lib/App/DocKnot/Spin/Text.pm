@@ -19,7 +19,7 @@ use 5.024;
 use autodie;
 use warnings FATAL => 'utf8';
 
-use vars qw($BUFFER $IN $INDENT @INDENT @MONTHS %STATE $WS);
+use vars qw($INDENT @INDENT %STATE $WS);
 
 use App::DocKnot;
 use App::DocKnot::Util qw(print_fh);
@@ -27,8 +27,8 @@ use Path::Tiny qw(path);
 use POSIX qw(strftime);
 
 # Replace with the month names you want to use, if you don't want English.
-@MONTHS = qw(January February March April May June July August September
-             October November December);
+our @MONTHS = qw(January February March April May June July August September
+                 October November December);
 
 ##############################################################################
 # Utility functions
@@ -310,21 +310,28 @@ sub _output {
     return;
 }
 
-# Read a paragraph.  By default, lines with nothing but whitespace are
-# paragraph dividers.  Use $BUFFER to store the unwanted next line.
+# Read a paragraph, including all of its trailing blank lines.  By default,
+# lines with nothing but whitespace are paragraph dividers.
 #
-# $in_fh - Input file handle
-# $ws    - If true, only completely blank lines are dividers
-sub slurp {
-    my ($in_fh, $ws) = @_;
-    my $p;
-    local $_;
-    $p = $BUFFER || '';
-    $p .= $_ while (defined ($_ = <$in_fh>) && ($ws ? !/^$/ : /\S/));
-    $p .= $_ if defined;
-    $p .= $_ while (defined ($_ = <$in_fh>) && /^\s*$/);
-    $BUFFER = $_;
-    $p;
+# $in_fh         - Input file handle
+# $require_blank - If true, only completely blank lines are dividers
+sub _next_paragraph {
+    my ($self, $in_fh, $require_blank) = @_;
+    my $paragraph = $self->{buffer} // q{};
+    my $nonblank_line = $require_blank ? qr{ [^\n] }xms : qr{ \S }xms;
+
+    my $line;
+    while (defined($line = <$in_fh>) && $line =~ $nonblank_line) {
+        $paragraph .= $line;
+    }
+    if (defined($line)) {
+        $paragraph .= $line;
+    }
+    while (defined($line = <$in_fh>) && $line =~ m{ \A \s* \z }xms) {
+        $paragraph .= $line;
+    }
+    $self->{buffer} = $line;
+    return $paragraph;
 }
 
 # Read from the input file descriptor, skipping blank lines.
@@ -622,7 +629,7 @@ sub _parse_headers {
     }
 
     # Buffer the next line.
-    $BUFFER = $line;
+    $self->{buffer} = $line;
     return \%header;
 }
 
@@ -692,7 +699,7 @@ sub _convert_document {
                 $modified = modified_timestamp ($timestamp);
             }
         }
-        $_ = $BUFFER;
+        $_ = $self->{buffer};
         while (defined && (/^\s*$/ || is_centered ($_) || $subheading)) {
             if (/^\s*$/) {
                 do { $_ = <$in_fh> } while (defined && is_rule $_);
@@ -718,7 +725,7 @@ sub _convert_document {
             }
             do { $_ = <$in_fh> } while (defined && is_rule $_);
         }
-        $BUFFER = $_;
+        $self->{buffer} = $_;
         if (!defined $subheading && $header_ref->{author}) {
             $subheading++;
             $self->_output(qq(<p class="subheading">\n));
@@ -743,8 +750,8 @@ sub _convert_document {
     # cobble together our own paragraph mode that does.  Note that $_ already
     # has a non-blank line of input coming into this loop.
     my $space;
-    while (defined $BUFFER) {
-        $_ = slurp($in_fh);
+    while (defined($self->{buffer})) {
+        $_ = $self->_next_paragraph($in_fh);
 
         # Ignore any text after a signature block.
         last if (is_signature $_);
@@ -757,7 +764,7 @@ sub _convert_document {
             $self->_output(start(-1));
             undef $INDENT;
             ($WS) = /\n(\s*)$/;
-            $_ = slurp($in_fh);
+            $_ = $self->_next_paragraph($in_fh);
             s/\n(\s*)$/\n/;
             $space = $1;
             if (s/^Subject:\s+//) {
@@ -795,7 +802,7 @@ sub _convert_document {
         # doesn't end until we find a literal blank line; this hack lets full
         # diffs be included in a FAQ without confusing the parser.
         if (is_literal $_) {
-            if (/\n[ \t]+$/) { $_ .= slurp($in_fh, 1) }
+            if (/\n[ \t]+$/) { $_ .= $self->_next_paragraph($in_fh, 1) }
             $self->_output(pre(strip_indent($_, $INDENT)));
             s/\n(\n\s*)$/\n/;
             $space = $1;
