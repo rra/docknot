@@ -20,10 +20,11 @@ use autodie;
 use warnings FATAL => 'utf8';
 
 use vars qw($BUFFER $IN $INDENT @INDENT @MONTHS %STATE $WS);
-my $VERSION = '1.36';
 
+use App::DocKnot;
 use App::DocKnot::Util qw(print_fh);
 use Path::Tiny qw(path);
+use POSIX qw(strftime);
 
 # Replace with the month names you want to use, if you don't want English.
 @MONTHS = qw(January February March April May June July August September
@@ -395,9 +396,11 @@ sub _output_header {
     if ($header_ref->{id}) {
         $self->_output(comment($header_ref->{id}), "\n");
     }
-    $self->_output(
-        comment("Converted to XHTML by faq2html version $VERSION"), "\n\n",
-    );
+
+    # Add a generator comment.
+    my $date = strftime('%Y-%m-%d %T -0000', gmtime());
+    my $version = $App::DocKnot::VERSION;
+    $self->_output(comment("Converted by DocKnot $version on $date"), "\n\n");
 }
 
 # An XML comment.

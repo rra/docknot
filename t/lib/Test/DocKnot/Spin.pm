@@ -84,7 +84,7 @@ sub is_spin_output {
     }{$1%DATE%$2}gxms;
 
     # Map the DocKnot version number to %VERSION%.
-    $results =~ s{ DocKnot [ ] \d+ [.] \d+ }{DocKnot %VERSION%}xms;
+    $results =~ s{ DocKnot [ ] \d+ [.] \d+ }{DocKnot %VERSION%}xmsg;
 
     # Check the results against the expected file.
     is_file_contents(encode('utf-8', $results), $expected, $message);
