@@ -310,6 +310,21 @@ sub _output {
     return;
 }
 
+# Read in the next line supporting buffering.
+#
+# Returns: The next line, or undef at end of file
+sub _next_line {
+    my ($self) = @_;
+    my $line;
+    if (defined($self->{buffer})) {
+        $line = $self->{buffer};
+        $self->{buffer} = undef;
+    } else {
+        $line = readline($self->{in_fh});
+    }
+    return $line;
+}
+
 # Read a paragraph, including all of its trailing blank lines.  By default,
 # lines with nothing but whitespace are paragraph dividers.
 #
@@ -336,14 +351,12 @@ sub _next_paragraph {
 
 # Read from the input file descriptor, skipping blank lines.
 #
-# $in_fh - Input file handle
-#
 # Returns: Next non-blank line or undef on end of file
 sub _skip_blank_lines {
-    my ($self, $in_fh) = @_;
+    my ($self) = @_;
     my $line;
     do {
-        $line = <$in_fh>;
+        $line = $self->_next_line();
     } while (defined($line) && $line !~ m{ \S }xms);
     return $line;
 }
@@ -576,9 +589,7 @@ sub _handle_faq_headers {
     return;
 }
 
-# Parse the headers of a text document.  Sets the title, heading, id, author,
-# and original (author) attributes in the object if the corresponding
-# information was found.
+# Parse the headers of a text document.
 #
 # $in_fh - Input file handle
 #
@@ -599,7 +610,7 @@ sub _parse_headers {
     if (is_id($line)) {
         chomp($line);
         $header{id} = $line;
-        $line = $self->_skip_blank_lines($in_fh);
+        $line = $self->_skip_blank_lines();
     }
 
     # Check for the type of document.  First, see if it looks like a FAQ with
@@ -631,6 +642,86 @@ sub _parse_headers {
     # Buffer the next line.
     $self->{buffer} = $line;
     return \%header;
+}
+
+# Parse the subheaders of a text document and generate the subheaders for the
+# output document.  The author information from the headers will be included,
+# as will the last modified date if configured.  Existing subheadings that
+# look like they're just Revision or Date strings will be replaced by a
+# nicely-formatted string.
+#
+# $header_ref - Main headers of the text document
+#
+# Returns: List of lists of subheaders to put at the top of the output
+#          document
+sub _parse_subheaders {
+    my ($self, $header_ref) = @_;
+    my (@subheaders, $modified);
+
+    # Generate a last modified date if we have an RCS/CVS Id string or if a
+    # last modified subheader from the file modification time was requested.
+    # We'll set $modified back to undef if we push it into the subheaders at
+    # any point; otherwise, we'll add it at the end.
+    if ($header_ref->{id}) {
+        $modified = modified_id($header_ref->{id});
+    } elsif ($self->{modified} && defined($self->{in_path})) {
+        $modified = modified_timestamp($self->{in_path}->stat()->[9]);
+    }
+
+    # Parse subheaders.  The first must be centered; after that, assume
+    # everything is a subheading until a blank line.
+    my $line = $self->_next_line();
+    while (defined($line)) {
+        # A blank line terminates the subheaders, but there may be trailing
+        # rules that we need to skip.
+        if ($line =~ m{ \A \s* \z }xms) {
+            do {
+                $line = $self->_next_line();
+            } while (defined($line) && is_rule($line));
+            last;
+        }
+
+        # For cases other than a blank line, we have to either be in a
+        # subheading or the line must be centered.
+        last if !(@subheaders || is_centered($line));
+
+        # A subheading to add.  Replace Revision and Date keywords with our
+        # modified timestamp if we have one.
+        if ($modified && $line =~ m{ [\$] (?: Revision | Date ) }xms) {
+            push(@subheaders, $modified);
+            $modified = undef;
+        } else {
+            push(@subheaders, urlize(escape(whitechomp($line))));
+        }
+
+        # Skip over any rules.
+        do {
+            $line = $self->_next_line();
+        } while (defined($line) && is_rule($line));
+    }
+
+    # If there is no subheading, but we have an author from the file headings,
+    # create a subheading with that information.
+    if (!@subheaders && $header_ref->{author}) {
+        push(@subheaders, escape($header_ref->{author}));
+        if ($header_ref->{original}) {
+            push(
+                @subheaders,
+                '(originally by ' . escape($header_ref->{original}) . ')',
+            )
+        }
+    }
+
+    # If we have modification information and haven't output it yet, add that
+    # to the subheading.
+    if (defined($modified)) {
+        push(@subheaders, $modified);
+    }
+
+    # Buffer the last line, which will be something other than a subheading,
+    # and return what we have.
+    $self->{buffer} = $line;
+    return @subheaders;
 }
 
 ##############################################################################
@@ -675,74 +766,11 @@ sub _convert_document {
         $self->_output(h1($header_ref->{heading}), "\n");
     }
 
-    # If we have additional headers, print them out.  Otherwise, if we have
-    # author information from a From header, print that out under the main
-    # heading.
-    #
-    # If we have RCS/CVS Id information, add another subheading containing the
-    # last modified date.  Alternately, if the modified option was set, get
-    # the last modified date from the source file.  Existing subheadings that
-    # look like they're just Revision or Date strings are replaced by our more
-    # nicely formatted string.
-    #
-    # We go to some length here to avoid unnecessary <br> tags.
-    #
-    # Note that </strong> has to be on the end of the last line rather than
-    # the beginning of the next to work around a bug in lynx.
-    if ($header_ref->{heading}) {
-        my ($subheading, $modified);
-        if ($header_ref->{id}) {
-            $modified = modified_id($header_ref->{id});
-        } elsif ($self->{modified} && $in_path ne '-') {
-            my $timestamp = (stat $in_path)[9];
-            if ($timestamp) {
-                $modified = modified_timestamp ($timestamp);
-            }
-        }
-        $_ = $self->{buffer};
-        while (defined && (/^\s*$/ || is_centered ($_) || $subheading)) {
-            if (/^\s*$/) {
-                do { $_ = <$in_fh> } while (defined && is_rule $_);
-                if (defined && is_centered ($_)) {
-                    $self->_output("\n</p>\n") if $subheading;
-                    $subheading = 0;
-                    next;
-                } else {
-                    last;
-                }
-            } else {
-                $self->_output(qq(<p class="subheading">\n))
-                  unless $subheading;
-                $self->_output("<br />\n") if $subheading;
-                $subheading++;
-                if ($modified && (/\$Revision/ || /\$Date/)) {
-                    $self->_output(q{  }, $modified);
-                    undef $modified;
-                } else {
-                    $_ = urlize (escape (whitechomp ($_)));
-                    $self->_output(q{  }, $_);
-                }
-            }
-            do { $_ = <$in_fh> } while (defined && is_rule $_);
-        }
-        $self->{buffer} = $_;
-        if (!defined $subheading && $header_ref->{author}) {
-            $subheading++;
-            $self->_output(qq(<p class="subheading">\n));
-            $self->_output(q{  }, escape($header_ref->{author}));
-            if ($header_ref->{original}) {
-                $self->_output("<br />\n  (originally by ");
-                $self->_output(escape($header_ref->{original}), ')');
-            }
-        }
-        if ($modified) {
-            $self->_output(qq(<p class="subheading">\n)) unless $subheading;
-            $self->_output("<br />\n") if $subheading;
-            $self->_output(q{  }, $modified);
-            $subheading++;
-        }
-        $self->_output("\n</p>\n") if $subheading;
-        $self->_output("\n");
+    # Parse and output the subheaders, if any.
+    my @subheaders = $self->_parse_subheaders($header_ref);
+    if (@subheaders) {
+        $self->_output(qq(<p class="subheading">\n));
+        $self->_output(q{  }, join("<br />\n  ", @subheaders), "\n</p>\n\n");
     }
 
     # Scan the actual body of the text.  We don't use paragraph mode, since it
@@ -1299,7 +1327,7 @@ Russ Allbery <rra@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 1999-2002, 2004-2005, 2008, 2010, 2013, 2021-2022 Russ Allbery
+Copyright 1999-2002, 2004-2005, 2008, 2010, 2013, 2021-2023 Russ Allbery
 <rra@cpan.org>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
