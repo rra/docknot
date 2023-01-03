@@ -297,6 +297,19 @@ sub is_url { $_[0] =~ m%^\s*&lt;<a href.+>\S+</a>&gt;\s*$% }
 # Input and output
 ##############################################################################
 
+# Put a line back in the input buffer because we aren't going to consume it.
+# This works in conjunction with _next_line and _next_paragraph.
+#
+# $line - Line to buffer
+sub _buffer_line {
+    my ($self, $line) = @_;
+    if (defined($self->{buffer})) {
+        $self->{buffer} .= $line;
+    } else {
+        $self->{buffer} = $line;
+    }
+}
+
 # Output some text, adding any preserved whitespace after any closing tags.
 #
 # @data - HTML to output
@@ -328,11 +341,11 @@ sub _next_line {
 # Read a paragraph, including all of its trailing blank lines.  By default,
 # lines with nothing but whitespace are paragraph dividers.
 #
-# $in_fh         - Input file handle
 # $require_blank - If true, only completely blank lines are dividers
 sub _next_paragraph {
-    my ($self, $in_fh, $require_blank) = @_;
-    my $paragraph = $self->{buffer} // q{};
+    my ($self, $require_blank) = @_;
+    my $paragraph = $self->_next_line();
+    my $in_fh = $self->{in_fh};
     my $nonblank_line = $require_blank ? qr{ [^\n] }xms : qr{ \S }xms;
 
     my $line;
@@ -345,34 +358,28 @@ sub _next_paragraph {
     while (defined($line = <$in_fh>) && $line =~ m{ \A \s* \z }xms) {
         $paragraph .= $line;
     }
-    $self->{buffer} = $line;
+    $self->_buffer_line($line);
     return $paragraph;
 }
 
 # Read from the input file descriptor, skipping blank lines.
-#
-# Returns: Next non-blank line or undef on end of file
 sub _skip_blank_lines {
     my ($self) = @_;
     my $line;
     do {
         $line = $self->_next_line();
     } while (defined($line) && $line !~ m{ \S }xms);
-    return $line;
+    $self->_buffer_line($line);
 }
 
 # Read from the input file descriptor, skipping blank lines and rules.
-#
-# $line  - Buffered line
-# $in_fh - Input file handle
-#
-# Returns: Next non-blank, non-rule line or undef on end of file
 sub _skip_blank_lines_and_rules {
-    my ($self, $line, $in_fh) = @_;
-    while (defined($line) && ($line !~ m{ \S }xms || is_rule($line))) {
-        $line = <$in_fh>;
-    }
-    return $line;
+    my ($self) = @_;
+    my $line;
+    do {
+        $line = $self->_next_line();
+    } while (defined($line) && ($line !~ m{ \S }xms || is_rule($line)));
+    $self->_buffer_line($line);
 }
 
 ##############################################################################
@@ -533,29 +540,28 @@ sub pre        { container ('pre',        @_) }
 
 # Parse a block of RFC 2822 headers.
 #
-# $line  - Buffered input line
-# $in_fh - Input file handle
-#
 # Returns: Hash of lower-cased header names to contents, or the empty hash if
 #          no headers were seen
 sub _parse_rfc2822_headers {
-    my ($self, $line, $in_fh) = @_;
+    my ($self) = @_;
     my %header;
 
+    my $line = $self->_next_line();
     while (defined($line) && $line =~ m{ \A ([\w-]+): \s+ (.*) }xms) {
         my ($header, $content) = ($1, $2);
 
         # Deal with continuation lines.
-        $line = <$in_fh>;
+        $line = $self->_next_line();
         while (defined($line) && $line =~ m{ \A \s+ \S }xms) {
             $content .= $line;
-            $line = <$in_fh>;
+            $line = $self->_next_line();
         }
 
         # Save the header contents.
         chomp($content);
         $header{lc($header)} = $content;
     }
+    $self->_buffer_line($line);
 
     return \%header;
 }
@@ -563,24 +569,21 @@ sub _parse_rfc2822_headers {
 # Check to see if the header looks like that of a FAQ.  If so, parse it.
 #
 # $header_ref - Hash into which to store the parse results.
-# $line       - Buffered input line
-# $in_fh      - Input file handle
 sub _handle_faq_headers {
-    my ($self, $header_ref, $line, $in_fh) = @_;
+    my ($self, $header_ref) = @_;
+    my $line = $self->_next_line();
 
     # Skip over a leading "From " line from an mbox file.
-    if (defined($line) && $line =~ m{ \A From [ ] }xms) {
-        $line = <$in_fh>;
+    if (defined($line) && $line !~ m{ \A From [ ] }xms) {
+        $self->_buffer_line($line);
     }
 
-    # Parse the top-level headers, if any.
-    my $top_ref = $self->_parse_rfc2822_headers($line, $in_fh);
-
-    # Skip blank lines (either initial ones or ones after headers.
-    $line = $self->_skip_blank_lines($in_fh);
-
-    # Parse the FAQ subheaders, if any.
-    my $sub_ref = $self->_parse_rfc2822_headers($line, $in_fh);
+    # Parse the top-level headers, if any, followed by the FAQ headers,
+    # skipping blank lines after each header section.
+    my $top_ref = $self->_parse_rfc2822_headers();
+    $self->_skip_blank_lines();
+    my $sub_ref = $self->_parse_rfc2822_headers();
+    $self->_skip_blank_lines();
 
     # Store the information we care about from the headers.
     $header_ref->{author} = $top_ref->{from};
@@ -591,8 +594,6 @@ sub _handle_faq_headers {
 
 # Parse the headers of a text document.
 #
-# $in_fh - Input file handle
-#
 # Returns: Hash of data from headers with the following keys:
 #            author   - Author of document
 #            id       - RCS Id string
@@ -600,32 +601,33 @@ sub _handle_faq_headers {
 #            original - Original author of document
 #            title    - Document title
 sub _parse_headers {
-    my ($self, $in_fh) = @_;
+    my ($self) = @_;
     my %header;
 
     # Check for a leading RCS/CVS version identifier.  For FAQs that I'm
     # posting to Usenet using postfaq, this will always be the first line of
     # the file stored on disk.
-    my $line = <$in_fh>;
+    my $line = $self->_next_line();
     if (is_id($line)) {
         chomp($line);
         $header{id} = $line;
-        $line = $self->_skip_blank_lines();
+        $self->_skip_blank_lines();
+        $line = $self->_next_line();
     }
 
     # Check for the type of document.  First, see if it looks like a FAQ with
     # news/mail headers, and if so read those headers and the subheaders.
     # Otherwise, skip over leading blank lines and rules.
+    $self->_buffer_line($line);
     if (!$self->{title} && (is_header($line) || $line =~ m{ \A From }xms)) {
-        $self->_handle_faq_headers(\%header, $line, $in_fh);
-        $line = $self->_skip_blank_lines_and_rules(q{}, $in_fh);
-    } else {
-        $line = $self->_skip_blank_lines_and_rules($line, $in_fh);
+        $self->_handle_faq_headers(\%header);
     }
+    $self->_skip_blank_lines_and_rules();
 
     # See if we have a centered title at the top of the document.  If so,
     # we'll make that the document title unless we also saw a Subject header
     # or a constructor argument.  Titles shouldn't be in all caps, though.
+    $line = $self->_next_line();
     if (is_centered($line)) {
         $header{heading} = whitechomp($line);
         if (!defined($header{title})) {
@@ -634,13 +636,13 @@ sub _parse_headers {
                 $header{title} =~ s{ \b ([A-Z]+) \b }{\L\u$1}xmsg;
             }
         }
-        $line = $self->_skip_blank_lines_and_rules(q{}, $in_fh);
+        $self->_skip_blank_lines_and_rules();
     } else {
+        $self->_buffer_line($line);
         $header{heading} = $header{title} // $self->{title};
     }
 
-    # Buffer the next line.
-    $self->{buffer} = $line;
+    # Return the parsed header.
     return \%header;
 }
 
@@ -670,18 +672,12 @@ sub _parse_subheaders {
 
     # Parse subheaders.  The first must be centered; after that, assume
     # everything is a subheading until a blank line.
-    my $line = $self->_next_line();
-    while (defined($line)) {
-        # A blank line terminates the subheaders, but there may be trailing
-        # rules that we need to skip.
-        if ($line =~ m{ \A \s* \z }xms) {
-            do {
-                $line = $self->_next_line();
-            } while (defined($line) && is_rule($line));
-            last;
-        }
+    my $line;
+    while (defined($line = $self->_next_line())) {
+        next if is_rule($line);
+        last if $line =~ m{ \A \s* \z }xms;
 
-        # For cases other than a blank line, we have to either be in a
+        # For cases other than a rule or blank line, we have to either be in a
         # subheading or the line must be centered.
         last if !(@subheaders || is_centered($line));
 
@@ -693,12 +689,9 @@ sub _parse_subheaders {
         } else {
             push(@subheaders, urlize(escape(whitechomp($line))));
         }
-
-        # Skip over any rules.
-        do {
-            $line = $self->_next_line();
-        } while (defined($line) && is_rule($line));
     }
+    $self->_buffer_line($line);
+    $self->_skip_blank_lines_and_rules();
 
     # If there is no subheading, but we have an author from the file headings,
     # create a subheading with that information.
@@ -718,9 +711,7 @@ sub _parse_subheaders {
         push(@subheaders, $modified);
     }
 
-    # Buffer the last line, which will be something other than a subheading,
-    # and return what we have.
-    $self->{buffer} = $line;
+    # Return what we have.
     return @subheaders;
 }
 
@@ -739,7 +730,7 @@ sub _convert_document {
 
     # Initialize object state for a new document.
     #<<<
-    $self->{buffer}   = q{};        # Buffered input line not yet converted
+    $self->{buffer}   = undef;      # Buffered input line not yet converted
     $self->{in_fh}    = $in_fh;     # Input file handle
     $self->{in_path}  = $in_path;   # Path to input file
     $self->{out_fh}   = $out_fh;    # Output file handle
@@ -747,7 +738,7 @@ sub _convert_document {
     #>>>
 
     # Parse the document headers.
-    my $header_ref = $self->_parse_headers($in_fh);
+    my $header_ref = $self->_parse_headers();
 
     # Generate the header of the HTML file.
     $self->_output_header($header_ref);
@@ -778,11 +769,8 @@ sub _convert_document {
     # cobble together our own paragraph mode that does.  Note that $_ already
     # has a non-blank line of input coming into this loop.
     my $space;
-    while (defined($self->{buffer})) {
-        $_ = $self->_next_paragraph($in_fh);
-
-        # Ignore any text after a signature block.
-        last if (is_signature $_);
+    while (defined($_ = $self->_next_paragraph())) {
+        last if is_signature($_);
 
         # If we just hit a digest divider, the next thing will likely be a
         # Subject: line that we want to turn into a section header.  Digest
@@ -792,7 +780,7 @@ sub _convert_document {
             $self->_output(start(-1));
             undef $INDENT;
             ($WS) = /\n(\s*)$/;
-            $_ = $self->_next_paragraph($in_fh);
+            $_ = $self->_next_paragraph();
             s/\n(\s*)$/\n/;
             $space = $1;
             if (s/^Subject:\s+//) {
@@ -830,7 +818,7 @@ sub _convert_document {
         # doesn't end until we find a literal blank line; this hack lets full
         # diffs be included in a FAQ without confusing the parser.
         if (is_literal $_) {
-            if (/\n[ \t]+$/) { $_ .= $self->_next_paragraph($in_fh, 1) }
+            if (/\n[ \t]+$/) { $_ .= $self->_next_paragraph(1) }
             $self->_output(pre(strip_indent($_, $INDENT)));
             s/\n(\n\s*)$/\n/;
             $space = $1;
