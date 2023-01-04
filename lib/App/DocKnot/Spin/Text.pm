@@ -148,150 +148,341 @@ sub urlize {
 sub whitechomp { local $_ = shift; s/^\s+//; s/\s+$//; $_ }
 
 ##############################################################################
-# Identification functions
+# Classification functions
 ##############################################################################
 
-# Expects a paragraph, returns whether it is composed entirely of bullet
-# items.  Take some care to avoid returning true for paragraphs that consist
-# of a single bullet entry, since we want to handle those separately to wrap
-# them in paragraph tags.
-sub is_allbullet {
-    local $_ = shift;
-    my @lines = split ("\n", $_);
-    return if not $lines[0] =~ /^(\s*[-*o]\s)\S/;
-    my $bullet  = $1;
-    my $space   = $bullet;
-    $space =~ s/[-*o]/ /;
+# Whether a paragram is composed entirely of bullet items.  Take some care to
+# avoid returning true for paragraphs that consist of a single bullet entry,
+# since we want to handle those separately to wrap them in paragraph tags.
+#
+# $paragraph - Paragraph to classify
+#
+# Returns: True if so, false otherwise
+sub _is_allbullet {
+    my ($paragraph) = @_;
+    my @lines = split(m{ \n }xms, $paragraph);
+    return if $lines[0] !~ m{ \A (\s* [-*o] \s) \S }xms;
+    my $bullet = $1;
+    my $space = $bullet;
+    $space =~ s { [-*o] }{ }xms;
     my $bullets = 0;
-    for (@lines) {
-        next if !/\S/;
-        return if !/^(?:\Q$bullet\E|\Q$space\E)\S/;
-        $bullets++ if /^\Q$bullet\E/;
+    for my $line (@lines) {
+        next if $line !~ m{ \S }xms;
+        return if $line !~ m{ \A (?: \Q$bullet\E | \Q$space\E ) \S }xms;
+        if ($line =~ m{ \A \Q$bullet\E }xms) {
+            $bullets++;
+        }
     }
     return $bullets > 1;
 }
 
-# Expects a paragraph, returns whether every line is a numbered item with a
-# simple number.
-sub is_allnumbered { $_[0] =~ /^(\s*\d\d?[.\)]\s.*\n){2,}\s*$/ }
+# Whether every line of a paragraph is a numbered item with a simple number.
+#
+# $paragraph - Paragraph to classify
+#
+# Returns: True if so, false otherwise
+sub _is_allnumbered {
+    my ($paragraph) = @_;
+    return $paragraph =~ m{ \A (\s* \d\d?[.\)] [ ] \N* \n){2,} \s* \z }xms;
+}
 
-# Expects a paragraph, returns whether it's in all capital letters.
-sub is_allcaps { $_[0] !~ m%[^A-Z0-9\s\"\(\),:.!/?-]% }
+# Whether a line is all capital letters.
+#
+# $line - Line to classify
+#
+# Returns: True if so, false otherwise
+sub _is_allcaps {
+    my ($line) = @_;
+    return $line !~ m{ [^[:upper:]\d\s\"\(\),:.!/?-] }xms;
+}
 
-# Expects a paragraph, returns whether it looks like it's broken into a series
-# of short lines or a series of lines without internal space.  The last line
-# of the paragraph doesn't matter for this determination.
-sub is_broken {
-    local $_ = shift;
-    s/\s+$/\n/;
-    my @lines = split ("\n", $_);
+# Whether a paragraph is broken into a series of short lines or a series of
+# lines without internal space.  The last line of the paragraph doesn't matter
+# for this determination.
+#
+# $paragraph - Paragraph to classify
+#
+# Returns: True if so, false otherwise
+sub _is_broken {
+    my ($paragraph) = @_;
+    $paragraph =~ s{ \s* \z }{\n}xms;
+    my @lines = split(m{ \n }xms, $paragraph);
     return if @lines == 1;
-    pop @lines;
-    return 1 if grep { length ($_) < 40 } @lines;
-    my $short = grep { length ($_) < 60 } @lines;
-    ($short >= int (@lines / 2) + 1) || /^(?:\s*\S+[ \t]*\n)+$/;
+    pop(@lines);
+    return 1 if grep { length($_) < 40 } @lines;
+    my $short = grep { length($_) < 60 } @lines;
+    return 1 if $short >= int(@lines / 2) + 1;
+    return $paragraph =~ m{ \A (?: \s* \S+ [ \t]* \n )+ \z }xms;
 }
 
-# Expects a paragraph, returns whether it's a bulletted item.
-sub is_bullet { $_[0] =~ /^\s*[-*o]\s/ }
-
-# Expects a line, returns whether it's centered (in 74 columns).  Also require
-# at least 10 spaces of whitespace so that we don't catch accidentally
-# centered paragraph lines by mistake.
-sub is_centered {
-    $_[0] =~ /^(\s+)(.+)/
-        && abs (74 - length ($2) - length ($1) * 2) < 2
-        && length (untabify $1) >= 8;
+# Whether a paragraph is a bullet item.
+#
+# $paragraph - Paragraph to classify
+#
+# Returns: True if so, false otherwise
+sub _is_bullet {
+    my ($paragraph) = @_;
+    return $paragraph =~ m{ \A \s* [-o*] \s }xms;
 }
 
-# Expects a paragraph, returns whether it looks like a content listing.
-sub is_contents { $_[0] =~ /^(?:\s*[\d.]+[.\)][ \t].*\n)+\s*$/ }
-
-# Expects a paragraph, returns whether it looks like a title and description.
-# Allow for multiple titles.
-sub is_description {
-    $_[0] =~ /^(\s*)\S.*\n(?:\1\S.*\n)*(\s+)\S.*\n(?:\2\S.*\n)*\s*$/
-        && length ($1) < length ($2);
+# Whether a line is centered (in 74 columns).  Also require at least 10 spaces
+# of whitespace so that we don't catch accidentally centered paragraph lines
+# by mistake.
+#
+# $line - Line to classify
+#
+# Returns: True if so, false otherwise
+sub _is_centered {
+    my ($line) = @_;
+    return if $line !~ m{ \A (\s+) (.+) }xms;
+    my ($space, $text) = ($1, $2);
+    return if abs(74 - length($text) - length($space) * 2) >= 2;
+    return length(untabify($space)) >= 8;
 }
 
-# Expects a paragraph, returns whether it's a digest divider.
-sub is_divider { $_[0] =~ /^-{30}\s*$/ }
-
-# Expects a line, returns whether it's a mail/news header.
-sub is_header { $_[0] =~ /^[\w-]+:\s/ }
-
-# Expects a paragraph, returns whether it's a heading.  This is all about
-# heuristics and guesses, and there are a number of other things we could
-# confuse for headings, so we have to be careful.  If it's a single line and
-# outdented from the baseline, it's probably a heading.  If it's at the
-# baseline, check to see if it looks like a heading and either it's in all
-# caps or there is a rule underneath it.  If we haven't seen a baseline, be
-# more accepting about headers.  If we're inside a contents block, be even
-# more careful and disallow numbered things that look like a heading unless
-# they're outdented.
-sub is_heading {
-    local $_ = deescape (shift);
-    my $indent = indent $_;
-    my $nobase = !defined $STATE{baseline};
-    my $outdented = defined ($STATE{baseline}) && $indent < $STATE{baseline};
-    return if (!$outdented && $STATE{contents} && /^[\d.]+[.\)]\s/);
-    my $even = !defined ($INDENT) || $indent <= $INDENT;
-    ($outdented && lines ($_) == 1 && (/\S\s\S/ || length ($_) < 30))
-        || ($even && m%^\s*[ \w\"\(\),:./&-]{0,30}[\w\"\)]\s*\n[-=~]+\s*$%)
-        || ($even && m%^\s*[ A-Z0-9\"\(\),:./&-]{0,30}[A-Z0-9\"\)]\s*\n$%)
-        || ($even && $nobase && m%^\s*[ \w\"\(\),:./&-]{0,33}[\w\"\)]\s*\n$%);
+# Whether a paragraph is a content listing.
+#
+# $paragraph - Paragraph to classify
+#
+# Returns: True if so, false otherwise
+sub _is_contents {
+    my ($paragraph) = @_;
+    return $paragraph =~ m{ \A (?: \s* [\d.]+[.\)] [ \t] \N* \n)+ \s* \z }xms;
 }
 
-# Expects a line, returns whether it's an RCS/CVS Id string that has been
-# correctly expanded.
-sub is_id { $_[0] =~ /^\s*\$Id\: .*\$\s*$/ }
+# Whether a paragraph looks like a title and a description.  Allows for
+# multiple titles.
+#
+# $paragraph - Paragraph to classify
+#
+# Returns: True if so, false otherwise
+sub _is_description {
+    my ($paragraph) = @_;
+    return if $paragraph !~ m{
+        \A
+        (\s*) \S \N* \n         # title (1 is indent)
+        (?: \1 \S \N* \n)*      # possibly more than one
+        (\s+) \S \N* \n         # first line of description (2 is indent)
+        (?: \2 \S \N* \n)*      # subsequent lines
+        \s* \z
+    }xms;
+    return length($1) < length($2);
+}
 
-# Expects a paragraph, returns whether it appears to have internal whitespace.
-sub is_literal { $_[0] =~ /^[ \t]*\S.*(?:[^.?!\"\)\]:*_\n]  |   |\t)\S/m }
+# Whether a line is a digest divider.
+#
+# $line - Line to classify
+#
+# Returns: True if so, false otherwise
+sub _is_divider {
+    my ($line) = @_;
+    return $line =~ m{ \A -{30} \s* \z }xms;
+}
 
-# Expects a paragraph, returns undef if it doesn't look like a numbered
-# paragraph or the number if it does.
-sub is_numbered { ($_[0] =~ /^\s*(\d\d?)[.\)]\s/) ? $1 : undef }
+# Whether a line is an RFC 2822 header.
+#
+# $line - Line to classify
+#
+# Returns: True if so, false otherwise
+sub _is_header {
+    my ($line) = @_;
+    return if $line =~ m{ \A [\w-]+: \s+ \N }xms;
+}
 
-# Expects a paragraph, returns true if the paragraph has inconsistent
-# indentation.
-sub is_offset {
-    local $_ = shift;
+# Whether a paragraph is a heading.  This is all about heuristics and guesses,
+# and there are a number of other things we could confuse for headings, so we
+# have to be careful.
+#
+# If it's a single line and outdented from the baseline, it's probably a
+# heading.
+#
+# If it's at the baseline, check to see if it looks like a heading and either
+# it's in all caps or there is a rule underneath it.  If we haven't seen a
+# baseline, be more accepting about headers.
+#
+# If we're inside a contents block, be even more careful and disallow numbered
+# things that look like a heading unless they're outdented.
+#
+# Unlike most of the classification functions, this is a regular method, since
+# it needs access to the parsing state.
+#
+# $paragraph - Paragraph to classify
+#
+# Returns: True if a heading, false otherwise
+sub _is_heading {
+    my ($self, $paragraph) = @_;
+    $paragraph = deescape($paragraph);
+    my $indent = indent($paragraph);
+    my $nobase = !defined($STATE{baseline});
+    my $outdented = defined($STATE{baseline}) && $indent < $STATE{baseline};
+
+    # Numbered lines inside the contents section are definitely not headings.
+    my $numbered = $paragraph =~ m{ \A [\d.]+[.\)] \s }xms;
+    return if !$outdented && $STATE{contents} && $numbered;
+
+    # Outdented single lines are headings as long as they're either short or
+    # contain at least two words.
+    if ($outdented && lines($paragraph) == 1) {
+        return 1 if $paragraph =~ m{ \S \s \S }xms;
+        return 1 if length($paragraph) < 30;
+    }
+
+    # Indented lines are never headings.
+    return if defined($INDENT) && $indent > $INDENT;
+
+    # Lines of at most 31 characters ending in a word character or closing
+    # quote or paren are headings if they're underlined.
+    return 1 if $paragraph =~ m{
+        \A \s*
+        [ \w\"\(\),:./&-]{0,30} [\w\"\)] \s* \n
+        [-=~]+ \s*
+        \z
+    }xms;
+
+    # All-uppercase lines of at most 31 characters ending in an uppercase
+    # character, digit, or closing quote or paren are headings.
+    return 1 if $paragraph =~ m{
+        \A \s*
+        [ [:upper:]\d\"\(\),:./&-]{0,30} [[:upper:]\d\"\)]
+        \s* \n
+        \z
+    }xms;
+
+    # If there is no baseline, assume single lines of at most 34 characters
+    # with no unexpected characters are headings.
+    return $nobase && $paragraph =~ m{
+        \A \s*
+        [ \w\"\(\),:./&-]{0,33} [\w\"\)]
+        \s* \n
+        \z
+    }xms;
+}
+
+# Whether a line is an RCS/CVS Id string that has been expanded.
+#
+# $line - Line to classify
+#
+# Returns: True if so, false otherise
+sub _is_id {
+    my ($line) = @_;
+    return $line =~ m{ \A \s* [\$]Id: \N+ [\$] \s* \z }xms;
+}
+
+# Whether a paragraph should be a literal paragraph, decided based on whether
+# it has internal whitespace.
+#
+# $paragraph - Paragraph to classify
+#
+# Returns: True if so, false otherwise
+sub _is_literal {
+    my ($paragraph) = @_;
+    return $paragraph =~ m{
+        \A [ \t]*
+        \S \N*
+        (?: [^.?!\"\)\]:*_\n] [ ] [ ] | [ ] [ ] [ ] | \t )
+        \S
+    }xms;
+}
+
+# Whether a paragarph is part of a numbered list.
+#
+# $paragraph - Paragraph to classify
+#
+# Returns: The number if the paragraph is a numbered list element
+#          undef otherwise
+sub _is_numbered {
+    my ($paragraph) = @_;
+    if ($paragraph =~ m{ \A \s* (\d\d?) [.\)] \s }xms) {
+        return $1;
+    } else {
+        return undef;
+    }
+}
+
+# Whether a paragraph has inconsistent indentation.
+#
+# $paragraph - Paragraph to classify
+#
+# Returns: True if so, false otherwise
+sub _is_offset {
+    my ($paragraph) = @_;
 
     # Strip off a leading bullet or number and consider it whitespace in
     # making this check.
-    s/^(\s*(?:\d\d?)[.\)]\s)/' ' x length ($1)/e;
-    s/^(\s*[-*o]\s)/' ' x length ($1)/e;
+    $paragraph =~ s{ \A (\s* (?: \d\d? ) [.\)] \s) }{ q{ } x length($1) }xmse;
+    $paragraph =~ s{ \A (\s* [-*o] \s) }{ q{ } x length($1) }xmse;
 
     # Now, return true if the indentation isn't consistent.
-    !/^(\s*)\S.*\n(\1\S.*\n)*\s*$/
+    return $paragraph !~ m{ \A (\s*) \S \N* \n (\1 \S \N* \n)* \s* \z }xms;
 }
 
-# Expects a paragraph, returns undef if not quoted or the quote character if
-# it is quoted.  Requires that the paragraph be at least two lines.
-sub is_quoted { $_[0] =~ /^\s*([^\w\s\"\'])\s*.*\n(\s*\1\s*.*\n)+$/ && $1 }
-
-# Expects a paragraph, returns whether it's a rule.
-sub is_rule { $_[0] =~ /^\s*[-=][-=\s]*$/ }
-
-# Expects a paragraph, returns whether it ends with a sentence.  As a special
-# case, a URL counts as a sentence so that we don't wrap <pre> around URLs.
-sub is_url;
-sub is_sentence {
-    local $_ = shift;
-    return 1 if /\S[.?!][\)\]\"]?\s*$/;
-    return 1 if /^\s*\w.*\s\S+:\s*$/;
-    return 1 if is_url $_;
-    0;
+# Whether a paragraph is quoted.  Requires the paragraph be at least two
+# lines, since otherwise we cannot detect a common prefix.
+#
+# $paragraph - Paragraph to classify
+#
+# Returns: The quote character if it is quoted
+#          undef otherwise
+sub _is_quoted {
+    my ($paragraph) = @_;
+    return if $paragraph !~ m{
+        \A \s*
+        ([^\w\s\"\']) \s* \N* \n
+        (?: \s* \1 \s* \N* \n )+
+        \z
+    }xms;
+    return $1;
 }
 
-# Expects a paragraph, returns whether it's the start of a signature block,
-# defined to be a paragraph whose first line is exactly "-- ".
-sub is_signature { $_[0] =~ /^-- \n/ }
+# Whether a line or paragraph is a rule.
+#
+# $paragraph - Paragraph or line to classify
+#
+# Returns: True if so, false otherwise
+sub _is_rule {
+    my ($paragraph) = @_;
+    return $paragraph =~ m{ \A \s* [-=] [-=\s]* \z }xms;
+}
 
-# Expects a paragraph, returns whether it's a simple intented URL (already
-# converted into a real link.
-sub is_url { $_[0] =~ m%^\s*&lt;<a href.+>\S+</a>&gt;\s*$% }
+# Whether a paragraph is a simple indented URL (already converted to a real
+# link, so call after urlify).
+#
+# $paragraph - Paragraph to classify
+#
+# Returns: True if so, false otherwise
+sub _is_url {
+    my ($paragraph) = @_;
+    return $paragraph =~ m{
+        \A \s*
+        &lt; <a [ ] href.+> \S+ </a> &gt;
+        \s* \z
+    }xms;
+}
+
+# Whether a paragraph ends with a sentence.  As a special case, a URL counts
+# as a sentence so that we don't wrap <pre> around URLs.
+#
+# $paragraph - Paragraph to classify
+#
+# Returns: True if so, false otherwise
+sub _is_sentence {
+    my ($paragraph) = @_;
+    return 1 if $paragraph =~ m{ \S [.?!] [\)\]\"]? \s* \z }xms;
+    return 1 if $paragraph =~ m{ ^ \s* \w \N* \s \S+: \s* \z }xms;
+    return 1 if _is_url($paragraph);
+    return 0;
+}
+
+# Whether a paragraph is the start of a signature block, defined to be a
+# paragraph whose first line is exactly "-- ".
+#
+# $paragraph - Paragraph to classify
+#
+# Returns: True if so, false otherwise
+sub _is_signature {
+    my ($paragraph) = @_;
+    return $paragraph =~ m{ \A -- [ ] \n }xms;
+}
 
 ##############################################################################
 # Input and output
@@ -378,7 +569,7 @@ sub _skip_blank_lines_and_rules {
     my $line;
     do {
         $line = $self->_next_line();
-    } while (defined($line) && ($line !~ m{ \S }xms || is_rule($line)));
+    } while (defined($line) && ($line !~ m{ \S }xms || _is_rule($line)));
     $self->_buffer_line($line);
 }
 
@@ -608,7 +799,7 @@ sub _parse_headers {
     # posting to Usenet using postfaq, this will always be the first line of
     # the file stored on disk.
     my $line = $self->_next_line();
-    if (is_id($line)) {
+    if (_is_id($line)) {
         chomp($line);
         $header{id} = $line;
         $self->_skip_blank_lines();
@@ -619,7 +810,7 @@ sub _parse_headers {
     # news/mail headers, and if so read those headers and the subheaders.
     # Otherwise, skip over leading blank lines and rules.
     $self->_buffer_line($line);
-    if (!$self->{title} && (is_header($line) || $line =~ m{ \A From }xms)) {
+    if (!$self->{title} && (_is_header($line) || $line =~ m{ \A From }xms)) {
         $self->_handle_faq_headers(\%header);
     }
     $self->_skip_blank_lines_and_rules();
@@ -628,11 +819,11 @@ sub _parse_headers {
     # we'll make that the document title unless we also saw a Subject header
     # or a constructor argument.  Titles shouldn't be in all caps, though.
     $line = $self->_next_line();
-    if (is_centered($line)) {
+    if (_is_centered($line)) {
         $header{heading} = whitechomp($line);
         if (!defined($header{title})) {
             $header{title} = $header{heading};
-            if (is_allcaps($header{title})) {
+            if (_is_allcaps($header{title})) {
                 $header{title} =~ s{ \b ([A-Z]+) \b }{\L\u$1}xmsg;
             }
         }
@@ -674,12 +865,12 @@ sub _parse_subheaders {
     # everything is a subheading until a blank line.
     my $line;
     while (defined($line = $self->_next_line())) {
-        next if is_rule($line);
+        next if _is_rule($line);
         last if $line =~ m{ \A \s* \z }xms;
 
         # For cases other than a rule or blank line, we have to either be in a
         # subheading or the line must be centered.
-        last if !(@subheaders || is_centered($line));
+        last if !(@subheaders || _is_centered($line));
 
         # A subheading to add.  Replace Revision and Date keywords with our
         # modified timestamp if we have one.
@@ -770,12 +961,12 @@ sub _convert_document {
     # has a non-blank line of input coming into this loop.
     my $space;
     while (defined($_ = $self->_next_paragraph())) {
-        last if is_signature($_);
+        last if _is_signature($_);
 
         # If we just hit a digest divider, the next thing will likely be a
         # Subject: line that we want to turn into a section header.  Digest
         # section titles are always level 2 headers currently.
-        if (is_divider $_) {
+        if (_is_divider $_) {
             $STATE{pre} = 0;
             $self->_output(start(-1));
             undef $INDENT;
@@ -798,7 +989,7 @@ sub _convert_document {
         }
 
         # Treat lines of dash-type characters as rules.
-        if (is_rule $_) {
+        if (_is_rule $_) {
             $STATE{pre} = 0;
             ($space) = /\n(\s*)$/;
             $self->_output(start(-1), "<hr />\n");
@@ -817,7 +1008,7 @@ sub _convert_document {
         # special exception to our normal paragraph handling, this paragraph
         # doesn't end until we find a literal blank line; this hack lets full
         # diffs be included in a FAQ without confusing the parser.
-        if (is_literal $_) {
+        if (_is_literal $_) {
             if (/\n[ \t]+$/) { $_ .= $self->_next_paragraph(1) }
             $self->_output(pre(strip_indent($_, $INDENT)));
             s/\n(\n\s*)$/\n/;
@@ -837,7 +1028,7 @@ sub _convert_document {
         # enclosed in <pre>, assume that this paragraph belongs in <pre> as
         # well.
         if ($STATE{pre}) {
-            if (is_offset ($_) || (defined $INDENT && $indent > $INDENT)) {
+            if (_is_offset ($_) || (defined $INDENT && $indent > $INDENT)) {
                 $self->_output(pre(strip_indent($_, $INDENT)));
                 next;
             } else {
@@ -850,7 +1041,7 @@ sub _convert_document {
         # assumed to be a level 2 heading, and any further headers at that
         # same indentation level are also level 2 headings.  If we detect any
         # other headings at a greater indent, they're marked as level 3.
-        if (is_heading ($_)) {
+        if ($self->_is_heading ($_)) {
             s/^\s+//;
             $STATE{contents} = /\bcontents\b/i;
             my $h;
@@ -884,22 +1075,22 @@ sub _convert_document {
         # turn URLs into links.  Check whether the paragraph is broken first,
         # though, and stash that information, since turning URLs into links
         # can artificially lengthen lines.
-        my $broken = is_broken $_;
+        my $broken = _is_broken $_;
         $_ = urlize $_;
 
         # Check to see if we're in a contents section, and if so if this
         # paragraph looks like a table of contents.  If so, turn all of the
         # section headings into links and assume broken text.
-        if ($STATE{contents} && is_contents $_) { $_ = contents $_ }
+        if ($STATE{contents} && _is_contents $_) { $_ = contents $_ }
 
         # Check for paragraphs that are entirely bulletted lines, and turn
         # them into unordered lists without <p> tags.
-        if (is_allbullet $_) {
+        if (_is_allbullet $_) {
             my $last;
             my @lines = split (/\n/, $_);
             for (@lines) {
                 next unless /\S/;
-                if (is_bullet $_) {
+                if (_is_bullet $_) {
                     if (defined $last) {
                         $self->_output(start($INDENT, 'ul'));
                         $self->_output(li($INDENT, embolden($last)));
@@ -919,7 +1110,7 @@ sub _convert_document {
 
         # Check for paragraphs that are entirely numbered lines, and turn them
         # into ordered lists without <p> tags.
-        if (is_allnumbered $_) {
+        if (_is_allnumbered $_) {
             my @lines = split (/\n/, $_);
             for (@lines) {
                 next unless /\S/;
@@ -933,7 +1124,7 @@ sub _convert_document {
         }
 
         # Check for bulletted paragraphs and turn them into lists.
-        if (is_bullet $_) {
+        if (_is_bullet $_) {
             $_ = debullet $_;
             $INDENT = indent $_;
             $self->_output(start($INDENT, 'ul'));
@@ -943,7 +1134,7 @@ sub _convert_document {
 
         # Check for paragraphs quoted with some character and turn them into
         # blockquotes provided they don't have inconsistent indentation.
-        my $quote = is_quoted ($_);
+        my $quote = _is_quoted ($_);
         if ($quote && !$broken) {
             $_ = unquote ($_, $quote);
             $INDENT = indent $_;
@@ -952,9 +1143,9 @@ sub _convert_document {
         }
 
         # Check for numbered paragraphs and turn them into lists.
-        my $number = is_numbered ($_);
+        my $number = _is_numbered ($_);
         if (defined $number) {
-            my $contents = is_contents ($_);
+            my $contents = _is_contents ($_);
             $_ = denumber $_;
             $INDENT = indent $_;
             s%(\n\s*\S)%<br />$1%g if ($broken || $contents);
@@ -967,7 +1158,7 @@ sub _convert_document {
         # Note that we don't allow indented description lists, because they're
         # usually something we actually want to make <pre>.  This is another
         # fairly fragile heuristic.
-        if (is_description ($_) && defined $INDENT) {
+        if (_is_description ($_) && defined $INDENT) {
             my (@title, $body);
             ($title[0], $body) = split ("\n", $_, 2);
             my ($space) = ($title[0] =~ /^(\s*)/);
@@ -980,7 +1171,7 @@ sub _convert_document {
                 @title = map { embolden ($_) } @title;
                 my $title = join ("<br />\n", @title) . "\n";
                 $INDENT = indent $body;
-                $body =~ s%(\n\s*\S)%<br />$1%g if is_broken $body;
+                $body =~ s%(\n\s*\S)%<br />$1%g if _is_broken $body;
                 $self->_output(start($indent, 'dl', dt($title)));
                 $self->_output(start($INDENT, 'dd', p(embolden $body)));
                 next;
@@ -989,7 +1180,7 @@ sub _convert_document {
 
         # If the paragraph has inconsistent indentation, we should output it
         # in <pre>.
-        if (is_offset $_) {
+        if (_is_offset $_) {
             $self->_output(pre(strip_indent($_, $INDENT)));
             $STATE{pre} = 1;
             next;
@@ -1000,7 +1191,7 @@ sub _convert_document {
         # not be what's wanted for things like quotes of poetry... this is
         # probably worth looking at in more detail.
         if (defined $INDENT && $indent > $INDENT) {
-            if ($broken || (lines ($_) == 1 && !is_sentence $_)) {
+            if ($broken || (lines ($_) == 1 && !_is_sentence $_)) {
                 $self->_output(pre(strip_indent($_, $INDENT)));
                 $STATE{pre} = 1;
             } else {
