@@ -75,7 +75,7 @@ sub is_spin_output {
     }{Last modified %DATE%}gxms;
     $results =~ s{
         Last [ ] modified [ ] and \s+ (<a[^>]+>spun</a>) [ ] [%]DATE[%]
-    }{Last $1\n    %DATE% from thread modified %DATE%}gxms;
+    }{Last $1\n  %DATE% from thread modified %DATE%}gxms;
     $results =~ s{
         %DATE% [ ] from [ ] (Markdown|POD) [ ] modified [ ] %DATE%
     }{%DATE% from thread modified %DATE%}gxms;
@@ -209,7 +209,7 @@ Russ Allbery <rra@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2021-2022 Russ Allbery <rra@cpan.org>
+Copyright 2021-2023 Russ Allbery <rra@cpan.org>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

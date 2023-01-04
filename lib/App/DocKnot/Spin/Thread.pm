@@ -1304,10 +1304,10 @@ sub _cmd_signature {
     $output .= "<address>\n";
     my $link = qq{<a href="$URL">spun</a>};
     if ($modified eq $now) {
-        $output .= "    Last modified and\n    $link $modified\n";
+        $output .= "  Last modified and\n  $link $modified\n";
     } else {
-        $output .= "    Last $link\n";
-        $output .= "    $now from $self->{input_type} modified $modified\n";
+        $output .= "  Last $link\n";
+        $output .= "  $now from $self->{input_type} modified $modified\n";
     }
 
     # Close out the document.
@@ -2098,7 +2098,7 @@ Russ Allbery <rra@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 1999-2011, 2013, 2021-2022 Russ Allbery <rra@cpan.org>
+Copyright 1999-2011, 2013, 2021-2023 Russ Allbery <rra@cpan.org>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
