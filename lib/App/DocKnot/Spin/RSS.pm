@@ -495,7 +495,7 @@ sub _thread_output {
             link        => $entry_ref->{link},
             title       => $entry_ref->{title},
         };
-        #<<<
+        #>>>
 
         # Add the entry to the appropriate month.
         if (!$last_month || $month ne $last_month) {

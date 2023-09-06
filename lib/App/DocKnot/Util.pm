@@ -74,7 +74,7 @@ sub latest_tarball {
         version => $latest,
         files   => \@files,
     };
-    #<<<
+    #>>>
 }
 
 # print with error checking.  autodie unfortunately can't help us because

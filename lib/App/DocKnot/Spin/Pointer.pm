@@ -127,7 +127,7 @@ sub _spin_pod {
         style    => $data_ref->{style} // 'pod',
         title    => $data_ref->{title},
     );
-    #<<<
+    #>>>
     if (exists($data_ref->{options}{navbar})) {
         $options{navbar} = $data_ref->{options}{navbar};
     } else {
@@ -177,7 +177,7 @@ sub _spin_text {
         style    => $style,
         title    => $data_ref->{title},
     );
-    #<<<
+    #>>>
     my $text = App::DocKnot::Spin::Text->new(\%options);
 
     # Generate the output page.
