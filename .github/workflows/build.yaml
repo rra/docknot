@@ -4,6 +4,7 @@ on:
   push:
     branches-ignore:
       - "debian/**"
+      - "dependabot/**"
       - "pristine-tar"
       - "ubuntu/**"
       - "upstream/**"
@@ -11,7 +12,7 @@ on:
       - "release/*"
   pull_request:
     branches:
-      - master
+      - main
 
 jobs:
   perl:
