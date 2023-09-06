@@ -1400,10 +1400,10 @@ input and output character set is assumed to be UTF-8.
 
 =item new(ARGS)
 
-Create a new App::DocKnot::Spin::Thread object.  A single converter object can
-be reused repeatedly to convert multiple files, provided that they have the
-same options.  ARGS should be a hash reference with one or more of the
-following keys, all of which are optional:
+Create a new App::DocKnot::Spin::Text object.  A single converter object can
+be reused to convert multiple files provided that they have the same options.
+ARGS should be a hash reference with one or more of the following keys, all of
+which are optional:
 
 =over 4
 
