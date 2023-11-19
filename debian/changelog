@@ -3,6 +3,7 @@ docknot (7.01-2) unstable; urgency=medium
   * Apply upstream patch to fix test suite with Perl 5.36 and later.  The
     error messages from Text::Balanced are slightly different and the test
     suite needed to be adjusted to allow for either.  (Closes: #1042853)
+  * Update standards version to 4.6.2 (no changes required).
 
  -- Russ Allbery <rra@debian.org>  Sat, 18 Nov 2023 16:13:54 -0800
 
