@@ -365,7 +365,7 @@
    template and README.md for the readme-md template, both in the current
    directory.
 
- - Rename App::DocKnot to App:DocKnot::Generate and add a new
+ - Rename App::DocKnot to App::DocKnot::Generate and add a new
    generate_output() method that writes the generated output to a
    specified file instead of returning it as a string.  App::DocKnot must
    be loaded as well to use the module API.
