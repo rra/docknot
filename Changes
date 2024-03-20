@@ -11,6 +11,10 @@
    files.  *.faq files are deprecated and support will be removed in a
    future version of DocKnot.
 
+ - Support version numbers prefixed with v in release tarball names, since
+   this appears to be the convention for Perl modules that use semantic
+   versions.
+
  - Change the docknot.yaml field orphaned to unmaintained, and change the
    templates to say the package is not maintained instead of orphaned.
    This terminology is more precise and less metaphorical.
