@@ -9,7 +9,7 @@
 # Modules and declarations
 ##############################################################################
 
-package App::DocKnot::Spin::Thread 7.01;
+package App::DocKnot::Spin::Thread v8.0.0;
 
 use 5.024;
 use autodie;
@@ -1444,7 +1444,6 @@ sub new {
     }
 
     # Create and return the object.
-    #<<<
     my $self = {
         output     => $output,
         repository => $repository,
@@ -1453,7 +1452,6 @@ sub new {
         style_url  => $style_url,
         versions   => $args_ref->{versions},
     };
-    #>>>
     bless($self, $class);
     return $self;
 }

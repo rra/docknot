@@ -10,7 +10,7 @@
 # Modules and declarations
 ##############################################################################
 
-package App::DocKnot::Release 7.01;
+package App::DocKnot::Release v8.0.0;
 
 use 5.024;
 use autodie;
@@ -80,7 +80,6 @@ sub new {
     }
 
     # Create and return the object.
-    #<<<
     my $self = {
         archivedir   => path($archivedir),
         distdir      => path($distdir),
@@ -90,7 +89,6 @@ sub new {
         version_name => $config_ref->{distribution}{version},
         versions     => $versions,
     };
-    #>>>
     bless($self, $class);
     return $self;
 }

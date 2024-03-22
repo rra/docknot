@@ -10,7 +10,7 @@
 # Modules and declarations
 ##############################################################################
 
-package App::DocKnot::Spin::Pointer 7.01;
+package App::DocKnot::Spin::Pointer v8.0.0;
 
 use 5.024;
 use autodie;
@@ -80,7 +80,6 @@ sub _spin_markdown {
     if ($data_ref->{style}) {
         $style = $self->{style_url} . $data_ref->{style};
     }
-    #<<<
     my %vars = (
         docknot_url => $URL,
         html        => decode('utf-8', $html),
@@ -91,7 +90,6 @@ sub _spin_markdown {
         style       => $style,
         title       => $title,
     );
-    #>>>
 
     # Construct the output page from those template variables.
     my $result;
@@ -121,13 +119,11 @@ sub _spin_pod {
     my $source = path($data_ref->{path})->absolute($base);
 
     # Construct the Pod::Thread formatter object.
-    #<<<
     my %options = (
         contents => $data_ref->{options}{contents},
         style    => $data_ref->{style} // 'pod',
         title    => $data_ref->{title},
     );
-    #>>>
     if (exists($data_ref->{options}{navbar})) {
         $options{navbar} = $data_ref->{options}{navbar};
     } else {
@@ -169,7 +165,6 @@ sub _spin_text {
     }
 
     # Create the formatter object.
-    #<<<
     my %options = (
         modified => $data_ref->{options}{modified},
         output   => $self->{output},
@@ -177,7 +172,6 @@ sub _spin_text {
         style    => $style,
         title    => $data_ref->{title},
     );
-    #>>>
     my $text = App::DocKnot::Spin::Text->new(\%options);
 
     # Generate the output page.
@@ -217,7 +211,6 @@ sub new {
     # Create and return the object.
     my $tt = Template->new({ ABSOLUTE => 1, ENCODING => 'utf8' })
       or croak(Template->error());
-    #<<<
     my $self = {
         output      => $args_ref->{output},
         pandoc_path => $pandoc,
@@ -226,7 +219,6 @@ sub new {
         template    => $tt,
         thread      => $args_ref->{thread},
     };
-    #>>>
     bless($self, $class);
     $self->{template_path} = $self->appdata_path('templates', 'html.tmpl');
     return $self;
@@ -457,7 +449,7 @@ Russ Allbery <rra@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2021 Russ Allbery <rra@cpan.org>
+Copyright 2021, 2024 Russ Allbery <rra@cpan.org>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -489,3 +481,4 @@ L<https://www.eyrie.org/~eagle/software/docknot/>.
 
 # Local Variables:
 # copyright-at-end-flag: t
+# End:

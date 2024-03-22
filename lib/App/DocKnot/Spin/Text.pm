@@ -13,7 +13,7 @@
 # Modules and declarations
 ##############################################################################
 
-package App::DocKnot::Spin::Text 7.01;
+package App::DocKnot::Spin::Text v8.0.0;
 
 use 5.024;
 use autodie;
@@ -1247,7 +1247,6 @@ sub new {
     my ($class, $args_ref) = @_;
 
     # Create and return the object.
-    #<<<
     my $self = {
         output   => $args_ref->{output},
         modified => $args_ref->{modified},
@@ -1255,7 +1254,6 @@ sub new {
         style    => $args_ref->{style},
         title    => $args_ref->{title},
     };
-    #<<<
     bless($self, $class);
     return $self;
 }

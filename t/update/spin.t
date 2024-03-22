@@ -36,7 +36,7 @@ dircopy($input, "$tempdir")
 my $repo = Git::Repository->new(work_tree => "$tempdir");
 $repo->run(config => '--add', 'user.name', 'Test');
 $repo->run(config => '--add', 'user.email', 'test@example.com');
-$repo->run(add => '-A', q{.});
+$repo->run(add    => '-A', q{.});
 $repo->run(commit => '-q', '-m', 'Initial commit');
 
 # Update the tree.

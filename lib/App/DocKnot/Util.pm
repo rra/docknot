@@ -9,7 +9,7 @@
 # Modules and declarations
 ##############################################################################
 
-package App::DocKnot::Util 7.01;
+package App::DocKnot::Util v8.0.0;
 
 use 5.024;
 use autodie;
@@ -72,12 +72,10 @@ sub latest_tarball {
     @files = map { $_->[1] } grep { $_->[0] eq $latest } @versions;
 
     # Return the results.
-    #<<<
     return {
         version => $latest,
         files   => \@files,
     };
-    #>>>
 }
 
 # print with error checking.  autodie unfortunately can't help us because

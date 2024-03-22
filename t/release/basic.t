@@ -43,8 +43,8 @@ for my $ext (@extensions) {
 my $metadata = path('t', 'data', 'dist', 'package', 'docs', 'docknot.yaml');
 my %options = (
     archivedir => $archive_path,
-    distdir => $dist_path,
-    metadata => $metadata,
+    distdir    => $dist_path,
+    metadata   => $metadata,
 );
 my $release = App::DocKnot::Release->new(\%options);
 $release->release();
@@ -75,7 +75,7 @@ Git::Repository->run('init', { cwd => "$spin_path", quiet => 1 });
 my $repo = Git::Repository->new(work_tree => "$spin_path");
 $repo->run(config => '--add', 'user.name', 'Test');
 $repo->run(config => '--add', 'user.email', 'test@example.com');
-$repo->run(add => '-A', q{.});
+$repo->run(add    => '-A', q{.});
 $repo->run(commit => '-q', '-m', 'Initial commit');
 
 # Construct a configuration file.

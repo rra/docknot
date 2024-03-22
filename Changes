@@ -1,6 +1,9 @@
                        Revision history for DocKnot
 
-8.00 - Not Released
+v8.0.0 - Not Released
+
+ - DocKnot now uses semantic versioning for the package and modules, with
+   a v prefix to work with Perl's packaging system.
 
  - Merge faq2html into this package as App::DocKnot::Spin::Text, and add a
    new command, docknot spin-text, which takes roughly the same options as

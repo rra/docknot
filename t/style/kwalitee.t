@@ -1,14 +1,12 @@
 #!/usr/bin/perl
 #
-# Test that all methods are documented in POD.
+# Test Perl code using the Kwalitee metrics from CPANTS.
 #
 # The canonical version of this file is maintained in the rra-c-util package,
 # which can be found at <https://www.eyrie.org/~eagle/software/rra-c-util/>.
 #
 # Written by Russ Allbery <eagle@eyrie.org>
-# Copyright 2019, 2021, 2024 Russ Allbery <eagle@eyrie.org>
-# Copyright 2013-2014
-#     The Board of Trustees of the Leland Stanford Junior University
+# Copyright 2022, 2024 Russ Allbery <eagle@eyrie.org>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -35,16 +33,23 @@ use warnings;
 
 use lib 't/lib';
 
-use Test::RRA qw(skip_unless_automated use_prereq);
-use Test::RRA::Config qw(@POD_COVERAGE_EXCLUDE);
+use Test::RRA qw(skip_unless_author use_prereq);
 
 use Test::More;
 
-# Skip for normal user installs since this doesn't affect functionality.
-skip_unless_automated('POD coverage tests');
+# Skip tests unless we're running author tests.
+skip_unless_author('Distribution style tests');
 
-# Load prerequisite modules.
-use_prereq('Test::Pod::Coverage');
+# Load prerequisite module.
+use_prereq('Test::Kwalitee', 'kwalitee_ok');
 
-# Test everything found in the distribution.
-all_pod_coverage_ok({ also_private => [@POD_COVERAGE_EXCLUDE] });
+# Do the testing.  Disable testing for use strict, since that's done as part
+# of a separate test.  Disable testing for META.yml if it's not present, since
+# it's generated as part of the distribution process but isn't normally
+# present in a development tree.
+my @options = qw(-use_strict);
+if (!-e 'META.yml') {
+    push(@options, '-has_meta_yml');
+}
+kwalitee_ok(@options);
+done_testing();

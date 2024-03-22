@@ -48,9 +48,7 @@ is_spin_output(
 
 # Spin a file that tests value settings in numbered lists and has an Id
 # string.
-$spin = App::DocKnot::Spin::Text->new(
-    { style => '/~eagle/styles/faq.css' },
-);
+$spin = App::DocKnot::Spin::Text->new({ style => '/~eagle/styles/faq.css' });
 $input = $inputdir->child('big-eight');
 my $html = capture_stdout {
     $spin->spin_text_file($input);

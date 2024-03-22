@@ -9,7 +9,7 @@
 # Modules and declarations
 ##############################################################################
 
-package App::DocKnot::Update 7.01;
+package App::DocKnot::Update v8.0.0;
 
 use 5.024;
 use autodie;
@@ -191,7 +191,7 @@ sub _read_rpod_pointer {
         if ($options =~ m{ -c ( \s | \z ) }xms) {
             $results{options} = {
                 contents => JSON::MaybeXS::true,
-                navbar => JSON::MaybeXS::false,
+                navbar   => JSON::MaybeXS::false,
             };
         }
         if ($options =~ m{ -t \s+ (?: '(.*)' | ( [^\'] \S+ ) ) }xms) {
@@ -260,7 +260,7 @@ sub new {
     my ($class, $args_ref) = @_;
     my $self = {
         metadata => path($args_ref->{metadata} // 'docs/metadata'),
-        output => path($args_ref->{output} // 'docs/docknot.yaml'),
+        output   => path($args_ref->{output} // 'docs/docknot.yaml'),
     };
     bless($self, $class);
     return $self;

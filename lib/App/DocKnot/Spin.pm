@@ -11,7 +11,7 @@
 # Modules and declarations
 ##############################################################################
 
-package App::DocKnot::Spin 7.01;
+package App::DocKnot::Spin v8.0.0;
 
 use 5.024;
 use autodie;
@@ -83,8 +83,9 @@ sub _footer {
             $modified = sprintf('%d-%02d-%02d', $1, $2, $3);
         }
     } elsif ($self->{repository} && $in_tree) {
-        $modified
-          = $self->{repository}->run('log', '-1', '--format=%ct', "$source");
+        $modified = $self->{repository}->run(
+            'log', '-1', '--format=%ct', "$source",
+        );
         if ($modified) {
             $modified = strftime('%Y-%m-%d', gmtime($modified));
         }
@@ -487,13 +488,11 @@ sub new {
     }
 
     # Create and return the object.
-    #<<<
     my $self = {
         delete    => $args_ref->{delete},
         excludes  => [@excludes],
         style_url => $style_url,
     };
-    #>>>
     bless($self, $class);
     return $self;
 }
@@ -553,7 +552,6 @@ sub spin {
     }
 
     # Create a new thread converter object.
-    #<<<
     $self->{thread} = App::DocKnot::Spin::Thread->new(
         {
             output      => $output,
@@ -563,10 +561,8 @@ sub spin {
             versions    => $self->{versions},
         },
     );
-    #>>>
 
     # Create the processor for pointers.
-    #<<<
     $self->{pointer} = App::DocKnot::Spin::Pointer->new(
         {
             output      => "$output",
@@ -575,7 +571,6 @@ sub spin {
             thread      => $self->{thread},
         },
     );
-    #>>>
 
     # Process the input tree.
     my %options = (follow_symlinks => 0, report_symlinks => 1);

@@ -6,7 +6,7 @@
 # Modules and declarations
 ##############################################################################
 
-package Test::DocKnot::Spin 2.00;
+package Test::DocKnot::Spin v3.0.0;
 
 use 5.024;
 use autodie;
@@ -84,7 +84,7 @@ sub is_spin_output {
     }{$1%DATE%$2}gxms;
 
     # Map the DocKnot version number to %VERSION%.
-    $results =~ s{ DocKnot [ ] \d+ [.] \d+ }{DocKnot %VERSION%}xmsg;
+    $results =~ s{ DocKnot [ ] v? [\d.]+ }{DocKnot %VERSION%}xmsg;
 
     # Check the results against the expected file.
     is_file_contents(encode('utf-8', $results), $expected, $message);
@@ -209,7 +209,7 @@ Russ Allbery <rra@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2021-2023 Russ Allbery <rra@cpan.org>
+Copyright 2021-2024 Russ Allbery <rra@cpan.org>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
