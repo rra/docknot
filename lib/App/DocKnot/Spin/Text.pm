@@ -35,17 +35,75 @@ our @MONTHS = qw(January February March April May June July August September
 ##############################################################################
 
 # Turns section numbers at the beginning of lines in a paragraph into links.
-sub contents {
-    local $_ = shift;
-    s%^(\s*([\d.]+)[.\)]\s+)(.*?)([ \t]*\n)%$1<a href="#S$2">$3</a>$4%gm;
-    $_;
+#
+# $text - Text to format
+#
+# Returns: Text formatted as links to section numbers given by the numbers at
+#          the start of each line.
+sub _format_contents {
+    my ($text) = @_;
+    $text =~ s{
+        ^
+        (\s* ([\d.]+) [.\)] \s+ )
+        (.*?)
+        ([ \t]*\n)
+    }{$1<a href="#S$2">$3</a>$4}xmsg;
+    return $text;
+}
+
+# Format a link.  All whitespace in the link is treated as insignficant.
+#
+# $link - Link to format
+#
+# Returns: Link formatted as an HTML link, with the link anchor being the same
+#          as the link with any mailto: or news: removed.
+sub _format_url {
+    my ($link) = @_;
+    my $text = $link;
+    $link = _smash(_unescape($link));
+    $text =~ s{ ^ (?: mailto | news ): }{}xms;
+    return '&lt;<a href="' . $link . '">' . $text . '</a>&gt;';
+}
+
+# Looks for URLs in <> or <URL:...> form and wraps a link around it.
+#
+# $text - Text to format
+#
+# Returns: Text with any embedded links turned into proper HTML links.
+sub _format_urls {
+    my ($text) = @_;
+    $text =~ s{
+        &lt; (?:URL:)? ([a-z]{2,}:.+?) &gt;
+    }{_format_url($1)}xmsge;
+    return $text;
+}
+
+# Remove all whitespace in a string.
+#
+# $string - Input string
+#
+# Returns: String with all whitespace removed.
+sub _smash {
+    my ($string) = @_;
+    $string =~ s{ \s }{}xmsg;
+    return $string;
+}
+
+# Unescape &, <, and > characters.
+#
+# $text - Text to remove HTML escapes from.
+#
+# Returns: Text with HTML escapes changed back to their regular characters.
+sub _unescape {
+    my ($text) = @_;
+    $text =~ s{ &gt; }{>}xmsg;
+    $text =~ s{ &lt; }{<}xmsg;
+    $text =~ s{ &amp; }{&}xmsg;
+    return $text;
 }
 
 # Removes an initial bullet on a paragraph, replacing it with spaces.
 sub debullet { local $_ = shift; s/(\s*)[-*o](\s)/$1 $2/; $_ }
-
-# Unescape &, <, and > characters.
-sub deescape { local $_ = shift; s/&gt;/>/g; s/&lt;/</g; s/&amp;/&/g; $_ }
 
 # Removes an initial number on a paragraph, replacing it with spaces.
 sub denumber {
@@ -93,9 +151,6 @@ sub modified_timestamp {
     'Last modified ' . $MONTHS[$month] . ' ' . $day . ', ' . $year;
 }
 
-# Remove all whitespace in a string.
-sub smash { local $_ = shift; s/\s//g; $_ }
-
 # Strip a number of characters of indentation from a line that's given by the
 # second argument, returning the result.  Used to strip leading indentation
 # off of <pre> text so that it isn't indented excessively just because in the
@@ -109,9 +164,6 @@ sub strip_indent {
     $_;
 }
 
-# Undoes HTML character escapes.
-sub unescape { local $_ = shift; s/&amp;/&/g; s/&lt;/</g; s/&gt;/>/g; $_ }
-
 # Remove a constant prefix at the beginning of each line of a paragraph.
 sub unquote {
     my ($string, $quote) = @_;
@@ -124,24 +176,6 @@ sub untabify {
     local $_ = shift;
     1 while s/^(.*?)(\t+)/' ' x (length ($2) * 8 - length ($1) % 8)/me;
     $_;
-}
-
-# Given a special-character-escaped URL, wrap <a href></a> to that URL around
-# it.  Remove a leading mailto: in the link text.
-sub url {
-    my $link = shift;
-    my $text = $link;
-    $link = smash (unescape $link);
-    $text =~ s/^(?:mailto|news)://;
-    '&lt;<a href="' . $link . '">' . $text . '</a>&gt;';
-}
-
-# Looks for a URL in <URL:...> form, with or without the URL: part, and wraps
-# a link around it.
-sub urlize {
-    my $text = shift;
-    $text =~ s%&lt;(?:URL:)?([a-z]{2,}:.+?)&gt;%url ($1)%ge;
-    $text;
 }
 
 # Remove whitespace at the beginning and end of a string.
@@ -311,7 +345,7 @@ sub _is_header {
 # Returns: True if a heading, false otherwise
 sub _is_heading {
     my ($self, $paragraph) = @_;
-    $paragraph = deescape($paragraph);
+    $paragraph = _unescape($paragraph);
     my $indent = indent($paragraph);
     my $nobase = !defined($STATE{baseline});
     my $outdented = defined($STATE{baseline}) && $indent < $STATE{baseline};
@@ -878,7 +912,7 @@ sub _parse_subheaders {
             push(@subheaders, $modified);
             $modified = undef;
         } else {
-            push(@subheaders, urlize(escape(whitechomp($line))));
+            push(@subheaders, _format_urls(escape(whitechomp($line))));
         }
     }
     $self->_buffer_line($line);
@@ -1076,12 +1110,14 @@ sub _convert_document {
         # though, and stash that information, since turning URLs into links
         # can artificially lengthen lines.
         my $broken = _is_broken $_;
-        $_ = urlize $_;
+        $_ = _format_urls($_);
 
-        # Check to see if we're in a contents section, and if so if this
-        # paragraph looks like a table of contents.  If so, turn all of the
-        # section headings into links and assume broken text.
-        if ($STATE{contents} && _is_contents $_) { $_ = contents $_ }
+        # Check to see if we're in a contents section and this paragraph looks
+        # like a table of contents.  If so, turn all of the section headings
+        # into links.
+        if ($STATE{contents} && _is_contents($_)) {
+            $_ = _format_contents($_)
+        }
 
         # Check for paragraphs that are entirely bulletted lines, and turn
         # them into unordered lists without <p> tags.
@@ -1504,7 +1540,7 @@ Russ Allbery <rra@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 1999-2002, 2004-2005, 2008, 2010, 2013, 2021-2023 Russ Allbery
+Copyright 1999-2002, 2004-2005, 2008, 2010, 2013, 2021-2024 Russ Allbery
 <rra@cpan.org>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
