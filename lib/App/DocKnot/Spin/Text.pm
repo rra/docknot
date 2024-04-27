@@ -51,6 +51,20 @@ sub _format_contents {
     return $text;
 }
 
+# Turns *some text* into <strong>some text</strong>, while trying to be
+# careful to avoid other uses of wildcards.
+#
+# $string - Text to format
+#
+# Returns: Text with bold replaced with HTML markup.
+sub _format_bold {
+    my ($text) = @_;
+    $text =~ s{
+        (^|\s) [*] ( \w .*? \S ) [*] ([,.!?;\s])
+    }{$1<strong>$2</strong>$3}xmsg;
+    return $text;
+}
+
 # Format a link.  All whitespace in the link is treated as insignficant.
 #
 # $link - Link to format
@@ -61,11 +75,12 @@ sub _format_url {
     my ($link) = @_;
     my $text = $link;
     $link = _smash(_unescape($link));
-    $text =~ s{ ^ (?: mailto | news ): }{}xms;
+    $text =~ s{ \A (?: mailto | news ): }{}xms;
     return '&lt;<a href="' . $link . '">' . $text . '</a>&gt;';
 }
 
-# Looks for URLs in <> or <URL:...> form and wraps a link around it.
+# Looks for URLs in <> or <URL:...> form and wraps a link around it.  Assumes
+# that < and > have already been escaped.
 #
 # $text - Text to format
 #
@@ -74,8 +89,62 @@ sub _format_urls {
     my ($text) = @_;
     $text =~ s{
         &lt; (?:URL:)? ([a-z]{2,}:.+?) &gt;
-    }{_format_url($1)}xmsge;
+    }{
+        _format_url($1)
+    }xmsge;
     return $text;
+}
+
+# Remove an initial bullet from a paragraph, replacing it with a space.
+#
+# $string - Input string
+#
+# Returns: String with the bullet replaced with spaces.
+sub _remove_bullet {
+    my ($string) = @_;
+    $string =~ s{ \A (\s*) [-*o] (\s) }{$1 $2}xms;
+    return $string;
+}
+
+# Removes an initial number on a paragraph, replacing it with spaces.
+#
+# $string - Input string
+#
+# Returns: String with the number replaced with spaces.
+sub _remove_number {
+    my ($string) = @_;
+    $string =~ s{
+        \A (\s*) (\d\d?[.\)]) (\s)
+    }{
+        $1 . q{ } x length($2) . $3
+    }xmse;
+    return $string;
+}
+
+# Remove a constant prefix at the beginning of each line of a paragraph.
+#
+# $string - Input string
+#
+# Returns: String with the prefix removed from each line.
+sub _remove_prefix {
+    my ($string, $prefix) = @_;
+    $string =~ s{
+        ( (?:\A|\n) \s* ) ( \Q$prefix\E \s+ )
+    }{
+        $1 . q{ } x length($2)
+    }xmsge;
+    return $string;
+}
+
+# Remove ASCII underlining from a section heading.
+#
+# $string - Input string
+#
+# Returns: String with the underlining removed.
+sub _remove_rule {
+    my ($string) = @_;
+    $string =~ s{ \A [-=~]+ \n }{}xms;
+    return $string;
 }
 
 # Remove all whitespace in a string.
@@ -100,27 +169,6 @@ sub _unescape {
     $text =~ s{ &lt; }{<}xmsg;
     $text =~ s{ &amp; }{&}xmsg;
     return $text;
-}
-
-# Removes an initial bullet on a paragraph, replacing it with spaces.
-sub debullet { local $_ = shift; s/(\s*)[-*o](\s)/$1 $2/; $_ }
-
-# Removes an initial number on a paragraph, replacing it with spaces.
-sub denumber {
-    local $_ = shift;
-    s/^(\s*)(\d\d?[.\)])(\s)/$1 . ' ' x length ($2) . $3/e;
-    $_;
-}
-
-# Remove ASCII underlining from a section heading.
-sub derule { local $_ = shift; s/^[-=~]+\n//m; $_ }
-
-# Turns *some text* into <strong>some text</strong>, while trying to be
-# careful to avoid other uses of wildcards.
-sub embolden {
-    local $_ = shift;
-    s%(^|\s)\*(\w.*?\S)\*([,.!?;\s])%$1<strong>$2</strong>$3%gs;
-    $_;
 }
 
 # Escapes &, <, and > characters found in a string.
@@ -162,13 +210,6 @@ sub strip_indent {
         s/^ {$indent}//gm;
     }
     $_;
-}
-
-# Remove a constant prefix at the beginning of each line of a paragraph.
-sub unquote {
-    my ($string, $quote) = @_;
-    $string =~ s/((?:^|\n)\s*)(\Q$quote\E\s+)/$1 . ' ' x length ($2)/ge;
-    $string;
 }
 
 # Replace tabs with spaces.
@@ -1086,11 +1127,12 @@ sub _convert_document {
                 $STATE{h2} = $indent;
                 $h = \&h2;
             }
+            $_ = _remove_rule($_);
             if (/^([\d.]+)[.\)]\s/) {
                 my $anchor = qq(a name="S$1" id="S$1");
-                $self->_output(start(), $h->(container($anchor, derule($_))));
+                $self->_output(start(), $h->(container($anchor, $_)));
             } else {
-                $self->_output(start(), $h->(derule($_)));
+                $self->_output(start(), $h->($_));
             }
             $INDENT = $STATE{baseline};
             next;
@@ -1129,9 +1171,9 @@ sub _convert_document {
                 if (_is_bullet $_) {
                     if (defined $last) {
                         $self->_output(start($INDENT, 'ul'));
-                        $self->_output(li($INDENT, embolden($last)));
+                        $self->_output(li($INDENT, _format_bold($last)));
                     }
-                    $last = debullet $_;
+                    $last = _remove_bullet($_);
                     $INDENT = indent $last;
                 } else {
                     $last .= "\n$_";
@@ -1139,7 +1181,7 @@ sub _convert_document {
             }
             if (defined $last) {
                 $self->_output(start($INDENT, 'ul'));
-                $self->_output(li($INDENT, embolden($last)));
+                $self->_output(li($INDENT, _format_bold($last)));
             }
             next;
         }
@@ -1151,20 +1193,20 @@ sub _convert_document {
             for (@lines) {
                 next unless /\S/;
                 my ($number) = /^(\d+)/;
-                $_ = denumber $_;
+                $_ = _remove_number($_);
                 $INDENT = indent $_;
                 $self->_output(start($INDENT, 'ol'));
-                $self->_output(li($INDENT, embolden($_), $number));
+                $self->_output(li($INDENT, _format_bold($_), $number));
             }
             next;
         }
 
         # Check for bulletted paragraphs and turn them into lists.
         if (_is_bullet $_) {
-            $_ = debullet $_;
+            $_ = _remove_bullet($_);
             $INDENT = indent $_;
             $self->_output(start($INDENT, 'ul'));
-            $self->_output(li($INDENT, p(embolden $_)));
+            $self->_output(li($INDENT, p(_format_bold($_))));
             next;
         }
 
@@ -1172,9 +1214,9 @@ sub _convert_document {
         # blockquotes provided they don't have inconsistent indentation.
         my $quote = _is_quoted ($_);
         if ($quote && !$broken) {
-            $_ = unquote ($_, $quote);
+            $_ = _remove_prefix($_, $quote);
             $INDENT = indent $_;
-            $self->_output(start($INDENT, 'blockquote', p(embolden $_)));
+            $self->_output(start($INDENT, 'blockquote', p(_format_bold($_))));
             next;
         }
 
@@ -1182,11 +1224,11 @@ sub _convert_document {
         my $number = _is_numbered ($_);
         if (defined $number) {
             my $contents = _is_contents ($_);
-            $_ = denumber $_;
+            $_ = _remove_number($_);
             $INDENT = indent $_;
             s%(\n\s*\S)%<br />$1%g if ($broken || $contents);
             $self->_output(start($INDENT, 'ol'));
-            $self->_output(li($INDENT, p(embolden($_)), $number));
+            $self->_output(li($INDENT, p(_format_bold($_)), $number));
             next;
         }
 
@@ -1204,12 +1246,12 @@ sub _convert_document {
                 push (@title, $title);
             }
             if ($indent == $INDENT || indent ($body) == $INDENT) {
-                @title = map { embolden ($_) } @title;
+                @title = map { _format_bold($_) } @title;
                 my $title = join ("<br />\n", @title) . "\n";
                 $INDENT = indent $body;
                 $body =~ s%(\n\s*\S)%<br />$1%g if _is_broken $body;
                 $self->_output(start($indent, 'dl', dt($title)));
-                $self->_output(start($INDENT, 'dd', p(embolden $body)));
+                $self->_output(start($INDENT, 'dd', p(_format_bold($body))));
                 next;
             }
         }
@@ -1232,7 +1274,8 @@ sub _convert_document {
                 $STATE{pre} = 1;
             } else {
                 $INDENT = $indent;
-                $self->_output(start($INDENT, 'blockquote', p(embolden($_))));
+                my $paragraph = p(_format_bold($_));
+                $self->_output(start($INDENT, 'blockquote', $paragraph));
             }
             next;
         }
@@ -1247,7 +1290,7 @@ sub _convert_document {
         }
         $INDENT = $indent;
         s%(\n\s*\S)%<br />$1%g if $broken;
-        $self->_output(p(embolden($_)));
+        $self->_output(p(_format_bold($_)));
 
     } continue {
         $WS = $space;
