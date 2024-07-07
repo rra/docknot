@@ -8,6 +8,7 @@ docknot (8.0.0-1) UNRELEASED; urgency=medium
     - Adjust the documentation generation for unmaintained packages.
     - Add missing </address> in pages rendered from Markdown.
     - Fix URL in docknot spin footer to point to the DocKnot home page.
+  * Adjust watch and gbp.conf for the new upstream versioning pattern.
 
  -- Russ Allbery <rra@debian.org>  Sun, 07 Jul 2024 08:28:24 -0700
 
