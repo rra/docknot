@@ -1,4 +1,4 @@
-docknot (8.0.0-1) UNRELEASED; urgency=medium
+docknot (8.0.0-1) unstable; urgency=medium
 
   * New upstream release.
     - Add App::DocKnot::Spin::Text and docknot spin-text.
@@ -14,7 +14,7 @@ docknot (8.0.0-1) UNRELEASED; urgency=medium
   * Update standards version to 4.7.0 (no changes required).
   * Refresh upstream signing key.
 
- -- Russ Allbery <rra@debian.org>  Sun, 07 Jul 2024 08:28:24 -0700
+ -- Russ Allbery <rra@debian.org>  Sun, 07 Jul 2024 10:28:59 -0700
 
 docknot (7.01-2) unstable; urgency=medium
 
