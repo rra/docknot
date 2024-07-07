@@ -8,6 +8,7 @@ docknot (8.0.0-1) UNRELEASED; urgency=medium
     - Adjust the documentation generation for unmaintained packages.
     - Add missing </address> in pages rendered from Markdown.
     - Fix URL in docknot spin footer to point to the DocKnot home page.
+  * Migrate to debputy.
   * Adjust watch and gbp.conf for the new upstream versioning pattern.
   * Update standards version to 4.7.0 (no changes required).
   * Refresh upstream signing key.

@@ -3,6 +3,7 @@ Section: text
 Priority: optional
 Build-Depends:
  debhelper-compat (= 13),
+ dh-sequence-zz-debputy,
  git,
  libcapture-tiny-perl,
  libfile-basedir-perl,
@@ -65,8 +66,6 @@ Depends:
  libyaml-libyaml-perl,
  pandoc,
  pkwalify,
- ${misc:Depends},
- ${perl:Depends},
 Description: Static web site and documentation generator
  DocKnot is a static web site generator built around a macro language
  called thread, with special support for managing software releases.  In

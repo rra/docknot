@@ -1,0 +1,6 @@
+manifest-version: '0.1'
+installations:
+- install-docs:
+    sources:
+    - README
+    - TODO
