@@ -33,7 +33,8 @@ our @EXPORT_OK = qw(fix_pointers is_spin_output is_spin_output_tree);
 # Replace pointers in a spin input tree containing relative paths with
 # absolute paths.  This is used after copying an input tree to a temporary
 # directory when it contains references to other files in the same source
-# tree.
+# tree.  Fix permissions as we go to allow writes since when building a
+# distribution the original file may be read-only.
 #
 # $tree - Path::Tiny pointing to a tree of files containing pointers
 # $base - Base path of the original input tree as a Path::Tiny object
@@ -42,7 +43,8 @@ sub fix_pointers {
     my $rule = Path::Iterator::Rule->new()->name('*.spin')->file();
     my $iter = $rule->iter("$tree", { follow_symlinks => 0 });
     while (defined(my $file = $iter->())) {
-        my $data_ref = YAML::XS::LoadFile("$file");
+        chmod(0644, $file);
+        my $data_ref = YAML::XS::LoadFile($file);
         my $path = path($data_ref->{path});
         my $top = path($file)->parent()->relative($tree)->absolute($base);
         $data_ref->{path} = $path->absolute($top)->realpath()->stringify();
