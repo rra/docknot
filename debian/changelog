@@ -1,3 +1,16 @@
+docknot (8.0.0-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+    - Add App::DocKnot::Spin::Text and docknot spin-text.
+    - Support *.spin pointers for external text files, deprecating *.faq.
+    - Support version numbers prefixed with v in release tarball names.
+    - Change the docknot.yaml field orphaned to unmaintained.
+    - Adjust the documentation generation for unmaintained packages.
+    - Add missing </address> in pages rendered from Markdown.
+    - Fix URL in docknot spin footer to point to the DocKnot home page.
+
+ -- Russ Allbery <rra@debian.org>  Sun, 07 Jul 2024 08:28:24 -0700
+
 docknot (7.01-2) unstable; urgency=medium
 
   * Apply upstream patch to fix test suite with Perl 5.36 and later.  The
