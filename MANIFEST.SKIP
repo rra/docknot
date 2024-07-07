@@ -64,3 +64,5 @@
 # This is not entirely correct, since they should indeed be ignored when
 # creating the distribution, but it happens to work for me.  See the bug for
 # more details.
+^MYMETA\.yml$
+^MYMETA\.json$
