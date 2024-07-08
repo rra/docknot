@@ -75,6 +75,8 @@ docs:
       title: App::DocKnot::Spin::RSS
     - name: api/app-docknot-spin-sitemap
       title: App::DocKnot::Spin::Sitemap
+    - name: api/app-docknot-spin-text
+      title: App::DocKnot::Spin::Text
     - name: api/app-docknot-spin-thread
       title: App::DocKnot::Spin::Thread
     - name: api/app-docknot-spin-versions
