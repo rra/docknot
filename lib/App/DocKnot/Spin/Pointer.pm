@@ -78,7 +78,7 @@ sub _spin_markdown {
         }
     }
     if ($data_ref->{style}) {
-        $style = $self->{style_url} . $data_ref->{style};
+        $style = $self->{style_url} . $data_ref->{style} . '.css';
     }
     my %vars = (
         docknot_url => $URL,
