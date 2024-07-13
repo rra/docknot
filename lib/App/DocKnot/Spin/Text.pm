@@ -388,8 +388,8 @@ sub _is_heading {
     my ($self, $paragraph) = @_;
     $paragraph = _unescape($paragraph);
     my $indent = indent($paragraph);
-    my $nobase = !defined($STATE{baseline});
-    my $outdented = defined($STATE{baseline}) && $indent < $STATE{baseline};
+    my $nobase = !defined($self->{baseline});
+    my $outdented = defined($self->{baseline}) && $indent < $self->{baseline};
 
     # Numbered lines inside the contents section are definitely not headings.
     my $numbered = $paragraph =~ m{ \A [\d.]+[.\)] \s }xms;
@@ -996,6 +996,7 @@ sub _convert_document {
 
     # Initialize object state for a new document.
     #<<<
+    $self->{baseline} = undef;      # Baseline indentation of text
     $self->{buffer}   = undef;      # Buffered input line not yet converted
     $self->{in_fh}    = $in_fh;     # Input file handle
     $self->{in_path}  = $in_path;   # Path to input file
@@ -1134,14 +1135,14 @@ sub _convert_document {
             } else {
                 $self->_output(start(), $h->($_));
             }
-            $INDENT = $STATE{baseline};
+            $INDENT = $self->{baseline};
             next;
         }
 
         # A sudden change to an indentation of 0 when that's less than our
         # indentation baseline is also a sign of literal text.
-        if ($INDENT && $indent == 0 && $INDENT > 0 && defined($STATE{baseline})
-            && $STATE{baseline} > 0) {
+        if ($INDENT && $indent == 0 && $INDENT > 0 && defined($self->{baseline})
+            && $self->{baseline} > 0) {
             $self->_output(pre(strip_indent($_, $INDENT)));
             $STATE{pre} = 1;
             next;
@@ -1285,8 +1286,8 @@ sub _convert_document {
 
         # Looks like a normal paragraph.  Establish our indentation baseline
         # if we haven't already.
-        if (!defined $STATE{baseline} && !$INDENT) {
-            $STATE{baseline} = $indent;
+        if (!defined $self->{baseline} && !$INDENT) {
+            $self->{baseline} = $indent;
         }
         $INDENT = $indent;
         s%(\n\s*\S)%<br />$1%g if $broken;
