@@ -430,8 +430,9 @@ be done if this option is set to true.  The default is false.
 =item style
 
 The style sheet to use for the converted output.  Optional.  If not set,
-converted C<markdown> output will be unstyled and converted C<pod> output will
-use a style sheet named C<pod>.
+converted C<markdown> output will be unstyled, converted C<pod> output will
+use a style sheet named C<pod>, and converted C<text> output will use a style
+sheet named C<faq>.
 
 =item title
 
