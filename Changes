@@ -1,6 +1,6 @@
                        Revision history for DocKnot
 
-v8.0.1 - Not Released
+v8.0.1 - 2024-07-14
 
  - Fix formatting of Perl Changes files and possibly other text documents
    when formatting multiple documents with App::DocKnot::Spin::Text in the
