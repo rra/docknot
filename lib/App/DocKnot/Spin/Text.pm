@@ -19,7 +19,7 @@ use 5.024;
 use autodie;
 use warnings FATAL => 'utf8';
 
-use vars qw($INDENT @INDENT $WS);
+use vars qw($INDENT @INDENT);
 
 use App::DocKnot;
 use App::DocKnot::Util qw(print_fh);
@@ -581,9 +581,11 @@ sub _buffer_line {
 # @data - HTML to output
 sub _output {
     my ($self, @data) = @_;
-    if ($WS) {
-        $data[0] =~ s{ \A (\s* (?: </(?!body)[^>]+> \s*)* )}{$1$WS}xms;
-        $WS = q{};
+    if ($self->{whitespace}) {
+        $data[0] =~ s{
+            \A (\s* (?: </(?!body)[^>]+> \s*)* )
+        }{$1$self->{whitespace}}xms;
+        $self->{whitespace} = q{};
     }
     print_fh($self->{out_fh}, $self->{output}, @data);
     return;
@@ -996,15 +998,16 @@ sub _convert_document {
 
     # Initialize object state for a new document.
     #<<<
-    $self->{baseline} = undef;      # Baseline indentation of text
-    $self->{buffer}   = undef;      # Buffered input line not yet converted
-    $self->{contents} = 0;          # Whether inside a contents section
-    $self->{in_fh}    = $in_fh;     # Input file handle
-    $self->{in_path}  = $in_path;   # Path to input file
-    $self->{h2}       = undef;      # Indentation level for h2 headings
-    $self->{out_fh}   = $out_fh;    # Output file handle
-    $self->{out_path} = $out_path;  # Path to the output file
-    $self->{pre}      = 0;          # Whether inside a preformatted block
+    $self->{baseline}   = undef;      # Baseline indentation of text
+    $self->{buffer}     = undef;      # Buffered input line not yet converted
+    $self->{contents}   = 0;          # Whether inside a contents section
+    $self->{in_fh}      = $in_fh;     # Input file handle
+    $self->{in_path}    = $in_path;   # Path to input file
+    $self->{h2}         = undef;      # Indentation level for h2 headings
+    $self->{out_fh}     = $out_fh;    # Output file handle
+    $self->{out_path}   = $out_path;  # Path to the output file
+    $self->{pre}        = 0;          # Whether inside a preformatted block
+    $self->{whitespace} = q{};        # Pending whitespace
     #>>>
 
     # Parse the document headers.
@@ -1049,7 +1052,7 @@ sub _convert_document {
             $self->{pre} = 0;
             $self->_output(start(-1));
             undef $INDENT;
-            ($WS) = /\n(\s*)$/;
+            ($self->{whitespace}) = /\n(\s*)$/;
             $_ = $self->_next_paragraph();
             s/\n(\s*)$/\n/;
             $space = $1;
@@ -1297,7 +1300,7 @@ sub _convert_document {
         $self->_output(p(_format_bold($_)));
 
     } continue {
-        $WS = $space;
+        $self->{whitespace} = $space;
     }
 
     # All done.  Print out our closing tags.
