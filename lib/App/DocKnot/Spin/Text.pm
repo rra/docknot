@@ -19,7 +19,7 @@ use 5.024;
 use autodie;
 use warnings FATAL => 'utf8';
 
-use vars qw($INDENT @INDENT %STATE $WS);
+use vars qw($INDENT @INDENT $WS);
 
 use App::DocKnot;
 use App::DocKnot::Util qw(print_fh);
@@ -393,7 +393,7 @@ sub _is_heading {
 
     # Numbered lines inside the contents section are definitely not headings.
     my $numbered = $paragraph =~ m{ \A [\d.]+[.\)] \s }xms;
-    return if !$outdented && $STATE{contents} && $numbered;
+    return if !$outdented && $self->{contents} && $numbered;
 
     # Outdented single lines are headings as long as they're either short or
     # contain at least two words.
@@ -998,10 +998,13 @@ sub _convert_document {
     #<<<
     $self->{baseline} = undef;      # Baseline indentation of text
     $self->{buffer}   = undef;      # Buffered input line not yet converted
+    $self->{contents} = 0;          # Whether inside a contents section
     $self->{in_fh}    = $in_fh;     # Input file handle
     $self->{in_path}  = $in_path;   # Path to input file
+    $self->{h2}       = undef;      # Indentation level for h2 headings
     $self->{out_fh}   = $out_fh;    # Output file handle
     $self->{out_path} = $out_path;  # Path to the output file
+    $self->{pre}      = 0;          # Whether inside a preformatted block
     #>>>
 
     # Parse the document headers.
@@ -1043,7 +1046,7 @@ sub _convert_document {
         # Subject: line that we want to turn into a section header.  Digest
         # section titles are always level 2 headers currently.
         if (_is_divider $_) {
-            $STATE{pre} = 0;
+            $self->{pre} = 0;
             $self->_output(start(-1));
             undef $INDENT;
             ($WS) = /\n(\s*)$/;
@@ -1051,7 +1054,7 @@ sub _convert_document {
             s/\n(\s*)$/\n/;
             $space = $1;
             if (s/^Subject:\s+//) {
-                $STATE{contents} = /\bcontents\b/i;
+                $self->{contents} = /\bcontents\b/i;
                 $_ = escape $_;
                 if (/^([\d.]+)[.\)]\s/) {
                     $self->_output(
@@ -1066,7 +1069,7 @@ sub _convert_document {
 
         # Treat lines of dash-type characters as rules.
         if (_is_rule $_) {
-            $STATE{pre} = 0;
+            $self->{pre} = 0;
             ($space) = /\n(\s*)$/;
             $self->_output(start(-1), "<hr />\n");
             undef $INDENT;
@@ -1089,7 +1092,7 @@ sub _convert_document {
             $self->_output(pre(strip_indent($_, $INDENT)));
             s/\n(\n\s*)$/\n/;
             $space = $1;
-            $STATE{pre} = 1;
+            $self->{pre} = 1;
             next;
         }
 
@@ -1103,12 +1106,12 @@ sub _convert_document {
         # relative to the baseline *and* the last paragraph we emitted was
         # enclosed in <pre>, assume that this paragraph belongs in <pre> as
         # well.
-        if ($STATE{pre}) {
+        if ($self->{pre}) {
             if (_is_offset ($_) || (defined $INDENT && $indent > $INDENT)) {
                 $self->_output(pre(strip_indent($_, $INDENT)));
                 next;
             } else {
-                $STATE{pre} = 0;
+                $self->{pre} = 0;
             }
         }
 
@@ -1119,13 +1122,13 @@ sub _convert_document {
         # other headings at a greater indent, they're marked as level 3.
         if ($self->_is_heading ($_)) {
             s/^\s+//;
-            $STATE{contents} = /\bcontents\b/i;
+            $self->{contents} = /\bcontents\b/i;
             my $h;
-            if (defined $STATE{h2}) {
-                if ($indent <= $STATE{h2}) { $h = \&h2 }
-                else                       { $h = \&h3 }
+            if (defined $self->{h2}) {
+                if ($indent <= $self->{h2}) { $h = \&h2 }
+                else                        { $h = \&h3 }
             } else {
-                $STATE{h2} = $indent;
+                $self->{h2} = $indent;
                 $h = \&h2;
             }
             $_ = _remove_rule($_);
@@ -1144,7 +1147,7 @@ sub _convert_document {
         if ($INDENT && $indent == 0 && $INDENT > 0 && defined($self->{baseline})
             && $self->{baseline} > 0) {
             $self->_output(pre(strip_indent($_, $INDENT)));
-            $STATE{pre} = 1;
+            $self->{pre} = 1;
             next;
         }
 
@@ -1158,7 +1161,7 @@ sub _convert_document {
         # Check to see if we're in a contents section and this paragraph looks
         # like a table of contents.  If so, turn all of the section headings
         # into links.
-        if ($STATE{contents} && _is_contents($_)) {
+        if ($self->{contents} && _is_contents($_)) {
             $_ = _format_contents($_)
         }
 
@@ -1261,7 +1264,7 @@ sub _convert_document {
         # in <pre>.
         if (_is_offset $_) {
             $self->_output(pre(strip_indent($_, $INDENT)));
-            $STATE{pre} = 1;
+            $self->{pre} = 1;
             next;
         }
 
@@ -1272,7 +1275,7 @@ sub _convert_document {
         if (defined $INDENT && $indent > $INDENT) {
             if ($broken || (lines ($_) == 1 && !_is_sentence $_)) {
                 $self->_output(pre(strip_indent($_, $INDENT)));
-                $STATE{pre} = 1;
+                $self->{pre} = 1;
             } else {
                 $INDENT = $indent;
                 my $paragraph = p(_format_bold($_));
