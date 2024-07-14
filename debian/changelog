@@ -1,3 +1,14 @@
+docknot (8.0.1-1) unstable; urgency=medium
+
+  * New upstream release.
+    - Fix formatting of some text documents due to leakage of global state
+      between documents.
+    - Automatically add the .css suffix to style sheets specified in
+      Markdown pointers, matching the behavior of other pointers.
+    - Fix style sheet URLs during docknot update-spin.
+
+ -- Russ Allbery <rra@debian.org>  Sun, 14 Jul 2024 11:30:22 -0700
+
 docknot (8.0.0-1) unstable; urgency=medium
 
   * New upstream release.
