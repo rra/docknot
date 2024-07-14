@@ -1,6 +1,13 @@
 manifest-version: '0.1'
 installations:
-- install-docs:
-    sources:
-    - README
-    - TODO
+  - install-docs:
+      sources:
+        - README
+        - TODO
+packages:
+  docknot:
+    transformations:
+      - path-metadata:
+          path: "usr/share/perl5"
+          mode: "u+w"
+          recursive: true

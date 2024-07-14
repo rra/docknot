@@ -6,6 +6,7 @@ docknot (8.0.1-1) unstable; urgency=medium
     - Automatically add the .css suffix to style sheets specified in
       Markdown pointers, matching the behavior of other pointers.
     - Fix style sheet URLs during docknot update-spin.
+  * Fix permissions of installed Perl modules to match Debian Policy.
   * Add X-Style: black to debian/control and reformat with debputy.
   * Remove now-unnecessary debian/docs debhelper configuration file.
 
