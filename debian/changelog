@@ -10,7 +10,7 @@ docknot (8.0.1-1) unstable; urgency=medium
   * Add X-Style: black to debian/control and reformat with debputy.
   * Remove now-unnecessary debian/docs debhelper configuration file.
 
- -- Russ Allbery <rra@debian.org>  Sun, 14 Jul 2024 11:30:22 -0700
+ -- Russ Allbery <rra@debian.org>  Sun, 14 Jul 2024 11:58:28 -0700
 
 docknot (8.0.0-1) unstable; urgency=medium
 
