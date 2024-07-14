@@ -7,6 +7,7 @@ docknot (8.0.1-1) unstable; urgency=medium
       Markdown pointers, matching the behavior of other pointers.
     - Fix style sheet URLs during docknot update-spin.
   * Add X-Style: black to debian/control and reformat with debputy.
+  * Remove now-unnecessary debian/docs debhelper configuration file.
 
  -- Russ Allbery <rra@debian.org>  Sun, 14 Jul 2024 11:30:22 -0700
 
