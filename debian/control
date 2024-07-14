@@ -11,8 +11,8 @@ Build-Depends:
  libfile-sharedir-perl,
  libgit-repository-perl,
  libimage-size-perl,
- libio-compress-perl,
  libio-compress-lzma-perl,
+ libio-compress-perl,
  libipc-run-perl,
  libipc-system-simple-perl,
  libjson-maybexs-perl,
@@ -25,8 +25,8 @@ Build-Depends:
  libsort-versions-perl,
  libtemplate-perl,
  libtest-minimumversion-perl,
- libtest-pod-perl,
  libtest-pod-coverage-perl,
+ libtest-pod-perl,
  libtest-strict-perl,
  libtest-synopsis-perl,
  libtimedate-perl,
@@ -41,6 +41,7 @@ Standards-Version: 4.7.0
 Homepage: https://www.eyrie.org/~eagle/software/docknot/
 Vcs-Git: https://salsa.debian.org/rra/docknot.git
 Vcs-Browser: https://salsa.debian.org/rra/docknot
+X-Style: black
 
 Package: docknot
 Architecture: all
@@ -50,8 +51,8 @@ Depends:
  libfile-sharedir-perl,
  libgit-repository-perl,
  libimage-size-perl,
- libio-compress-perl,
  libio-compress-lzma-perl,
+ libio-compress-perl,
  libipc-run-perl,
  libipc-system-simple-perl,
  libjson-maybexs-perl,
