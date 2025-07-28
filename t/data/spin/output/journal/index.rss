@@ -440,7 +440,7 @@ know.
 </p>
 
 <p>
-Singh comes to this subject with a serious structural problem: he's trying
+<a href="#test">Singh</a> comes to this subject with a serious structural problem: he's trying
 to write a popular account that's accessible even to people who are hazy
 on algebra and unfamiliar with basic proof technique, but he's trying to
 tell the story of one of the most complex proofs in modern mathematics.
@@ -474,7 +474,7 @@ useful.
 </p>
 
 <p>
-Another difficulty of aiming at such a broad audience is that Singh can't
+<span id="test">Another</span> difficulty of aiming at such a broad audience is that Singh can't
 dig too deeply into the aspects of this proof that make it so important to
 modern mathematics.  Too much background in very difficult math would be
 needed, so his choice makes sense, but I have some of that background and

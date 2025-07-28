@@ -638,10 +638,11 @@ sub _index_output {
         }
 
         # Make all the URLs absolute and then convert images back to relative
-        # based on the URL of the file we're creating.  This handles
-        # correcting links from thread from elsewhere in the tree.
+        # based on the URL of the file we're creating. This handles correcting
+        # links from thread from elsewhere in the tree. Do not correct links
+        # that are only anchors; those can be copied verbatim to the output.
         $text =~ s{
-            ( \\ (?: link | image ) \s* \[ ) ( [^\]]+ ) \]
+            ( \\ (?: link | image ) \s* \[ ) ( [^\#\]] [^\]]* ) \]
         }{ $1 . _absolute_url($2, $entry_ref->{link}) . ']' }xmsge;
         $text =~ s{
             ( \\ image \s* \[ ) ( [^\]]+ ) \]

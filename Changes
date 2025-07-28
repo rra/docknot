@@ -1,5 +1,10 @@
                        Revision history for DocKnot
 
+v8.0.2 - Not Released
+
+ - Do not add the base URL to anchor-only links in reviews when rewriting
+   them for inclusion in the journal index.
+
 v8.0.1 - 2024-07-14
 
  - Fix formatting of Perl Changes files and possibly other text documents

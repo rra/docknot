@@ -38,7 +38,7 @@ follow the same path that Fermat himself did.  If, in fact, Fermat had
 truly proven the theorem at all, something that we will probably never
 know.
 
-Singh comes to this subject with a serious structural problem: he's trying
+\link[#test][Singh] comes to this subject with a serious structural problem: he's trying
 to write a popular account that's accessible even to people who are hazy
 on algebra and unfamiliar with basic proof technique, but he's trying to
 tell the story of one of the most complex proofs in modern mathematics.
@@ -68,7 +68,7 @@ on a TV documentary, and I started wondering if some of the dramatic tone
 of television carried over into the book where it's more obvious and less
 useful.
 
-Another difficulty of aiming at such a broad audience is that Singh can't
+\class(#test)[Another] difficulty of aiming at such a broad audience is that Singh can't
 dig too deeply into the aspects of this proof that make it so important to
 modern mathematics.  Too much background in very difficult math would be
 needed, so his choice makes sense, but I have some of that background and
