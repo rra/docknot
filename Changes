@@ -3,7 +3,10 @@
 v8.0.2 - Not Released
 
  - Do not add the base URL to anchor-only links in reviews when rewriting
-   them for inclusion in the journal index.
+   them for inclusion in the journal index. (GitHub #11)
+
+ - Fix syntax error in Perl 5.41 and later from incorrectly using break
+   instead of last.
 
 v8.0.1 - 2024-07-14
 

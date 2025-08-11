@@ -763,7 +763,7 @@ sub _split_paragraphs {
                 $para .= $extra;
             } else {
                 # This should be impossible.
-                break;
+                last;
             }
         }
         push(@paragraphs, $para);
@@ -2096,7 +2096,7 @@ Russ Allbery <rra@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 1999-2011, 2013, 2021-2023 Russ Allbery <rra@cpan.org>
+Copyright 1999-2011, 2013, 2021-2023, 2025 Russ Allbery <rra@cpan.org>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
