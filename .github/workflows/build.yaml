@@ -48,8 +48,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Install pandoc
-        run: apt-get -y --no-install-recommends install pandoc
+      - name: Install Debian packages
+        run: apt-get -y --no-install-recommends install liblzma-dev pandoc
 
       - uses: perl-actions/install-with-cpm@v1.9
         with:
