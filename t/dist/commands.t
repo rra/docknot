@@ -48,7 +48,7 @@ is_deeply(\@seen, \@expected, 'Module::Build');
 # ExtUtils::MakeMaker distribution.
 my $metadata_path = $dataroot->child('ansicolor', 'docknot.yaml');
 $docknot = App::DocKnot::Dist->new(
-    { distdir => q{.}, metadata => "$metadata_path" },
+    { distdir => q{.}, metadata => "$metadata_path" }
 );
 @expected = (
     ['perl', 'Makefile.PL'],
@@ -61,7 +61,7 @@ is_deeply(\@seen, \@expected, 'ExtUtils::MakeMaker');
 # Autoconf distribution.
 $metadata_path = $dataroot->child('lbcd', 'docknot.yaml');
 $docknot = App::DocKnot::Dist->new(
-    { distdir => q{.}, metadata => "$metadata_path" },
+    { distdir => q{.}, metadata => "$metadata_path" }
 );
 @expected = (
     ['./bootstrap'],
@@ -82,7 +82,7 @@ is_deeply(\@seen, \@expected, 'Autoconf');
 # Autoconf distribution with C++ and valgrind.
 $metadata_path = $dataroot->child('c-tap-harness', 'docknot.yaml');
 $docknot = App::DocKnot::Dist->new(
-    { distdir => q{.}, metadata => "$metadata_path" },
+    { distdir => q{.}, metadata => "$metadata_path" }
 );
 @expected = (
     ['./bootstrap'],
@@ -107,7 +107,7 @@ is_deeply(\@seen, \@expected, 'Autoconf with C++');
 # Makefile only distribution (make).
 $metadata_path = $dataroot->child('control-archive', 'docknot.yaml');
 $docknot = App::DocKnot::Dist->new(
-    { distdir => q{.}, metadata => "$metadata_path" },
+    { distdir => q{.}, metadata => "$metadata_path" }
 );
 @expected = (['make', 'dist']);
 @seen = $docknot->commands();

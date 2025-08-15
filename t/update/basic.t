@@ -37,7 +37,7 @@ for my $test (@tests) {
     my $expected_path = $dataroot->child($test, 'docknot.yaml');
     my $output_path = $tempdir->child("$test.yaml");
     my $docknot = App::DocKnot::Update->new(
-        { metadata => $metadata_path, output => $output_path },
+        { metadata => $metadata_path, output => $output_path }
     );
     isa_ok($docknot, 'App::DocKnot::Update', "for $test");
     $docknot->update();

@@ -28,7 +28,7 @@ my $outputdir = $datadir->child('output');
 
 # Spin a simple file.
 my $spin = App::DocKnot::Spin::Text->new(
-    { modified => 1, style => '/~eagle/styles/faq-short.css' },
+    { modified => 1, style => '/~eagle/styles/faq-short.css' }
 );
 my $input = $inputdir->child('rgra');
 $spin->spin_text_file($input, $tempfile);
@@ -38,7 +38,7 @@ is_spin_output(
 
 # Spin a more complex file.
 $spin = App::DocKnot::Spin::Text->new(
-    { modified => 1, style => '/~eagle/styles/faq.css' },
+    { modified => 1, style => '/~eagle/styles/faq.css' }
 );
 $input = $inputdir->child('mjqmail');
 $spin->spin_text_file($input, $tempfile);

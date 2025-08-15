@@ -324,7 +324,7 @@ sub check_dist {
 sub commands {
     my ($self) = @_;
     my $type = $self->{config}{build}{type};
-    my @commands = map { [@$_] } $COMMANDS{$type}->@*;
+    my @commands = map { [$_->@*] } $COMMANDS{$type}->@*;
 
     # Special-case: If a specific path to Perl was configured, use that path
     # rather than searching for perl in the user's PATH.  This is used
@@ -585,7 +585,7 @@ Russ Allbery <rra@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2019-2022 Russ Allbery <rra@cpan.org>
+Copyright 2019-2022, 2025 Russ Allbery <rra@cpan.org>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

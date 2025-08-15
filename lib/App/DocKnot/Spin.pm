@@ -559,7 +559,7 @@ sub spin {
             source      => $input,
             'style-url' => $self->{style_url},
             versions    => $self->{versions},
-        },
+        }
     );
 
     # Create the processor for pointers.
@@ -569,7 +569,7 @@ sub spin {
             sitemap     => $self->{sitemap},
             'style-url' => $self->{style_url},
             thread      => $self->{thread},
-        },
+        }
     );
 
     # Process the input tree.

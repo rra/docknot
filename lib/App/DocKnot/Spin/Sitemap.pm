@@ -57,11 +57,11 @@ sub _read_data {
         # Break a prev/next chain at --- lines.
         if ($line =~ m{ \A ([ ]*) --- \z }xms) {
             my $indent = length($1);
-            while (@indents && $indents[-1]->[0] > $indent) {
+            while (@indents && $indents[-1][0] > $indent) {
                 pop(@indents);
             }
             if (@indents) {
-                $indents[-1]->[2] = undef;
+                $indents[-1][2] = undef;
             }
             next;
         }
@@ -81,11 +81,11 @@ sub _read_data {
 
         # Open or close indentation levels.
         my $indent = length($spaces);
-        if (!@indents || $indent > $indents[-1]->[0]) {
-            my $prev = @indents ? $indents[-1]->[2] : undef;
+        if (!@indents || $indent > $indents[-1][0]) {
+            my $prev = @indents ? $indents[-1][2] : undef;
             push(@indents, [$indent, $prev, undef]);
         } else {
-            while ($indents[-1]->[0] > $indent) {
+            while ($indents[-1][0] > $indent) {
                 pop(@indents);
             }
         }
@@ -100,11 +100,11 @@ sub _read_data {
         # next page on the same level.
         my @parents = map { $_->[1] } @indents;
         shift(@parents);
-        $self->{links}{$url} = [$indents[-1]->[2], undef, reverse(@parents)];
-        if (defined($indents[-1]->[2])) {
-            $self->{links}{ $indents[-1]->[2] }[1] = $url;
+        $self->{links}{$url} = [$indents[-1][2], undef, reverse(@parents)];
+        if (defined($indents[-1][2])) {
+            $self->{links}{ $indents[-1][2] }[1] = $url;
         }
-        $indents[-1]->[2] = $url;
+        $indents[-1][2] = $url;
     }
     close($fh);
     return;
@@ -468,7 +468,8 @@ Russ Allbery <rra@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 1999-2000, 2002-2004, 2008, 2021-2022 Russ Allbery <rra@cpan.org>
+Copyright 1999-2000, 2002-2004, 2008, 2021-2022, 2025 Russ Allbery
+<rra@cpan.org>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
