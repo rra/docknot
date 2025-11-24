@@ -46,7 +46,7 @@ jobs:
       AUTHOR_TESTING: 1
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Install Debian packages
         run: apt-get -y --no-install-recommends install liblzma-dev pandoc
